@@ -1,136 +1,117 @@
-// @ts-nocheck
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { withCors, handleCors } from "../_shared/cors.ts";
-import { getUserId } from "../_shared/db.ts";
-import { 
-  Application, 
-  CreateApplicationInput, 
-  createSuccessResponse, 
-  createErrorResponse 
-} from "../_shared/schemas.ts";
+/**
+ * @file Supabase Edge Function for creating a new application.
+ * @author JATA
+ *
+ * @description This function handles POST requests to create a new application record.
+ * It requires user authentication and validates the request body against a Zod schema.
+ *
+ * @see {@link https://supabase.com/docs/functions}
+ *
+ * @example
+ * ```bash
+ * curl -X POST 'https://<project_ref>.supabase.co/functions/v1/applications-create' \
+ *   -H 'Authorization: Bearer <your_jwt>' \
+ *   -H 'Content-Type: application/json' \
+ *   -d '{
+ *     "title": "Software Engineer",
+ *     "company": "Supabase",
+ *     "status": "Applied",
+ *     "date_applied": "2024-01-15",
+ *     "url": "https://supabase.com/careers"
+ *   }'
+ * ```
+ */
 
-serve(async (req: Request) => {
-  // Handle CORS preflight
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { z } from 'zod';
+import { Request, Response, NextFunction } from 'express';
+import { corsMiddleware } from '../_shared/cors';
 
-  // Only allow POST requests
-  if (req.method !== "POST") {
-    return withCors(
-      new Response(
-        JSON.stringify(createErrorResponse("Method not allowed", "METHOD_NOT_ALLOWED")),
-        { status: 405, headers: { "Content-Type": "application/json" } }
-      )
-    );
-  }
+type ApplicationData = {
+  title: string;
+  company: string;
+  status?: 'Applied' | 'Interviewing' | 'Offer' | 'Rejected';
+  date_applied?: string;
+  url?: string;
+  user_id: string;
+};
 
-  try {
-    // Get authenticated user ID
-    const userId = await getUserId(req);
-    if (!userId) {
-      return withCors(
-        new Response(
-          JSON.stringify(createErrorResponse("Unauthorized", "UNAUTHORIZED")),
-          { status: 401, headers: { "Content-Type": "application/json" } }
-        )
-      );
-    }
+type SupabaseTables = {
+  applications: {
+    Insert: ApplicationData;
+    Row: ApplicationData & { id: string; created_at: string; updated_at: string };
+  };
+};
 
-    // Parse and validate request body
-    let applicationData: CreateApplicationInput;
-    try {
-      const body = await req.json();
-      const result = CreateApplicationSchema.safeParse(body);
-      
-      if (!result.success) {
-        const errorMessage = result.error.errors
-          .map((e) => `${e.path.join(".")}: ${e.message}`)
-          .join(", ");
-        
-        return withCors(
-          new Response(
-            JSON.stringify(createErrorResponse(
-              `Validation failed: ${errorMessage}`,
-              "VALIDATION_ERROR",
-              result.error.format()
-            )),
-            { status: 400, headers: { "Content-Type": "application/json" } }
-          )
-        );
-      }
-      
-      applicationData = result.data;
-    } catch (error) {
-      return withCors(
-        new Response(
-          JSON.stringify(createErrorResponse("Invalid JSON in request body", "INVALID_JSON")),
-          { status: 400, headers: { "Content-Type": "application/json" } }
-        )
-      );
-    }
-
-    // Create Supabase client
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: { 
-          headers: { 
-            Authorization: req.headers.get("Authorization") ?? "" 
-          } 
-        },
-        auth: { persistSession: false },
-      }
-    );
-
-    // Insert new application
-    const { data: newApplication, error: dbError } = await supabase
-      .from("applications")
-      .insert([
-        {
-          ...applicationData,
-          user_id: userId,
-          status: applicationData.status || "applied",
-        }
-      ])
-      .select()
-      .single<Application>();
-
-    if (dbError) {
-      console.error("Database error:", dbError);
-      return withCors(
-        new Response(
-          JSON.stringify(createErrorResponse(
-            "Failed to create application",
-            "DATABASE_ERROR",
-            dbError.message
-          )),
-          { status: 500, headers: { "Content-Type": "application/json" } }
-        )
-      );
-    }
-
-    // Return created application
-    return withCors(
-      new Response(
-        JSON.stringify(createSuccessResponse(newApplication)),
-        { 
-          status: 201, 
-          headers: { "Content-Type": "application/json" } 
-        }
-      )
-    );
-  } catch (error) {
-    console.error("Unexpected error:", error);
-    return withCors(
-      new Response(
-        JSON.stringify(createErrorResponse(
-          "Internal server error",
-          "INTERNAL_SERVER_ERROR",
-          error instanceof Error ? error.message : "Unknown error"
-        )),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      )
-    );
-  }
+const applicationCreateSchema = z.object({
+  title: z.string(),
+  company: z.string(),
+  status: z.enum(['Applied', 'Interviewing', 'Offer', 'Rejected']).optional(),
+  date_applied: z.string().datetime().optional(),
+  url: z.string().url().optional(),
 });
+
+async function handler(req: Request, res: Response, next: NextFunction) {
+  // Use the CORS middleware
+  corsMiddleware(req, res, async () => {
+    if (req.method === 'OPTIONS') {
+      return res.status(200).send('OK');
+    }
+
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method Not Allowed' });
+    }
+
+    try {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !supabaseKey) {
+        console.error('Missing Supabase configuration');
+        return res.status(500).json({ error: 'Server configuration error' });
+      }
+
+      const authHeader = req.headers.authorization || '';
+      const supabase = createClient<SupabaseTables>(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const result = applicationCreateSchema.safeParse(req.body);
+
+      if (!result.success) {
+        return res.status(400).json({ error: 'Invalid request body', details: result.error.issues });
+      }
+
+      const applicationData: ApplicationData = { ...result.data, user_id: user.id };
+
+      const { data: application, error: insertError } = await supabase
+        .from('applications')
+        .insert(applicationData)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Database error:', insertError);
+        return res.status(500).json({ error: 'Database error', details: insertError.message });
+      }
+
+      if (!application) {
+        return res.status(500).json({ error: 'Failed to create application', details: 'No data returned' });
+      }
+
+      return res.status(201).json(application);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      console.error('Unhandled error:', error);
+      return res.status(500).json({ error: 'Internal server error', details: errorMessage });
+    }
+  });
+}
+
+export default handler;

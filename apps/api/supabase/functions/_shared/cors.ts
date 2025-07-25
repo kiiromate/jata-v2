@@ -4,17 +4,19 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
 } as const;
 
-export function handleCors(request: Request): Response | null {
-  if (request.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-  return null;
-}
+import { Request, Response, NextFunction } from 'express';
 
-export function withCors(response: Response): Response {
-  const newResponse = new Response(response.body, response);
+export function corsMiddleware(req: Request, res: Response, next: NextFunction) {
+  // Set CORS headers for all responses
   Object.entries(corsHeaders).forEach(([key, value]) => {
-    newResponse.headers.set(key, value);
+    res.setHeader(key, value);
   });
-  return newResponse;
+
+  // Handle preflight (OPTIONS) requests
+  if (req.method === 'OPTIONS') {
+    res.status(204).send();
+    return;
+  }
+
+  next();
 }
