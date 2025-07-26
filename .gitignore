@@ -10,18 +10,12 @@ node_modules
 # Turborepo cache
 **/.turbo
 
+# Local files
 GEMINI.md
-
 badumts.txt
-
-setup-supabase-cli.ps1
-
-generate-types.md
-
-
-local-testing.md
-
-supabase-schema-setup.md
-
-JATA_V2_BUild_Plan_.md
-
+/apps/api/scripts/setup-supabase-cli.ps1
+/apps/api/docs/generate-types.md
+/apps/api/docs/auth-setup.md
+/apps/api/docs/local-testing.md
+/apps/api/docs/supabase-schema-setup.md
+/docs/JATA_V2_Build_Plan_.md
