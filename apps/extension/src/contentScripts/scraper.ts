@@ -47,7 +47,7 @@ const createCssSelector = (el: Element): string => {
 let scraperState = {
   isActive: false,
   overlay: null as HTMLElement | null,
-  highlightedEl: null as Element | null,
+  highlightedEl: null as HTMLElement | null,
 };
 
 /**
@@ -82,7 +82,7 @@ const mouseoverHandler = (event: MouseEvent) => {
 
   // Remove previous highlight
   if (scraperState.highlightedEl) {
-    scraperState.highlightedEl.style.outline = '';
+    (scraperState.highlightedEl as HTMLElement).style.outline = '';
   }
 
   // Add new highlight
@@ -173,7 +173,7 @@ const startScraping = () => {
 /**
  * Listens for messages from the background script to start or stop the scraper.
  */
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === 'startScraping') {
     startScraping();
     sendResponse({ status: 'Scraping started' });

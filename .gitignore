@@ -11,11 +11,12 @@ node_modules
 **/.turbo
 
 # Local files
-GEMINI.md
+# GEMINI.md
 badumts.txt
 /apps/api/scripts/setup-supabase-cli.ps1
 /apps/api/docs/generate-types.md
 /apps/api/docs/auth-setup.md
 /apps/api/docs/local-testing.md
 /apps/api/docs/supabase-schema-setup.md
-/docs/JATA_V2_Build_Plan_.md
+# /docs/JATA_V2_Build_Plan_.md
+/apps/extension/dist/ 

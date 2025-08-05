@@ -39,7 +39,7 @@ const App: React.FC = () => {
    * an element has been selected by the user.
    */
   useEffect(() => {
-    const messageListener = (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {
+        const messageListener = (message: any, _sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {
       if (message.action === 'elementSelected' && message.data && isScraping) {
         console.log(`Received data for ${isScraping}:`, message.data.textContent);
         setData(prevData => ({
