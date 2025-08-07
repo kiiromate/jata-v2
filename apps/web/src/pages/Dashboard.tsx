@@ -9,6 +9,7 @@
  */
 
 import { useState, FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useDashboardStore } from '../store/dashboardStore';
@@ -158,6 +159,9 @@ const Dashboard = (): JSX.Element => {
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Job Title</th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Date Applied</th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                    <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
@@ -174,6 +178,11 @@ const Dashboard = (): JSX.Element => {
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{app.title}</td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{new Date(app.date_applied).toLocaleDateString()}</td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{app.status}</td>
+                        <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                          <Link to={`/resume-tailor/${app.id}`} className="text-indigo-600 hover:text-indigo-900">
+                            Tailor Resume
+                          </Link>
+                        </td>
                       </tr>
                     ))
                   )}

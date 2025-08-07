@@ -6,6 +6,7 @@ node_modules
 
 # Environment variables
 .env
+apps\web\.env
 
 # Turborepo cache
 **/.turbo
@@ -20,3 +21,4 @@ badumts.txt
 /apps/api/docs/supabase-schema-setup.md
 # /docs/JATA_V2_Build_Plan_.md
 /apps/extension/dist/ 
+apps\web\.env

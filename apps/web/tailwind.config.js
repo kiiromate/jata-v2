@@ -6,7 +6,19 @@ export default {
     "../../packages/ui/src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        'cool-gray': '#D3D7D9',
+        'pure-white': '#FFFFFF',
+        'soft-olive': '#A3BFFA',
+        'jet-black': '#1C2526',
+        'light-gray': '#E5E7EB',
+        'charcoal-gray': '#4A4A4A',
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+      },
+    },
   },
   plugins: [],
 }

@@ -1,116 +1,152 @@
-/**
- * @file LoginPage.tsx
- * @description A component that renders the login page for the application.
- *
- * This component provides a form for users to sign in using their email and
- * password. It handles the form submission, communicates with the Supabase
- * authentication service, and provides feedback to the user, such as loading
- * indicators and error messages.
- */
+import { useState } from "react";
+import { supabase } from "../lib/supabaseClient";
+import { useNavigate } from "react-router-dom";
+import { Mail, Lock, Menu } from 'lucide-react';
 
-import { useState, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient';
-
-/**
- * @component LoginPage
- * @description Renders a user login form and handles the authentication logic.
- *
- * @returns {JSX.Element} The rendered login page component.
- */
-const LoginPage = (): JSX.Element => {
+const LoginPage = () => {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('signIn'); // 'signIn' or 'signUp'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
-  /**
-   * Handles the form submission for user login.
-   *
-   * @param {FormEvent<HTMLFormElement>} e - The form submission event.
-   */
-  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    setError('');
+    setMessage('');
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) {
+      setError(error.message);
+    } else {
+      navigate('/dashboard');
+    }
+  };
 
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+    if (error) {
+      setError(error.message);
+    } else {
+      setMessage('Success! Please check your email to confirm your sign up.');
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    setError('');
+    setMessage('');
+    const email = prompt("Please enter your email address to reset your password:");
+    if (email) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/update-password`,
       });
-
       if (error) {
         setError(error.message);
       } else {
-        // On successful login, Supabase auth listener in AuthContext will update the state
-        // and protected routes will handle redirection.
-        navigate('/');
+        setMessage("Password reset link has been sent to your email.");
       }
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold text-center text-gray-900">Sign in to your account</h2>
-        <form className="space-y-6" onSubmit={handleLogin}>
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email address
-            </label>
-            <div className="mt-1">
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <div className="mt-1">
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
+    <div className="flex items-center justify-center min-h-screen bg-light-gray">
+      <div className="relative w-full max-w-md p-8 space-y-6 bg-pure-white rounded-lg shadow-md">
+        <div className="absolute top-4 left-4">
+            <button aria-label="Menu" className="p-2 rounded-md hover:bg-cool-gray focus:outline-none focus:ring-2 focus:ring-inset focus:ring-soft-olive">
+                <Menu className="w-6 h-6 text-jet-black" />
             </button>
-          </div>
-        </form>
-        {error && (
-          <div className="p-4 mt-4 text-sm text-red-700 bg-red-100 rounded-md" role="alert">
-            <p className="font-bold">Error:</p>
-            <p>{error}</p>
-          </div>
+        </div>
+        <div className="text-center pt-8">
+          <h1 className="text-3xl font-bold text-jet-black">JATA</h1>
+          <p className="text-charcoal-gray">Your AI-Powered Job Application Tracker</p>
+        </div>
+
+        <div className="flex border-b border-cool-gray">
+          <button
+            onClick={() => setActiveTab('signIn')}
+            className={`flex-1 py-2 text-sm font-semibold text-center transition-colors duration-300 ${activeTab === 'signIn' ? 'text-jet-black border-b-2 border-soft-olive' : 'text-charcoal-gray'}`}>
+            Sign In
+          </button>
+          <button
+            onClick={() => setActiveTab('signUp')}
+            className={`flex-1 py-2 text-sm font-semibold text-center transition-colors duration-300 ${activeTab === 'signUp' ? 'text-jet-black border-b-2 border-soft-olive' : 'text-charcoal-gray'}`}>
+            Sign Up
+          </button>
+        </div>
+
+        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+        {message && <p className="text-green-500 text-sm text-center">{message}</p>}
+
+        {activeTab === 'signIn' ? (
+          <form onSubmit={handleSignIn} className="space-y-6">
+            <div>
+              <label className="text-sm font-medium text-charcoal-gray">Email address</label>
+              <div className="relative mt-1">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Mail className="w-5 h-5 text-gray-400" />
+                </span>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="input-field pl-10" placeholder="you@example.com" />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between items-center">
+                <label className="text-sm font-medium text-charcoal-gray">Password</label>
+                <button type="button" onClick={handlePasswordReset} className="text-xs text-soft-olive hover:underline">Forgot password?</button>
+              </div>
+              <div className="relative mt-1">
+                 <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Lock className="w-5 h-5 text-gray-400" />
+                </span>
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="input-field pl-10" placeholder="••••••••" />
+              </div>
+            </div>
+            <button type="submit" className="btn">Sign In</button>
+          </form>
+        ) : (
+          <form onSubmit={handleSignUp} className="space-y-6">
+            <div>
+              <label className="text-sm font-medium text-charcoal-gray">Email address</label>
+              <div className="relative mt-1">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Mail className="w-5 h-5 text-gray-400" />
+                </span>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="input-field pl-10" placeholder="you@example.com" />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-charcoal-gray">Password</label>
+               <div className="relative mt-1">
+                 <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Lock className="w-5 h-5 text-gray-400" />
+                </span>
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="input-field pl-10" placeholder="••••••••" />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-charcoal-gray">Confirm Password</label>
+              <div className="relative mt-1">
+                 <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Lock className="w-5 h-5 text-gray-400" />
+                </span>
+                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="input-field pl-10" placeholder="••••••••" />
+              </div>
+            </div>
+            <button type="submit" className="btn">Sign Up</button>
+          </form>
         )}
       </div>
     </div>

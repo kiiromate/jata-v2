@@ -13,8 +13,9 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^20.14.9",
     "eslint": "^8.57.0",
-    "pnpm": "^9.4.0",
+    "pnpm": "^10.14.0",
     "prettier": "^3.3.2",
+    "supabase": "^2.33.9",
     "turbo": "^2.0.4",
     "typescript": "^5.5.2"
   },
