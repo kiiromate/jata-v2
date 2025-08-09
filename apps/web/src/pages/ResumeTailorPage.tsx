@@ -1,112 +1,129 @@
-import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getResumeSuggestions } from "../services/aiService";
-import { supabase } from "../lib/supabaseClient"; // Assuming you have this
+import { supabase } from "@/lib/supabaseClient";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { analyzeWithZeroShot } from "@/services/aiService";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { FileUpload } from "@/components/FileUpload";
+import type { FileUploadResult } from "@/services/fileUploadService";
 
-/**
- * @file A page for tailoring a resume to a specific job application.
- */
-
-/**
- * A placeholder function to fetch application details from Supabase.
- * In a real app, this would be more robust.
- * @param applicationId The ID of the application to fetch.
- */
-const fetchApplicationDetails = async (applicationId: string) => {
-  const { data, error } = await supabase
-    .from("applications")
-    .select("description")
-    .eq("id", applicationId)
-    .single();
-
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Application not found.");
-  return data;
-};
-
-/**
- * The ResumeTailorPage component.
- * Allows users to get AI-powered suggestions to tailor their resume to a job description.
- */
-export default function ResumeTailorPage() {
-  const { applicationId } = useParams<{ applicationId: string }>();
+const ResumeTailorPage = () => {
+  const { applicationId } = useParams();
   const [resumeText, setResumeText] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
 
-  const { data: application, isLoading: isLoadingApplication, isError: isErrorApplication } = useQuery({
+  const { data: applicationData, isLoading: isLoadingApplication } = useQuery({
     queryKey: ["application", applicationId],
-    queryFn: () => fetchApplicationDetails(applicationId!),
+    queryFn: async () => {
+      if (!applicationId) return null;
+      const { data, error } = await supabase
+        .from("applications")
+        .select("job_description")
+        .eq("id", Number(applicationId))
+        .single();
+      if (error) {
+        console.error("Error fetching application:", error);
+        throw new Error(error.message);
+      }
+      if (data?.job_description) {
+        setJobDescription(data.job_description);
+      }
+      return data;
+    },
     enabled: !!applicationId,
   });
 
-  const { mutate, data: suggestions, isPending: isGettingSuggestions, isError: isErrorSuggestions, error: suggestionsError } = useMutation({
-    mutationFn: () => getResumeSuggestions(application!.description, resumeText),
+  const { mutate: analyze, data: analysis, isPending: isAnalyzing, error: analysisError } = useMutation<
+    string[],
+    Error
+  >({
+    mutationFn: async () => {
+      if (!jobDescription) {
+        throw new Error("Job description is missing.");
+      }
+
+      return analyzeWithZeroShot(jobDescription);
+    },
   });
 
-  const handleGetSuggestions = () => {
-    if (application?.description && resumeText) {
-      mutate();
-    }
-  };
-
   return (
-    <div className="container mx-auto p-4 bg-gray-900 text-white min-h-screen">
-      <h1 className="text-3xl font-bold mb-4 text-center text-emerald-400">Resume Tailoring Assistant</h1>
-
-      {isLoadingApplication && <p className="text-center">Loading job description...</p>}
-      {isErrorApplication && <p className="text-center text-red-500">Error loading job application.</p>}
-
-      {application && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <h2 className="text-2xl font-semibold mb-2 text-emerald-300">Job Description</h2>
-            <div className="p-4 bg-gray-800 rounded-lg max-h-96 overflow-y-auto">
-              <p className="whitespace-pre-wrap">{application.description}</p>
-            </div>
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-semibold mb-2 text-emerald-300">Your Resume</h2>
-            <textarea
-              className="w-full h-96 p-4 bg-gray-800 border border-gray-700 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-white"
-              placeholder="Paste your resume text here..."
-              value={resumeText}
-              onChange={(e) => setResumeText(e.target.value)}
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Resume Tailoring Assistant</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Job Description</h2>
+          <div className="space-y-4">
+            <FileUpload
+              label="Upload Job Description"
+              description="Upload a PDF, DOCX, or TXT file with the job description"
+              onFileProcessed={(result: FileUploadResult) => {
+                console.log('Job description file processed:', result);
+              }}
+              onTextExtracted={(text: string, fileName: string) => {
+                setJobDescription(text);
+              }}
+              disabled={isLoadingApplication}
+            />
+            <div className="text-center text-sm text-gray-500">or</div>
+            <Textarea
+              className="h-64 bg-white"
+              value={jobDescription}
+              onChange={(e) => setJobDescription(e.target.value)}
+              placeholder="Paste the job description here..."
+              disabled={isLoadingApplication}
             />
           </div>
         </div>
-      )}
-
-      <div className="text-center mt-6">
-        <button
-          onClick={handleGetSuggestions}
-          disabled={isLoadingApplication || isGettingSuggestions || !resumeText}
-          className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg transition duration-300 ease-in-out"
-        >
-          {isGettingSuggestions ? "Analyzing..." : "Get Suggestions"}
-        </button>
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Your Resume</h2>
+          <div className="space-y-4">
+            <FileUpload
+              label="Upload Resume"
+              description="Upload a PDF, DOCX, or TXT file with your resume"
+              onFileProcessed={(result: FileUploadResult) => {
+                console.log('Resume file processed:', result);
+              }}
+              onTextExtracted={(text: string, fileName: string) => {
+                setResumeText(text);
+              }}
+            />
+            <div className="text-center text-sm text-gray-500">or</div>
+            <Textarea
+              className="h-64 bg-white"
+              value={resumeText}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setResumeText(e.target.value)}
+              placeholder="Paste your resume here..."
+            />
+          </div>
+        </div>
       </div>
-
-      {isGettingSuggestions && (
-        <div className="text-center mt-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400 mx-auto"></div>
-            <p>Getting suggestions...</p>
+      <div className="mt-4 text-center">
+        <Button onClick={() => analyze()} disabled={isAnalyzing || !jobDescription}>
+          {isAnalyzing ? "Analyzing..." : "Analyze Job Focus"}
+        </Button>
+      </div>
+      {analysisError && (
+        <div className="mt-4 text-red-500 text-center">
+          <p>Error: {analysisError.message}</p>
         </div>
       )}
-
-      {isErrorSuggestions && (
-        <div className="mt-4 p-4 bg-red-900 border border-red-700 rounded-lg">
-          <h3 className="text-xl font-bold text-red-400">Error</h3>
-          <p>{suggestionsError?.message || "An unknown error occurred."}</p>
-        </div>
-      )}
-
-      {suggestions && (
-        <div className="mt-6 p-4 bg-gray-800 border border-gray-700 rounded-lg">
-          <h3 className="text-2xl font-bold text-emerald-400 mb-3">Suggestions</h3>
-          <p className="text-lg">{suggestions}</p>
-        </div>
+      {analysis && (
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Job Focus Analysis</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {analysis.map((category: string) => (
+              <Badge key={category}>{category}</Badge>
+            ))}
+          </CardContent>
+        </Card>
       )}
     </div>
   );
-}
+};
+
+export default ResumeTailorPage;
