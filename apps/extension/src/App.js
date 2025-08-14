@@ -23,10 +23,10 @@ const App = () => {
     useEffect(() => {
         const messageListener = (message, _sender, sendResponse) => {
             if (message.action === 'elementSelected' && message.data && isScraping) {
-                console.log(`Received data for ${isScraping}:`, message.data.textContent);
+                console.log(`Received data for ${isScraping}:`, message.data?.textContent);
                 setData(prevData => ({
                     ...prevData,
-                    [isScraping]: message.data.textContent,
+                    [isScraping]: message.data?.textContent || '',
                 }));
                 setIsScraping(null); // Reset scraping state
                 sendResponse({ status: 'success' });

@@ -18,6 +18,15 @@ type ApplicationData = {
  */
 type ScrapingField = keyof ApplicationData | null;
 
+interface Message {
+  action: string;
+  data?: {
+    textContent: string;
+  };
+}
+
+type SendResponse = (response?: { status: string }) => void;
+
 /**
  * Main application component for the JATA Chrome Extension popup.
  * This component manages the UI for scraping job application data, sending scraping
@@ -39,12 +48,12 @@ const App: React.FC = () => {
    * an element has been selected by the user.
    */
   useEffect(() => {
-        const messageListener = (message: any, _sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {
+    const messageListener = (message: Message, _sender: chrome.runtime.MessageSender, sendResponse: SendResponse) => {
       if (message.action === 'elementSelected' && message.data && isScraping) {
-        console.log(`Received data for ${isScraping}:`, message.data.textContent);
+        console.log(`Received data for ${isScraping}:`, message.data?.textContent);
         setData(prevData => ({
           ...prevData,
-          [isScraping]: message.data.textContent,
+          [isScraping]: message.data?.textContent || '',
         }));
         setIsScraping(null); // Reset scraping state
         sendResponse({ status: 'success' });

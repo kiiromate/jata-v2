@@ -9,13 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileUpload } from "@/components/FileUpload";
 import type { FileUploadResult } from "@/services/fileUploadService";
+import { uploadResume } from "@/services/fileUploadService";
 
 const ResumeTailorPage = () => {
   const { applicationId } = useParams();
   const [resumeText, setResumeText] = useState("");
   const [jobDescription, setJobDescription] = useState("");
 
-  const { data: applicationData, isLoading: isLoadingApplication } = useQuery({
+  const { isLoading: isLoadingApplication } = useQuery({
     queryKey: ["application", applicationId],
     queryFn: async () => {
       if (!applicationId) return null;
@@ -28,8 +29,8 @@ const ResumeTailorPage = () => {
         console.error("Error fetching application:", error);
         throw new Error(error.message);
       }
-      if (data?.job_description) {
-        setJobDescription(data.job_description);
+      if ((data as any)?.job_description) {
+        setJobDescription((data as any).job_description);
       }
       return data;
     },
@@ -49,6 +50,15 @@ const ResumeTailorPage = () => {
     },
   });
 
+  const { mutate: upload, isPending: isUploading } = useMutation({
+    mutationFn: async ({ fileName, content }: { fileName: string, content: string }) => {
+      await uploadResume(fileName, content);
+    },
+    onSuccess: () => {
+      // Invalidate and refetch queries for resumes
+    },
+  });
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Resume Tailoring Assistant</h1>
@@ -62,7 +72,7 @@ const ResumeTailorPage = () => {
               onFileProcessed={(result: FileUploadResult) => {
                 console.log('Job description file processed:', result);
               }}
-              onTextExtracted={(text: string, fileName: string) => {
+              onTextExtracted={(text: string) => {
                 setJobDescription(text);
               }}
               disabled={isLoadingApplication}
@@ -88,7 +98,9 @@ const ResumeTailorPage = () => {
               }}
               onTextExtracted={(text: string, fileName: string) => {
                 setResumeText(text);
+                upload({ fileName, content: text });
               }}
+              disabled={isUploading}
             />
             <div className="text-center text-sm text-gray-500">or</div>
             <Textarea
@@ -96,6 +108,7 @@ const ResumeTailorPage = () => {
               value={resumeText}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setResumeText(e.target.value)}
               placeholder="Paste your resume here..."
+              disabled={isUploading}
             />
           </div>
         </div>

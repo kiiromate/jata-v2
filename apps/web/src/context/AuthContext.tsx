@@ -116,6 +116,7 @@ export const AuthProvider = ({ children }: AuthProviderProps): JSX.Element => {
  * @returns {AuthContextType} The authentication context value.
  * @throws {Error} If used outside of an `AuthProvider`.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {

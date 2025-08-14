@@ -6,10 +6,10 @@ This is the single source of truth for the Gemini CLI in the JATA project. It de
 
 - **Technology Stack**: Supabase Edge Functions (Deno/TypeScript), PostgreSQL, React 18, Vite, Tailwind CSS, Zustand, TanStack Query, WebExtension Manifest V3.
 - **Coding Standards**: Strict TypeScript, `camelCase` for variables/functions, `PascalCase` for types/components. All functions and components must have JSDoc comments.
-- **Security**: Never log sensitive data. All backend operations must be authenticated. API keys for third-party services must be stored in `.env` files and not committed to source control.
+- **Security**: Never log sensitive data. API keys must be stored in `.env` files. Client-side code must *never* use the `service_role_key`.
 - **Monorepo File Context**: Prompts must reference exact file paths. All database interactions must use the generated types from `packages/common/types/database.ts`.
 - **Accessibility**: All generated UI must be compliant with WCAG 2.1 AA standards.
-- **Design System**: UI must adhere to the JATA theme of "Efficiency Meets Opportunity" using the official color palette.
+- **Design System**: UI must adhere to the JATA theme of "Efficiency Meets Opportunity."
 
 ---
 
@@ -31,16 +31,14 @@ The `apps/extension` is a Manifest V3 extension using a strict four-step message
 
 ---
 
-## 5. AI Service Architectural Guide (Phase 5)
+## 5. AI Service Architectural Guide (Phase 5 - Enhanced & Refined)
 
-The AI Resume Tailoring module must be implemented with the following principles:
+The AI module, initially built with a regex engine, has been enhanced with a multi-layered refinement strategy to ensure accurate, high-signal, and actionable feedback.
+The architecture follows a three-stage pipeline executed on the client-side within aiService.ts:
+Text Pre-processing: Before analysis, all input text (from job descriptions and resumes) is programmatically cleaned. This includes converting to lowercase, removing punctuation, and standardizing common terms to ensure data consistency.
+Regex-Based Skill Extraction: The core extraction continues to use a stable, deterministic regex engine as a baseline to identify potential skills and keywords.
+Post-processing and Filtering: The raw output from the regex engine is passed through a strict filtering layer. This layer removes common, irrelevant "stop words" (e.g., "experience," "duties") and discards trivial results (e.g., single-character keywords), ensuring the final output presented to the user is clean and meaningful.
+This refined approach provides a robust and privacy-preserving analysis, forming 
+ the foundation for future enhancements like Zero-Shot Classification for contextual understanding.
 
-- **Separation of Concerns**: UI components must be decoupled from the AI API logic. All direct interaction with the Hugging Face API must be contained within a dedicated service module (`apps/web/src/services/aiService.ts`).
-- **API Interaction**: The `aiService` will use the `fetch` API to make requests to the Hugging Face Inference API. The chosen model should be suitable for Natural Language Processing tasks like keyword extraction or question-answering.
-- **Environment Variables**: The Hugging Face API token is a secret and must be stored in `apps/web/.env` as `VITE_HUGGING_FACE_API_KEY`. The `aiService` will read this key from `import.meta.env`.
-- **Data Flow**:
-  1. A UI component (e.g., `ResumeTailorPage`) will trigger the AI analysis.
-  2. The component will use a **TanStack Query `useMutation` hook** to call a function within the `aiService`.
-  3. The `aiService` function will format the request, call the Hugging Face API, and parse the response.
-  4. The UI component will handle the `isLoading`, `isError`, and `isSuccess` states from the mutation to provide clear feedback to the user.
-- **Error Handling**: The `aiService` must gracefully handle potential API errors (e.g., rate limits, invalid tokens, model loading times) and return structured errors that the UI can interpret and display.
+---

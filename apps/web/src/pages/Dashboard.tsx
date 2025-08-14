@@ -8,8 +8,9 @@
  * for styling. The page is designed to be accessible and responsive.
  */
 
-import { useState, FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, FormEvent, useMemo } from 'react';
+
+import { ApplicationCard } from '../components/ApplicationCard';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useDashboardStore } from '../store/dashboardStore';
@@ -36,7 +37,7 @@ const CreateApplicationModal = (): JSX.Element | null => {
     title: '',
     company: '',
     date_applied: new Date().toISOString().split('T')[0], // Defaults to today
-    status: 'applied',
+    status: 'Applied',
     url: '',
     source: '',
     industry: ''
@@ -88,6 +89,7 @@ const CreateApplicationModal = (): JSX.Element | null => {
             <label htmlFor="company" className="block text-sm font-medium text-gray-700">Company</label>
             <input id="company" type="text" value={formData.company} onChange={handleInputChange} required className="mt-1 block w-full input" />
           </div>
+          
           <div>
             <label htmlFor="date_applied" className="block text-sm font-medium text-gray-700">Date Applied</label>
             <input id="date_applied" type="date" value={formData.date_applied} onChange={handleInputChange} required className="mt-1 block w-full input" />
@@ -113,6 +115,9 @@ const CreateApplicationModal = (): JSX.Element | null => {
 const Dashboard = (): JSX.Element => {
   const { openModal } = useDashboardStore();
   const { user } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('All Status');
+  const [sortOrder, setSortOrder] = useState('Newest First');
 
   const { data: applications, isLoading, error } = useQuery({
     queryKey: ['applications', user?.id],
@@ -130,65 +135,85 @@ const Dashboard = (): JSX.Element => {
     enabled: !!user, // Only run the query if the user is available
   });
 
+  const filteredApplications = useMemo(() => {
+    if (!applications) return [];
+
+    // eslint-disable-next-line prefer-const
+    let filtered = applications
+      .filter(app => 
+        app.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        app.company.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .filter(app => 
+        filterStatus === 'All Status' || app.status === filterStatus
+      );
+
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.date_applied).getTime();
+      const dateB = new Date(b.date_applied).getTime();
+      return sortOrder === 'Newest First' ? dateB - dateA : dateA - dateB;
+    });
+
+    return filtered;
+  }, [applications, searchTerm, filterStatus, sortOrder]);
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="text-xl font-semibold text-gray-900">My Applications</h1>
-          <p className="mt-2 text-sm text-gray-700">A list of all the applications in your account.</p>
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">My Applications</h1>
+        <div className="flex items-center space-x-2 mt-4 sm:mt-0">
+          <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">Export CSV</button>
+          <button onClick={openModal} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700">+ Add New</button>
         </div>
-        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-          <button
-            type="button"
-            onClick={openModal}
-            className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
+      </header>
+
+      <div className="mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <input 
+            type="text" 
+            placeholder="Search by job title or company..." 
+            className="sm:col-span-1 w-full input" 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <select 
+            aria-label="Filter by status" 
+            className="w-full input"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
           >
-            Create Application
-          </button>
+            <option>All Status</option>
+            <option>Applied</option>
+            <option>Interview</option>
+            <option>Offer</option>
+            <option>Rejected</option>
+          </select>
+          <select 
+            aria-label="Sort by date" 
+            className="w-full input"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+          >
+            <option>Newest First</option>
+            <option>Oldest First</option>
+          </select>
         </div>
       </div>
 
       <div className="mt-8 flex flex-col">
         <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Company</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Job Title</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Date Applied</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                    <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {isLoading ? (
-                    <tr><td colSpan={3} className="text-center p-4">Loading...</td></tr>
-                  ) : error ? (
-                    <tr><td colSpan={3} className="text-center p-4 text-red-600">Error: {error.message}</td></tr>
-                  ) : !applications || applications.length === 0 ? (
-                    <tr><td colSpan={4} className="text-center p-4">No applications found.</td></tr>
-                  ) : (
-                    applications.map((app) => (
-                      <tr key={app.id}>
-                        <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{app.company}</td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{app.title}</td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{new Date(app.date_applied).toLocaleDateString()}</td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{app.status}</td>
-                        <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <Link to={`/resume-tailor/${app.id}`} className="text-indigo-600 hover:text-indigo-900">
-                            Tailor Resume
-                          </Link>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {isLoading ? (
+              <p>Loading...</p>
+            ) : error ? (
+              <p className="text-red-600">Error: {error.message}</p>
+            ) : !filteredApplications || filteredApplications.length === 0 ? (
+              <p>No applications found.</p>
+            ) : (
+              filteredApplications.map((app) => (
+                <ApplicationCard key={app.id} application={app} />
+              ))
+            )}
           </div>
         </div>
       </div>

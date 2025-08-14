@@ -28,12 +28,13 @@ export const CreateApplicationSchema = z.object({
   title: z.string().min(1, "Title is required"),
   company: z.string().min(1, "Company name is required"),
   status: ApplicationStatus.optional(),
-  date_applied: z.string().datetime()
-    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
-    .default(() => new Date().toISOString().split("T")[0]),
+  date_applied: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default(() => new Date().toISOString().split("T")[0]),
   url: z.string().url().or(z.literal("")).optional(),
   source: z.string().optional(),
   industry: z.string().optional(),
+  job_role: z.string().optional(),
+  company_name: z.string().optional(),
+  company_profile: z.string().optional(),
 });
 
 export const UpdateApplicationSchema = CreateApplicationSchema.partial();

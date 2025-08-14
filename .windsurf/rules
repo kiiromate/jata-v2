@@ -1,0 +1,81 @@
+# JATA Cascade Rules
+
+<project_identity>
+- Project: JATA (Job Application Tracker and Optimization App)
+- Mission: AI-driven job application optimization with analytics tracking
+- Theme: "Efficiency Meets Opportunity" - minimalist, function-first design
+</project_identity>
+
+<monorepo_structure>
+- Use pnpm workspace structure
+- `apps/web`: Main dashboard (Vite + React)
+- `apps/extension`: Browser extension (Manifest V3)
+- `apps/api`: Supabase Edge Functions
+- `packages/ui`: Shared React components
+- `packages/common`: Types, utilities, Zod schemas
+- Always use paths relative to repo root
+</monorepo_structure>
+
+<tech_stack>
+- Backend: Supabase only (PostgreSQL, Auth, Edge Functions)
+- Frontend: Vite + React 18 + TypeScript
+- Styling: Tailwind CSS only
+- State: TanStack Query + Zustand
+- Extension: WebExtension Manifest V3
+- AI: Hugging Face Inference API only
+- Charts: Recharts
+- Animation: GSAP minimal use only
+</tech_stack>
+
+<code_standards>
+- Strongly type everything with TypeScript
+- Use Zod schemas for validation
+- Add JSDoc for functions and complex logic
+- No comments for obvious code
+- Generate production-ready, modular code
+- Make all code copy-paste ready
+</code_standards>
+
+<design_system>
+- Day Background: #D3D7D9
+- Night Background: #1C2526
+- White Text: #FFFFFF
+- Dark Text: #4A4A4A
+- Accent: #A3BFFA
+- Prioritize function over visual effects
+- Use subtle animations only
+- Follow WCAG 2.1 accessibility
+</design_system>
+
+<privacy_requirements>
+- Process resumes client-side only
+- Use separate API calls for job descriptions vs resumes
+- Implement proper data encryption
+- Follow GDPR patterns
+</privacy_requirements>
+
+<response_format>
+Always structure responses as:
+## Summary
+## Dependencies
+## File Structure
+## Code Snippet
+## Configuration
+## CLI Commands
+## Notes
+</response_format>
+
+<prohibited>
+- No emojis or decorative text
+- No placeholder or incomplete code
+- No technologies outside approved stack
+- No paid tools or services
+- No complex animations or visual effects
+</prohibited>
+
+<decision_making>
+- When uncertain, provide 2-3 options ranked by simplicity
+- Always choose privacy-first approach
+- Prefer modifying existing code over replacing
+- Use free, open-source solutions only
+</decision_making>

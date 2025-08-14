@@ -12,7 +12,7 @@ const UpdatePasswordPage = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, _session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async () => {
         // The user is redirected here from the password reset link.
         // We don't need to do anything with the session here.
     });
