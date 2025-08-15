@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabaseClient";
 
 import ApplicationFunnelChart from '../components/ApplicationFunnelChart';
 import ScoreAnalysisChart from '../components/ScoreAnalysisChart';
@@ -18,18 +19,11 @@ const AnalyticsPage = () => {
   const { data, isLoading, isError, error } = useQuery<UserAnalyticsData, Error>({
     queryKey: ["user-analytics"],
     queryFn: async () => {
-            // const { data, error } = await supabase.rpc('get_user_analytics');
-      // if (error) {
-      //   throw new Error(error.message);
-      // }
-      // return data as UserAnalyticsData;
-      return {
-        total_applications: 0,
-        interviews: 0,
-        offers: 0,
-        score_analysis: [],
-        success_by_source: [],
-      };
+      const { data, error } = await supabase.rpc('get_user_analytics');
+      if (error) {
+        throw new Error(error.message);
+      }
+      return data as UserAnalyticsData;
     },
   });
 

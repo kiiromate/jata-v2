@@ -56,7 +56,13 @@ const ResumeTailorPage = () => {
   });
 
   useEffect(() => {
-    if (selectedResumeId) {
+    // Auto-select the first resume when the list loads
+    if (!selectedResumeId && resumes && resumes.length > 0) {
+      const firstResumeId = resumes[0].id.toString();
+      setSelectedResumeId(firstResumeId);
+      setResumeText(resumes[0].content || '');
+    } else {
+      // Update resume text when selection changes
       const selectedResume = resumes?.find(r => r.id.toString() === selectedResumeId);
       if (selectedResume) {
         setResumeText(selectedResume.content || '');
