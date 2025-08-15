@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { parseResume, uploadResume } from '../services/resumeService';
+import { extractTextFromFile, uploadResume } from '../services/fileUploadService';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 
@@ -11,9 +11,14 @@ export const ResumeUpload = () => {
   const mutation = useMutation({
     mutationFn: async () => {
       if (!file) return;
-      const content = await parseResume(file);
-      setParsedText(content);
-      await uploadResume(file.name, content);
+      const result = await extractTextFromFile(file);
+      if (result.success && result.text) {
+        setParsedText(result.text);
+        await uploadResume(file.name, result.text);
+      } else {
+        // TODO: Add user-facing error handling (e.g., a toast notification)
+        console.error('Failed to parse resume:', result.error);
+      }
     },
     onSuccess: () => {
       // Invalidate and refetch queries for resumes
@@ -32,7 +37,8 @@ export const ResumeUpload = () => {
 
   return (
     <div>
-      <input type="file" accept=".pdf,.docx" onChange={handleFileChange} />
+      <label htmlFor="resume-upload" className="sr-only">Upload Resume</label>
+      <input id="resume-upload" type="file" accept=".pdf,.docx" onChange={handleFileChange} />
       <Button onClick={handleUpload} disabled={!file || mutation.isPending}>
         {mutation.isPending ? 'Uploading...' : 'Upload Resume'}
       </Button>
