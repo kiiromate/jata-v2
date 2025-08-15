@@ -7,105 +7,149 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.4"
   }
   public: {
     Tables: {
       applications: {
         Row: {
-          analysis_completed_at: string | null
-          company_name: string | null
-          company_profile: string | null
-          cover_letter_content: string | null
-          created_at: string | null
-          extracted_skills: Json | null
-          id: string
-          job_description: string | null
-          job_role: string | null
-          missing_skills: Json | null
-          resume_content: string | null
-          tailored_resume_content: string | null
-          tailoring_completed_at: string | null
+          company: string
+          created_at: string
+          date_applied: string
+          id: number
+          industry: string | null
+          source: string | null
+          status: string
+          title: string
+          updated_at: string
+          url: string | null
           user_id: string
         }
         Insert: {
-          analysis_completed_at?: string | null
-          company_name?: string | null
-          company_profile?: string | null
-          cover_letter_content?: string | null
-          created_at?: string | null
-          extracted_skills?: Json | null
-          id?: string
-          job_description?: string | null
-          job_role?: string | null
-          missing_skills?: Json | null
-          resume_content?: string | null
-          tailored_resume_content?: string | null
-          tailoring_completed_at?: string | null
+          company: string
+          created_at?: string
+          date_applied: string
+          id?: never
+          industry?: string | null
+          source?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          url?: string | null
           user_id: string
         }
         Update: {
-          analysis_completed_at?: string | null
-          company_name?: string | null
-          company_profile?: string | null
-          cover_letter_content?: string | null
+          company?: string
+          created_at?: string
+          date_applied?: string
+          id?: never
+          industry?: string | null
+          source?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resumes: {
+        Row: {
+          content: string
+          created_at: string | null
+          filename: string
+          id: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
           created_at?: string | null
-          extracted_skills?: Json | null
-          id?: string
-          job_description?: string | null
-          job_role?: string | null
-          missing_skills?: Json | null
-          resume_content?: string | null
-          tailored_resume_content?: string | null
-          tailoring_completed_at?: string | null
+          filename: string
+          id?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          filename?: string
+          id?: number
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
       }
-      resumes: {
+      scrape_configs: {
         Row: {
-          created_at: string | null
-          id: string
-          resume_name: string
-          resume_text: string
+          created_at: string
+          domain: string
+          field: string
+          id: number
+          selector: string
+          updated_at: string
           user_id: string
         }
         Insert: {
-          created_at?: string | null
-          id?: string
-          resume_name: string
-          resume_text: string
+          created_at?: string
+          domain: string
+          field: string
+          id?: never
+          selector: string
+          updated_at?: string
           user_id: string
         }
         Update: {
-          created_at?: string | null
-          id?: string
-          resume_name?: string
-          resume_text?: string
+          created_at?: string
+          domain?: string
+          field?: string
+          id?: never
+          selector?: string
+          updated_at?: string
           user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scrape_configs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -114,10 +158,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_user_analytics: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
@@ -246,11 +287,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
 } as const
-

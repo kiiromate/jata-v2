@@ -32,7 +32,7 @@ const ResumeTailorPage = () => {
       if (!applicationId) return null;
       const { data, error } = await supabase
         .from('applications')
-        .select('title, company, job_description')
+        .select('title, company')
         .eq('id', parseInt(applicationId, 10))
         .single();
       if (error) throw new Error(error.message);
@@ -41,11 +41,7 @@ const ResumeTailorPage = () => {
     enabled: !!applicationId,
   });
 
-  useEffect(() => {
-    if (applicationData?.job_description) {
-      setJobDescription(applicationData.job_description);
-    }
-  }, [applicationData]);
+  
 
   // Fetch user's resumes
   const { data: resumes, isLoading: isLoadingResumes } = useQuery<Resume[], Error>({
@@ -153,7 +149,7 @@ const ResumeTailorPage = () => {
               </SelectTrigger>
               <SelectContent>
                 {resumes?.map(resume => (
-                  <SelectItem key={resume.id} value={resume.id.toString()}>{resume.name}</SelectItem>
+                  <SelectItem key={resume.id} value={resume.id.toString()}>{resume.filename}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
