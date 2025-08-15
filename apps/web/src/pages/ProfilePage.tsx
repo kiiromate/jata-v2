@@ -2,10 +2,10 @@ import React, { useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import type { Database } from '@jata/common';
 
 type Resume = Database['public']['Tables']['resumes']['Row'];
@@ -149,7 +149,7 @@ const ProfilePage: React.FC = () => {
             <ul className="space-y-2">
               {resumes.map((resume) => (
                 <li key={resume.id} className="p-2 border rounded-md">
-                  {resume.name}
+                  {resume.resume_name}
                 </li>
               ))}
             </ul>

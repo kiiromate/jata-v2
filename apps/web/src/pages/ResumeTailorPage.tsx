@@ -68,7 +68,6 @@ const ResumeTailorPage = () => {
     }
   }, [selectedResumeId, resumes]);
 
-
   type AnalysisVariables = { resumeText: string; jobDescription: string };
 
   // Mutation for AI analysis
@@ -111,11 +110,11 @@ const ResumeTailorPage = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Input
-                type="url"
-                placeholder="Enter Job Post URL"
+                type="text"
                 value={jobUrl}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setJobUrl(e.target.value)}
-                disabled={isLoadingApplication}
+                className="flex-grow p-2 border rounded-l-md"
+                placeholder="https://www.linkedin.com/jobs/view/..."
               />
               <Button
                 onClick={() => scrapeJobDescription(jobUrl)}
