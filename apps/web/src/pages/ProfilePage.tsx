@@ -1,14 +1,14 @@
 import React, { useState, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Database } from '../../../../packages/common/types/database';
 
-type Resume = Database['public']['Tables']['resumes']['Row'];
+
+// type Resume = Database['public']['Tables']['resumes']['Row'];
 
 const ProfilePage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -16,22 +16,7 @@ const ProfilePage: React.FC = () => {
   const [resumeName, setResumeName] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchResumes = async (): Promise<Resume[]> => {
-    if (!user) throw new Error('User not authenticated');
-    const { data, error } = await supabase
-      .from('resumes')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data;
-  };
 
-  const { data: resumes, isLoading, isError, error } = useQuery<Resume[], Error>({
-    queryKey: ['resumes', user?.id],
-    queryFn: fetchResumes,
-    enabled: !!user && !authLoading,
-  });
 
   const uploadResumeMutation = useMutation<Response, Error, FormData>({
     mutationFn: async (formData: FormData) => {
@@ -113,7 +98,7 @@ const ProfilePage: React.FC = () => {
                 id="resumeName"
                 type="text"
                 value={resumeName}
-                onChange={(e) => setResumeName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setResumeName(e.target.value)}
                 placeholder="e.g., My Software Engineer Resume"
                 required
               />
@@ -128,8 +113,8 @@ const ProfilePage: React.FC = () => {
                 required
               />
             </div>
-            <Button type="submit" disabled={uploadResumeMutation.isPending}>
-              {uploadResumeMutation.isPending ? 'Uploading...' : 'Upload Resume'}
+            <Button type="submit" disabled={true}>
+              {'Upload Resume'}
             </Button>
             {uploadResumeMutation.isError && (
               <p className="text-red-500 text-sm mt-2">Error: {uploadResumeMutation.error?.message}</p>
@@ -141,31 +126,7 @@ const ProfilePage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <h2 className="text-2xl font-bold mb-4">Your Stored Resumes</h2>
-      {isLoading ? (
-        <div>Loading resumes...</div>
-      ) : isError ? (
-        <div className="text-red-500">Error loading resumes: {error?.message}</div>
-      ) : resumes && resumes.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {resumes.map((resume) => (
-            <Card key={resume.id}>
-              <CardHeader>
-                <CardTitle>{resume.resume_name}</CardTitle>
-                <CardDescription>
-                  Uploaded on: {new Date(resume.created_at).toLocaleDateString()}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* You can add more details here if needed, e.g., a download link */}
-                <p className="text-sm text-gray-500">ID: {resume.id}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <p>No resumes found. Upload one to get started!</p>
-      )}
+      
     </div>
   );
 };
