@@ -188,10 +188,10 @@ const extractSkills = (text: string): Set<string> => {
  * @param jobDescriptionText The text of the job description.
  * @returns An object containing the match score, matched skills, and missing skills.
  */
-export const analyzeResumeAgainstJobDescription = (
+export const analyzeResumeAgainstJobDescription = async (
   resumeText: string,
   jobDescriptionText: string
-): AnalysisResult => {
+): Promise<AnalysisResult> => {
   const resumeSkills = extractSkills(resumeText);
   const jobSkills = extractSkills(jobDescriptionText);
 

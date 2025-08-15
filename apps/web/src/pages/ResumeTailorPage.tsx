@@ -1,12 +1,12 @@
 import { useParams } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { analyzeResumeAgainstJobDescription } from "@/services/aiService";
+import { analyzeResumeAgainstJobDescription, type AnalysisResult } from "@/services/aiService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileUpload } from "@/components/FileUpload";
@@ -19,12 +19,11 @@ type Resume = Database['public']['Tables']['resumes']['Row'];
 const ResumeTailorPage = () => {
   const { applicationId } = useParams<{ applicationId: string }>();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
 
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
-  const [resumeText, setResumeText] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [jobUrl, setJobUrl] = useState("");
+  const [resumeText, setResumeText] = useState("");
 
   // Fetch application data
   const { data: applicationData, isLoading: isLoadingApplication } = useQuery({
@@ -69,7 +68,7 @@ const ResumeTailorPage = () => {
     }
   }, [selectedResumeId, resumes]);
 
-  type AnalysisResult = { matched_skills: string[]; missing_skills: string[]; score: number };
+
   type AnalysisVariables = { resumeText: string; jobDescription: string };
 
   // Mutation for AI analysis
@@ -196,7 +195,7 @@ const ResumeTailorPage = () => {
             <div>
               <h3 className="font-semibold">Matched Skills:</h3>
               <div className="flex flex-wrap gap-2 mt-2">
-                {analysis.matched_skills.map((skill) => (
+                {analysis.matchedSkills.map((skill) => (
                   <Badge key={skill}>{skill}</Badge>
                 ))}
               </div>
@@ -204,7 +203,7 @@ const ResumeTailorPage = () => {
             <div className="mt-4">
               <h3 className="font-semibold">Missing Skills:</h3>
               <div className="flex flex-wrap gap-2 mt-2">
-                {analysis.missing_skills.map((skill) => (
+                {analysis.missingSkills.map((skill) => (
                   <Badge key={skill} variant="destructive">{skill}</Badge>
                 ))}
               </div>
