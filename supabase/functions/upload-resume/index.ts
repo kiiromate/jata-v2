@@ -1,23 +1,19 @@
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import mammoth from 'npm:mammoth@1.6.0'
-import pdf from 'npm:pdf-parse@1.1.1'
+import { serve } from 'std/http/server.ts'
+import mammoth from 'mammoth'
+import * as pdfjsLib from 'pdfjs-dist'
 import { corsHeaders } from '../_shared/cors.ts'
+import { createSupabaseClient, getUserId } from '../_shared/db.ts'
 
-serve(async (req) => {
+serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-    )
+    const supabase = createSupabaseClient(req)
+    const userId = await getUserId(req)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    if (!userId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
@@ -35,7 +31,7 @@ serve(async (req) => {
       })
     }
 
-    const filePath = `${user.id}/${Date.now()}_${file.name}`
+    const filePath = `${userId}/${Date.now()}_${file.name}`
     const { error: uploadError } = await supabase.storage
       .from('resumes')
       .upload(filePath, file)
@@ -52,8 +48,14 @@ serve(async (req) => {
     const fileBuffer = await file.arrayBuffer()
 
     if (file.type === 'application/pdf') {
-      const data = await pdf(fileBuffer)
-      resume_text = data.text
+      const pdf = await pdfjsLib.getDocument({ data: fileBuffer }).promise
+      let text = ''
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i)
+        const content = await page.getTextContent()
+        text += content.items.map((item: any) => item.str).join(' ') + '\n'
+      }
+      resume_text = text
     } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       const result = await mammoth.extractRawText({ arrayBuffer: fileBuffer })
       resume_text = result.value
@@ -65,7 +67,7 @@ serve(async (req) => {
     }
 
     const { error: dbError } = await supabase.from('resumes').insert({
-      user_id: user.id,
+      user_id: userId,
       resume_name: resumeName,
       resume_text: resume_text,
     })
@@ -82,7 +84,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 201,
     })
-  } catch (error) {
+  } catch (e) {
+    const error = e as Error
     console.error('Unhandled Error:', error)
     return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

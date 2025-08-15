@@ -1,8 +1,8 @@
 // @ts-nocheck
-import { createClient, Database } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../../../../packages/common/types/database';
 
-export function createClientFromRequest(req: Request) {
+export function createSupabaseClient(req: Request) {
   const authHeader = req.headers.get("Authorization") || "";
   
   return createClient<Database>(
@@ -19,7 +19,7 @@ export function createClientFromRequest(req: Request) {
 
 export async function getUserId(req: Request): Promise<number | null> {
   try {
-    const supabase = createClientFromRequest(req);
+    const supabase = createSupabaseClient(req);
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {

@@ -1,8 +1,8 @@
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { serve } from 'std/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 import { createSupabaseClient, getUserId } from '../_shared/db.ts'
 
-serve(async (req) => {
+serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -47,9 +47,10 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
-    console.error('Unexpected error:', error)
+  } catch (e) {
+    const error = e as Error;
+    const errorMessage = error.message || 'An unknown error occurred';
+    console.error('Unexpected error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error', details: errorMessage }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

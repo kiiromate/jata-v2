@@ -1,27 +1,42 @@
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { serve } from 'std/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
-import { createSupabaseClient } from '../_shared/db.ts'
+import { createSupabaseClient, getUserId } from '../_shared/db.ts'
+import { z } from 'zod'
 
-serve(async (req) => {
+const ResumeSchema = z.object({
+  resume_name: z.string(),
+  resume_text: z.string(),
+})
+
+serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
     const supabase = createSupabaseClient(req)
-    const { file_name, content } = await req.json()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    const userId = await getUserId(req)
+    if (!userId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       })
     }
 
+    const body = await req.json()
+    const validation = ResumeSchema.safeParse(body)
+    if (!validation.success) {
+      return new Response(JSON.stringify({ error: 'Invalid request body', details: validation.error.flatten() }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+
+    const { resume_name, resume_text } = validation.data
+
     const { data, error } = await supabase
       .from('resumes')
-      .insert({ user_id: user.id, file_name, content })
+      .insert({ user_id: userId, resume_name, resume_text })
       .select()
       .single()
 
@@ -37,8 +52,9 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 201,
     })
-  } catch (error) {
-    console.error(error)
+  } catch (e) {
+    const error = e as Error;
+    console.error(error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

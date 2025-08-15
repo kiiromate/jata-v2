@@ -1,51 +1,46 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.43.2'
+import { serve } from 'std/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
+import { createSupabaseClient, getUserId } from '../_shared/db.ts'
+import { z } from 'zod'
 
-Deno.serve(async (req) => {
+const SaveAnalysisSchema = z.object({
+  applicationId: z.string(),
+  jataScore: z.number(),
+  finalResumeText: z.string(),
+  selectedResumeId: z.string(),
+})
+
+serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    )
+    const supabaseClient = createSupabaseClient(req)
+    const userId = await getUserId(req)
 
-    const {
-      data: { user },
-    } = await supabaseClient.auth.getUser()
-
-    if (!user) {
+    if (!userId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       })
     }
 
-    const { applicationId, jataScore, finalResumeText, selectedResumeId } =
-      await req.json()
+    const body = await req.json()
+    const validation = SaveAnalysisSchema.safeParse(body)
 
-    if (
-      !applicationId ||
-      jataScore === undefined ||
-      !finalResumeText ||
-      !selectedResumeId
-    ) {
+    if (!validation.success) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
+        JSON.stringify({ error: 'Invalid request body', details: validation.error.flatten() }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
         }
       )
     }
+
+    const { applicationId, jataScore, finalResumeText, selectedResumeId } = validation.data
 
     // Verify ownership of the application
     const { data: existingApplication, error: fetchError } =
@@ -73,7 +68,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    if (existingApplication.user_id !== user.id) {
+    if (existingApplication.user_id !== userId) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 403,
@@ -108,7 +103,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
-  } catch (error) {
+  } catch (e) {
+    const error = e as Error
     console.error('Unhandled error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

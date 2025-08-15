@@ -1,16 +1,19 @@
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { serve } from 'std/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
-import { createSupabaseClient } from '../_shared/db.ts'
+import { z } from 'zod'
+import { createSupabaseClient, getUserId } from '../_shared/db.ts'
 import { CreateApplicationSchema } from '../_shared/schemas.ts'
 
-serve(async (req) => {
+type Application = z.infer<typeof CreateApplicationSchema>
+
+serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
     const supabase = createSupabaseClient(req)
-    const body = await req.json()
+    const body: Application = await req.json()
     
     const result = CreateApplicationSchema.safeParse(body);
     if (!result.success) {
@@ -20,15 +23,15 @@ serve(async (req) => {
       })
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    const userId = await getUserId(req)
+    if (!userId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       })
     }
 
-    const applicationData = { ...result.data, user_id: user.id };
+    const applicationData = { ...result.data, user_id: userId };
 
     const { data, error } = await supabase
       .from('applications')
@@ -48,9 +51,10 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 201,
     })
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
-    console.error('Unhandled error:', error)
+  } catch (e) {
+    const error = e as Error;
+    const errorMessage = error.message || 'An unknown error occurred';
+    console.error('Unhandled error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error', details: errorMessage }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

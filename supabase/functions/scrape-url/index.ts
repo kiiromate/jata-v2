@@ -1,22 +1,28 @@
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { serve } from 'std/http/server.ts';
 import { Readability } from '@mozilla/readability';
 import { JSDOM } from 'jsdom';
 import { corsHeaders } from '../_shared/cors.ts';
+import { z } from 'zod';
 
-serve(async (req) => {
+const ScrapeURLSchema = z.object({ url: z.string().url() });
+
+serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  try {
-    const { url } = await req.json();
+    try {
+    const body = await req.json();
+    const validation = ScrapeURLSchema.safeParse(body);
 
-    if (!url) {
-      return new Response(JSON.stringify({ error: 'URL is required' }), {
+    if (!validation.success) {
+      return new Response(JSON.stringify({ error: 'Invalid request body', details: validation.error.flatten() }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });
     }
+
+    const { url } = validation.data;
 
     const response = await fetch(url);
     if (!response.ok) {
@@ -39,7 +45,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
-  } catch (error) {
+  } catch (e) {
+    const error = e as Error;
     console.error('Scraping Error:', error);
     return new Response(JSON.stringify({ error: error.message || 'Internal Server Error' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
