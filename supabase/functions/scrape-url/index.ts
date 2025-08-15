@@ -1,6 +1,6 @@
-import { serve } from 'std/http/server.ts';
-import { Readability } from '@mozilla/readability';
-import { JSDOM } from 'jsdom';
+import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
+import { Readability } from 'https://esm.sh/@mozilla/readability@0.5.0';
+import { JSDOM } from 'https://esm.sh/jsdom@22.1.0';
 import { corsHeaders } from '../_shared/cors.ts';
 import { z } from 'zod';
 

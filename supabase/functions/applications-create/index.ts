@@ -13,7 +13,7 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const supabase = createSupabaseClient(req)
-    const body: Application = await req.json()
+    const body = await req.json()
     
     const result = CreateApplicationSchema.safeParse(body);
     if (!result.success) {
