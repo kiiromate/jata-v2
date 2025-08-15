@@ -24,6 +24,7 @@ export type Database = {
           source: string | null
           status: string
           title: string
+          job_description: string | null
           updated_at: string
           url: string | null
           user_id: string
@@ -37,6 +38,7 @@ export type Database = {
           source?: string | null
           status?: string
           title: string
+          job_description?: string | null
           updated_at?: string
           url?: string | null
           user_id: string
@@ -50,6 +52,7 @@ export type Database = {
           source?: string | null
           status?: string
           title?: string
+          job_description?: string | null
           updated_at?: string
           url?: string | null
           user_id?: string
@@ -62,6 +65,41 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      resumes: {
+        Row: {
+          content: string
+          created_at: string | null
+          filename: string
+          id: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          filename: string
+          id?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          filename?: string
+          id?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resumes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
         ]
       }
       scrape_configs: {

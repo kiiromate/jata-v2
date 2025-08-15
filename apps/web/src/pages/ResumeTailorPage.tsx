@@ -1,19 +1,27 @@
 import { useParams } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { analyzeWithZeroShot } from "@/services/aiService";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { analyzeResumeAgainstJobDescription } from "@/services/aiService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileUpload } from "@/components/FileUpload";
 import type { FileUploadResult } from "@/services/fileUploadService";
+import { useAuth } from "@/context/AuthContext";
+import type { Database } from "@jata/common";
+
+type Resume = Database['public']['Tables']['resumes']['Row'];
 
 const ResumeTailorPage = () => {
   const { applicationId } = useParams<{ applicationId: string }>();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
+  const [selectedResumeId, setSelectedResumeId] = useState<string>('');
   const [resumeText, setResumeText] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [jobUrl, setJobUrl] = useState("");
@@ -25,7 +33,7 @@ const ResumeTailorPage = () => {
       if (!applicationId) return null;
       const { data, error } = await supabase
         .from('applications')
-        .select('title, company')
+        .select('title, company, job_description')
         .eq('id', parseInt(applicationId, 10))
         .single();
       if (error) throw new Error(error.message);
@@ -34,13 +42,39 @@ const ResumeTailorPage = () => {
     enabled: !!applicationId,
   });
 
+  useEffect(() => {
+    if (applicationData?.job_description) {
+      setJobDescription(applicationData.job_description);
+    }
+  }, [applicationData]);
 
+  // Fetch user's resumes
+  const { data: resumes, isLoading: isLoadingResumes } = useQuery<Resume[], Error>({
+    queryKey: ['resumes', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase.from('resumes').select('*').eq('user_id', user.id);
+      if (error) throw new Error(error.message);
+      return data || [];
+    },
+    enabled: !!user,
+  });
 
-  type AnalysisVariables = { jobDescription: string };
+  useEffect(() => {
+    if (selectedResumeId) {
+      const selectedResume = resumes?.find(r => r.id.toString() === selectedResumeId);
+      if (selectedResume) {
+        setResumeText(selectedResume.content || '');
+      }
+    }
+  }, [selectedResumeId, resumes]);
+
+  type AnalysisResult = { matched_skills: string[]; missing_skills: string[]; score: number };
+  type AnalysisVariables = { resumeText: string; jobDescription: string };
 
   // Mutation for AI analysis
-  const { mutate: analyze, data: analysis, isPending: isAnalyzing, isError: analysisError, error: analysisErrorMessage } = useMutation<string[], Error, AnalysisVariables>({
-    mutationFn: (variables) => analyzeWithZeroShot(variables.jobDescription),
+  const { mutate: analyze, data: analysis, isPending: isAnalyzing, isError: analysisError, error: analysisErrorMessage } = useMutation<AnalysisResult, Error, AnalysisVariables>({
+    mutationFn: (variables) => analyzeResumeAgainstJobDescription(variables.resumeText, variables.jobDescription),
   });
 
   // Mutation for scraping job description from URL
@@ -60,10 +94,8 @@ const ResumeTailorPage = () => {
         throw new Error(errorData.error || 'Failed to scrape URL');
       }
       const { article } = await response.json();
+      setJobDescription(article.textContent);
       return article.textContent;
-    },
-    onSuccess: (data) => {
-      setJobDescription(data);
     },
   });
 
@@ -117,6 +149,17 @@ const ResumeTailorPage = () => {
         <div>
           <h2 className="text-xl font-semibold mb-4">Your Resume</h2>
           <div className="space-y-4">
+            <Select onValueChange={setSelectedResumeId} value={selectedResumeId} disabled={isLoadingResumes}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a resume" />
+              </SelectTrigger>
+              <SelectContent>
+                {resumes?.map(resume => (
+                  <SelectItem key={resume.id} value={resume.id.toString()}>{resume.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="text-center text-sm text-gray-500">or</div>
             <FileUpload
               label="Upload Resume"
               description="Upload a PDF, DOCX, or TXT file"
@@ -135,7 +178,7 @@ const ResumeTailorPage = () => {
         </div>
       </div>
       <div className="mt-4 text-center">
-        <Button onClick={() => analyze({ jobDescription })} disabled={isAnalyzing || !jobDescription.trim() || !resumeText.trim()}>
+        <Button onClick={() => analyze({ resumeText, jobDescription })} disabled={isAnalyzing || !jobDescription.trim() || !resumeText.trim()}>
           {isAnalyzing ? "Analyzing..." : "Analyze & Tailor"}
         </Button>
       </div>
@@ -147,12 +190,25 @@ const ResumeTailorPage = () => {
       {analysis && (
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Job Focus Analysis</CardTitle>
+            <CardTitle>Analysis Result (Score: {analysis.score}%)</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {(analysis as string[]).map((category: string) => (
-              <Badge key={category}>{category}</Badge>
-            ))}
+          <CardContent>
+            <div>
+              <h3 className="font-semibold">Matched Skills:</h3>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {analysis.matched_skills.map((skill) => (
+                  <Badge key={skill}>{skill}</Badge>
+                ))}
+              </div>
+            </div>
+            <div className="mt-4">
+              <h3 className="font-semibold">Missing Skills:</h3>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {analysis.missing_skills.map((skill) => (
+                  <Badge key={skill} variant="destructive">{skill}</Badge>
+                ))}
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

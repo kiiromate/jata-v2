@@ -136,3 +136,81 @@ export async function generateBulletPoint(description: string, keywords: string[
     throw new Error("An unknown error occurred during bullet point generation.");
   }
 }
+
+// --- Resume and Job Description Analysis ---
+
+export interface AnalysisResult {
+  score: number;
+  matchedSkills: string[];
+  missingSkills: string[];
+}
+
+// A simplified list of skills for demonstration. In a real app, this would be more extensive.
+const SKILL_PATTERNS: { [key: string]: RegExp } = {
+  JavaScript: /javascript|js/gi,
+  TypeScript: /typescript|ts/gi,
+  React: /react/gi,
+  NodeJS: /node\.js|nodejs/gi,
+  Python: /python/gi,
+  SQL: /sql/gi,
+  PostgreSQL: /postgresql/gi,
+  Docker: /docker/gi,
+  Kubernetes: /kubernetes|k8s/gi,
+  AWS: /aws|amazon web services/gi,
+  GCP: /gcp|google cloud platform/gi,
+  Azure: /azure/gi,
+  HTML: /html/gi,
+  CSS: /css|tailwind/gi,
+  "Project Management": /project management|agile|scrum/gi,
+  "CI/CD": /ci\/cd|jenkins|gitlab ci/gi,
+};
+
+/**
+ * Extracts skills from a given text based on predefined regex patterns.
+ * @param text The text to analyze (resume or job description).
+ * @returns A Set of unique skills found in the text.
+ */
+const extractSkills = (text: string): Set<string> => {
+  const foundSkills = new Set<string>();
+  if (!text) return foundSkills;
+
+  for (const skill in SKILL_PATTERNS) {
+    if (SKILL_PATTERNS[skill].test(text)) {
+      foundSkills.add(skill);
+    }
+  }
+  return foundSkills;
+};
+
+/**
+ * Analyzes a resume against a job description to find matching and missing skills.
+ * @param resumeText The text of the user's resume.
+ * @param jobDescriptionText The text of the job description.
+ * @returns An object containing the match score, matched skills, and missing skills.
+ */
+export const analyzeResumeAgainstJobDescription = (
+  resumeText: string,
+  jobDescriptionText: string
+): AnalysisResult => {
+  const resumeSkills = extractSkills(resumeText);
+  const jobSkills = extractSkills(jobDescriptionText);
+
+  if (jobSkills.size === 0) {
+    return {
+      score: 0,
+      matchedSkills: [],
+      missingSkills: [],
+    };
+  }
+
+  const matchedSkills = [...jobSkills].filter(skill => resumeSkills.has(skill));
+  const missingSkills = [...jobSkills].filter(skill => !resumeSkills.has(skill));
+
+  const score = Math.round((matchedSkills.length / jobSkills.size) * 100);
+
+  return {
+    score,
+    matchedSkills,
+    missingSkills,
+  };
+};

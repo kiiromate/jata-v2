@@ -1,14 +1,14 @@
 import React, { useState, useRef } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import type { Database } from '@jata/common';
 
-
-// type Resume = Database['public']['Tables']['resumes']['Row'];
+type Resume = Database['public']['Tables']['resumes']['Row'];
 
 const ProfilePage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -16,7 +16,19 @@ const ProfilePage: React.FC = () => {
   const [resumeName, setResumeName] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-
+  const { data: resumes, isLoading: resumesLoading } = useQuery<Resume[], Error>({
+    queryKey: ['resumes', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('resumes')
+        .select('*')
+        .eq('user_id', user.id);
+      if (error) throw new Error(error.message);
+      return data || [];
+    },
+    enabled: !!user,
+  });
 
   const uploadResumeMutation = useMutation<Response, Error, FormData>({
     mutationFn: async (formData: FormData) => {
@@ -113,8 +125,8 @@ const ProfilePage: React.FC = () => {
                 required
               />
             </div>
-            <Button type="submit" disabled={true}>
-              {'Upload Resume'}
+            <Button type="submit" disabled={uploadResumeMutation.isPending}>
+              {uploadResumeMutation.isPending ? 'Uploading...' : 'Upload Resume'}
             </Button>
             {uploadResumeMutation.isError && (
               <p className="text-red-500 text-sm mt-2">Error: {uploadResumeMutation.error?.message}</p>
@@ -126,7 +138,26 @@ const ProfilePage: React.FC = () => {
         </CardContent>
       </Card>
 
-      
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Resumes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {resumesLoading ? (
+            <p>Loading resumes...</p>
+          ) : resumes && resumes.length > 0 ? (
+            <ul className="space-y-2">
+              {resumes.map((resume) => (
+                <li key={resume.id} className="p-2 border rounded-md">
+                  {resume.name}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>You haven't uploaded any resumes yet.</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
