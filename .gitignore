@@ -22,3 +22,4 @@ badumts.txt
 # /docs/JATA_V2_Build_Plan_.md
 /apps/extension/dist/ 
 apps\web\.env
+.vercel
