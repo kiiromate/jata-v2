@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "jsdom": "https://esm.sh/jsdom@22.1.0",
+    "@mozilla/readability": "https://esm.sh/@mozilla/readability@0.4.4"
+  }
+}

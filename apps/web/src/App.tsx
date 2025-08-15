@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import ResumeTailorPage from './pages/ResumeTailorPage';
 import UpdatePasswordPage from './pages/UpdatePasswordPage';
+import ProfilePage from './pages/ProfilePage';
+import AnalyticsPage from './pages/AnalyticsPage';
 
 const queryClient = new QueryClient();
 
@@ -32,6 +34,16 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute>
+                <AnalyticsPage />
+              </ProtectedRoute>
+            } />
           </Routes>
         </Router>
       </QueryClientProvider>

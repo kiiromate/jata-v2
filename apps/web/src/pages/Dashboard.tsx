@@ -9,8 +9,10 @@
  */
 
 import { useState, FormEvent, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 
 import { ApplicationCard } from '../components/ApplicationCard';
+import Welcome from '../components/Welcome';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useDashboardStore } from '../store/dashboardStore';
@@ -159,65 +161,67 @@ const Dashboard = (): JSX.Element => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">My Applications</h1>
-        <div className="flex items-center space-x-2 mt-4 sm:mt-0">
-          <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">Export CSV</button>
-          <button onClick={openModal} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700">+ Add New</button>
-        </div>
-      </header>
+      {isLoading || (applications && applications.length === 0) ? (
+        <Welcome />
+      ) : (
+        <>
+          <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+            <h1 className="text-2xl font-bold text-gray-800">My Applications</h1>
+            <div className="flex items-center space-x-2 mt-4 sm:mt-0">
+              <Link to="/analytics" className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">Analytics</Link>
+              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">Export CSV</button>
+              <button onClick={openModal} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700">+ Add New</button>
+            </div>
+          </header>
 
-      <div className="mb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <input 
-            type="text" 
-            placeholder="Search by job title or company..." 
-            className="sm:col-span-1 w-full input" 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <select 
-            aria-label="Filter by status" 
-            className="w-full input"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            <option>All Status</option>
-            <option>Applied</option>
-            <option>Interview</option>
-            <option>Offer</option>
-            <option>Rejected</option>
-          </select>
-          <select 
-            aria-label="Sort by date" 
-            className="w-full input"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-          >
-            <option>Newest First</option>
-            <option>Oldest First</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="mt-8 flex flex-col">
-        <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {isLoading ? (
-              <p>Loading...</p>
-            ) : error ? (
-              <p className="text-red-600">Error: {error.message}</p>
-            ) : !filteredApplications || filteredApplications.length === 0 ? (
-              <p>No applications found.</p>
-            ) : (
-              filteredApplications.map((app) => (
-                <ApplicationCard key={app.id} application={app} />
-              ))
-            )}
+          <div className="mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <input
+                type="text"
+                placeholder="Search by job title or company..."
+                className="sm:col-span-1 w-full input"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <select
+                aria-label="Filter by status"
+                className="w-full input"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option>All Status</option>
+                <option>Applied</option>
+                <option>Interview</option>
+                <option>Offer</option>
+                <option>Rejected</option>
+              </select>
+              <select
+                aria-label="Sort by date"
+                className="w-full input"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+              >
+                <option>Newest First</option>
+                <option>Oldest First</option>
+              </select>
+            </div>
           </div>
-        </div>
-      </div>
 
+          <div className="mt-8 flex flex-col">
+            <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {error ? (
+                  <p className="text-red-600">Error: {error.message}</p>
+                ) : (
+                  filteredApplications.map((app) => (
+                    <ApplicationCard key={app.id} application={app} />
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
       <CreateApplicationModal />
     </div>
   );
