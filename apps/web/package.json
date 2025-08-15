@@ -31,7 +31,8 @@
     "zustand": "^4.5.7"
   },
   "devDependencies": {
-    "@types/pdf-parse": "^1.1.5",
+    
+    "@types/pdfjs-dist": "^2.7.4",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@typescript-eslint/eslint-plugin": "^8.39.1",

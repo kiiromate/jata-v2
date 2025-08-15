@@ -7,8 +7,15 @@
  * Provides client-side text extraction to maintain privacy and reduce server load.
  */
 import mammoth from 'mammoth';
-import pdfParse from 'pdf-parse';
+import * as pdfjsLib from 'pdfjs-dist';
 import { supabase } from '../lib/supabaseClient';
+
+// Set the worker source for pdfjs-dist to ensure it works with Vite
+// @ts-ignore
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 /**
  * Supported file types for upload
@@ -82,8 +89,18 @@ async function extractTextFromTxt(file: File): Promise<string> {
  */
 async function extractTextFromPdf(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
-  const data = await pdfParse(Buffer.from(arrayBuffer));
-  return data.text;
+  const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+  let fullText = '';
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    // @ts-ignore
+    const pageText = textContent.items.map((item) => item.str).join(' ');
+    fullText += pageText + ' ';
+  }
+
+  return fullText.trim();
 }
 
 /**
