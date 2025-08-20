@@ -11,7 +11,7 @@ interface ApplicationCardProps {
 
 export const ApplicationCard: React.FC<ApplicationCardProps> = ({ application }) => {
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 flex flex-col justify-between h-full">
+    <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 flex flex-col justify-between h-full transition-transform duration-200 hover:scale-105 hover:shadow-lg">
       <div>
         <div className="flex justify-between items-start">
           <h3 className="font-bold text-lg text-gray-800">{application.title}</h3>

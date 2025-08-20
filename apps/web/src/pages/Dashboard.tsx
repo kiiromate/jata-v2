@@ -10,7 +10,6 @@
 
 import { useState, FormEvent, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 
 import { ApplicationCard } from '../components/ApplicationCard';
 import Welcome from '../components/Welcome';
@@ -161,29 +160,19 @@ const Dashboard = (): JSX.Element => {
   }, [applications, searchTerm, filterStatus, sortOrder]);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <Alert className="mb-4">
-        <AlertTitle>Enhance your job hunt</AlertTitle>
-        <AlertDescription>
-          The JATA extension brings powerful tools right into your browser. 
-          <Link to="/install-extension" className="font-bold text-blue-600 hover:underline ml-2">
-            Learn More
-          </Link>
-        </AlertDescription>
-      </Alert>
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
 
-      {isLoading || (applications && applications.length === 0) ? (
+      {!isLoading && applications && applications.length === 0 ? (
         <Welcome />
       ) : (
         <>
-          <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">My Applications</h1>
-            <div className="flex items-center space-x-2 mt-4 sm:mt-0">
-              <Link to="/analytics" className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">Analytics</Link>
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">Export CSV</button>
-              <button onClick={openModal} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700">+ Add New</button>
-            </div>
-          </header>
+          
+                    <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+            <button onClick={openModal} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
+              Create Application
+            </button>
+          </div>
 
           <div className="mb-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -218,18 +207,14 @@ const Dashboard = (): JSX.Element => {
             </div>
           </div>
 
-          <div className="mt-8 flex flex-col">
-            <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {error ? (
-                  <p className="text-red-600">Error: {error.message}</p>
-                ) : (
-                  filteredApplications.map((app) => (
-                    <ApplicationCard key={app.id} application={app} />
-                  ))
-                )}
-              </div>
-            </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
+            {error ? (
+              <p className="text-red-600">Error: {error.message}</p>
+            ) : (
+              filteredApplications.map((app) => (
+                <ApplicationCard key={app.id} application={app} />
+              ))
+            )}
           </div>
         </>
       )}

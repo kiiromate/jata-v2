@@ -38,9 +38,9 @@ const UpdatePasswordPage = () => {
     if (error) {
       setError(error.message);
     } else {
-      setMessage('Your password has been updated successfully. Redirecting to login...');
+      setMessage('Your password has been updated successfully. Redirecting to sign in...');
       setTimeout(() => {
-        navigate('/login');
+        navigate('/signin');
       }, 3000);
     }
     setLoading(false);

@@ -1,21 +1,32 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import IconNav from './IconNav';
 
-const Header: React.FC = () => {
+const Header = () => {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return null;
+  }
+
   return (
-    <header className="bg-pure-white shadow-md p-4 flex justify-between items-center">
-      <div className="text-2xl font-bold text-jet-black">
-        <Link to="/">JATA</Link>
-      </div>
-      <nav>
-        <ul className="flex space-x-4">
-          <li><Link to="/dashboard" className="text-charcoal-gray hover:text-soft-olive">Dashboard</Link></li>
-          <li><Link to="/login" className="text-charcoal-gray hover:text-soft-olive">Login</Link></li>
-          {/* Add more navigation links as needed */}
-        </ul>
+    <header className="fixed top-0 left-0 z-50 w-full bg-white/80 backdrop-blur-sm shadow-sm">
+      <nav className="container mx-auto flex h-14 max-w-screen-2xl items-center justify-between px-4">
+        <Link to="/" className="text-xl font-bold text-gray-800">
+          JATA
+        </Link>
+        
+        {session ? (
+          <IconNav />
+        ) : (
+          <div className="flex items-center space-x-4">
+            <Link to="/signin" className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-full shadow-sm hover:bg-gray-50">Sign In</Link>
+          </div>
+        )}
       </nav>
     </header>
   );
 };
 
 export default Header;
+

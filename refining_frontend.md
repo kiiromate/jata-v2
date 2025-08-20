@@ -33,10 +33,9 @@ After you confirm the dependency is installed, I will perform the following code
 
 3.  **Update `index.html`**: I will add the import link for the `Inter` font from Google Fonts.
 
-4.  **Redesign `LoginPage.tsx`**: I will overhaul the login page to:
+4.  **Redesign `SigninPage.tsx`**: I will overhaul the sign-in page to:
     *   Incorporate the new styles and colors.
     *   Add icons from `lucide-react` to the email and password fields for better usability.
     *   Ensure the brand name is displayed as "JATA" in all caps.
-    *   Add a placeholder for the burger menu icon in the top-left corner.
 
 5.  **Redesign `UpdatePasswordPage.tsx`**: I will apply the same consistent styling to the password update page to ensure a cohesive user experience.

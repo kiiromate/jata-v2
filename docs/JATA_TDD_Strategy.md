@@ -56,7 +56,7 @@ test('renders chart with correct data', () => {
 - **State Management:** Verify Zustand store updates.
 
 ### 3.3 E2E Tests
-- **User Journeys:** Simulate flows like login and job extraction.
+- **User Journeys:** Simulate flows like sign in and job extraction.
 - **Cross-Browser Testing:** Test in Chrome, Firefox, and Edge.
 
 ---

@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-light-gray text-jet-black font-sans;
+    @apply bg-background text-foreground font-sans;
   }
   :root {
 
@@ -110,7 +110,7 @@
 
 @layer components {
   .input-field {
-    @apply w-full px-4 py-2 mt-2 border rounded-md bg-pure-white focus:outline-none focus:ring-2 focus:ring-soft-olive;
+    @apply w-full px-4 py-2 mt-2 border rounded-md bg-pure-white text-jet-black focus:outline-none focus:ring-2 focus:ring-soft-olive;
   }
 
   .btn {
@@ -132,3 +132,4 @@
     @apply bg-background text-foreground;
   }
 }
+@import './styles/components.css';

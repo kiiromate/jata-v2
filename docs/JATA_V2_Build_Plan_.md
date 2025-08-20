@@ -153,7 +153,7 @@ JATA V2 empowers job seekers with a browser extension for scraping job details, 
 
 1. **Generate Tests**
     
-    - Use Gemini CLI: “Generate Playwright end-to-end tests for web and extension in `apps/web/tests/e2e/` and `apps/extension/tests/e2e/`, covering user login, job scraping, resume tailoring, and analytics viewing.”
+    - Use Gemini CLI: “Generate Playwright end-to-end tests for web and extension in `apps/web/tests/e2e/` and `apps/extension/tests/e2e/`, covering user sign in, job scraping, resume tailoring, and analytics viewing.”
     - Run: `pnpm --filter @jata/web test:e2e && pnpm --filter @jata/extension test:e2e`.
 2. **Accessibility Check**
     

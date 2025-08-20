@@ -11,7 +11,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@jata/common/src/database.types';
+import type { Database } from './database.types';
 
 /**
  * The Supabase project URL, retrieved from environment variables.
@@ -40,4 +40,4 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
  * providing authentication, database operations, and other Supabase services.
  * It ensures that all operations are type-safe based on the database schema.
  */
-export const supabase = createClient<Database>(supabaseUrl!, supabaseAnonKey!, { auth: { redirectTo: 'https://jata-app.vercel.app/dashboard' } });
+export const supabase = createClient<Database>(supabaseUrl!, supabaseAnonKey!);

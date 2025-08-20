@@ -9,6 +9,12 @@ export default {
   theme: {
   	extend: {
   		colors: {
+  			// Custom brand colors
+  			'pure-white': '#ffffff',
+  			'jet-black': '#0a0a0a',
+  			'charcoal-gray': '#2a2a2a',
+  			'soft-olive': '#8fbc8f',
+  			
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',

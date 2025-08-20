@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
-const LoginPage = () => {
+const SigninPage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('signIn'); // 'signIn' or 'signUp'
   const [email, setEmail] = useState('');
@@ -163,4 +163,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default SigninPage;
