@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 import { GoogleDriveService } from '../services/googleDriveService';
+import Avatar from '../components/Avatar';
 
 const Settings = () => {
   const { session } = useAuth();
@@ -50,6 +51,9 @@ const Settings = () => {
       }
       const { error } = await supabase.from('users').update(updates).eq('id', session.user.id);
       if (error) throw error;
+      
+      // Show success message
+      alert('Profile saved successfully!');
     } catch (e) {
       console.error('Save profile error:', e);
     } finally {
@@ -202,7 +206,7 @@ const Settings = () => {
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-gray-500">Avatar</span>
+                    <Avatar avatarUrl={null} userId={displayName || session?.user?.email || 'User'} />
                   )}
                 </div>
                 <div className="space-y-4 flex-1">
