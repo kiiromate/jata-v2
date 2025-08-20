@@ -9,6 +9,8 @@ import ResumeTailorPage from './pages/ResumeTailorPage';
 import UpdatePasswordPage from './pages/UpdatePasswordPage';
 import ProfilePage from './pages/ProfilePage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import LandingPage from './pages/LandingPage';
+import AppLayout from './components/AppLayout';
 
 const queryClient = new QueryClient();
 
@@ -18,30 +20,39 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <Router>
           <Routes>
-            <Route path="/" element={<Navigate to="/login" />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<Navigate to="/login" />} />
             <Route path="/update-password" element={<UpdatePasswordPage />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <Dashboard />
+                <AppLayout>
+                  <Dashboard />
+                </AppLayout>
               </ProtectedRoute>
             } />
             <Route
               path="/resume-tailor/:id"
               element={
                 <ProtectedRoute>
-                  <ResumeTailorPage />
+                  <AppLayout>
+                    <ResumeTailorPage />
+                  </AppLayout>
                 </ProtectedRoute>
               }
             />
             <Route path="/profile" element={
               <ProtectedRoute>
-                <ProfilePage />
+                <AppLayout>
+                  <ProfilePage />
+                </AppLayout>
               </ProtectedRoute>
             } />
             <Route path="/analytics" element={
               <ProtectedRoute>
-                <AnalyticsPage />
+                <AppLayout>
+                  <AnalyticsPage />
+                </AppLayout>
               </ProtectedRoute>
             } />
           </Routes>

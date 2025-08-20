@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Menu } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -11,6 +11,8 @@ const LoginPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showExtensionPrompt, setShowExtensionPrompt] = useState(false);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +25,7 @@ const LoginPage = () => {
     if (error) {
       setError(error.message);
     } else {
-      navigate('/dashboard');
+      setShowExtensionPrompt(true);
     }
   };
 
@@ -62,14 +64,22 @@ const LoginPage = () => {
     }
   };
 
+  const handleInstallExtension = () => {
+    // Logic to redirect to extension store or provide installation instructions
+    console.log("Installing extension...");
+    setShowExtensionPrompt(false);
+    navigate('/dashboard');
+  };
+
+  const handleSkipExtension = () => {
+    setShowExtensionPrompt(false);
+    navigate('/dashboard');
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-light-gray">
       <div className="relative w-full max-w-md p-8 space-y-6 bg-pure-white rounded-lg shadow-md">
-        <div className="absolute top-4 left-4">
-            <button aria-label="Menu" className="p-2 rounded-md hover:bg-cool-gray focus:outline-none focus:ring-2 focus:ring-inset focus:ring-soft-olive">
-                <Menu className="w-6 h-6 text-jet-black" />
-            </button>
-        </div>
+        
         <div className="text-center pt-8">
           <h1 className="text-3xl font-bold text-jet-black">JATA</h1>
           <p className="text-charcoal-gray">Your AI-Powered Job Application Tracker</p>
@@ -111,7 +121,10 @@ const LoginPage = () => {
                  <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                   <Lock className="w-5 h-5 text-gray-400" />
                 </span>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="input-field pl-10" placeholder="••••••••" />
+                <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required className="input-field pl-10 pr-10" placeholder="••••••••" />
+                <span className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
+                  {showPassword ? <EyeOff className="w-5 h-5 text-gray-400" /> : <Eye className="w-5 h-5 text-gray-400" />}
+                </span>
               </div>
             </div>
             <button type="submit" className="btn">Sign In</button>
@@ -133,7 +146,10 @@ const LoginPage = () => {
                  <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                   <Lock className="w-5 h-5 text-gray-400" />
                 </span>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="input-field pl-10" placeholder="••••••••" />
+                <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required className="input-field pl-10 pr-10" placeholder="••••••••" />
+                <span className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
+                  {showPassword ? <EyeOff className="w-5 h-5 text-gray-400" /> : <Eye className="w-5 h-5 text-gray-400" />}
+                </span>
               </div>
             </div>
             <div>
@@ -142,13 +158,33 @@ const LoginPage = () => {
                  <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                   <Lock className="w-5 h-5 text-gray-400" />
                 </span>
-                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="input-field pl-10" placeholder="••••••••" />
+                <input type={showPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="input-field pl-10 pr-10" placeholder="••••••••" />
+                <span className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
+                  {showPassword ? <EyeOff className="w-5 h-5 text-gray-400" /> : <Eye className="w-5 h-5 text-gray-400" />}
+                </span>
               </div>
             </div>
             <button type="submit" className="btn">Sign Up</button>
           </form>
         )}
       </div>
+
+      {showExtensionPrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-pure-white p-8 rounded-lg shadow-lg text-center space-y-4">
+            <h2 className="text-xl font-bold text-jet-black">Install JATA Extension</h2>
+            <p className="text-charcoal-gray">To get the most out of JATA, install our browser extension.</p>
+            <div className="flex justify-center space-x-4">
+              <button onClick={handleInstallExtension} className="btn bg-soft-olive hover:bg-dark-olive text-pure-white">
+                Install Extension
+              </button>
+              <button onClick={handleSkipExtension} className="btn bg-cool-gray hover:bg-charcoal-gray text-jet-black">
+                Skip for now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
