@@ -119,4 +119,7 @@ This final phase focuses on user experience, documentation, and production readi
 
 2.  **Contextual Help System**: To enhance clarity, a lightweight help system using `shadcn/ui`'s `Tooltip` component is integrated into the analytics charts. This provides users with non-intrusive, on-demand explanations of what each metric means.
 
-3.  **Production Deployment Workflow**: The project is prepared for deployment with a clear, repeatable process. This involves using the Supabase CLI to push database migrations (`supabase db push`) and Edge Functions to production, and configuring the frontend hosting provider (e.g., Netlify) with production environment variables for a clean build-and-deploy pipeline.
+3.  **Production Deployment Workflow**: The project's build and deployment process is hardened for production.
+    *   **Build Script**: The `apps/web` `build` script in `package.json` is simplified to `vite build`, making Vite the single source of truth and preventing conflicts with standalone `tsc` checks.
+    *   **Monorepo Pathing**: The `apps/web/tsconfig.json` and `vite.config.ts` are explicitly configured with path aliases (`@jata/common/*`) and the `vite-tsconfig-paths` plugin to ensure reliable module resolution in a CI/CD environment.
+    *   **Node.js Polyfills**: Vite's `resolve.alias` configuration is used to explicitly polyfill Node.js-specific modules (like `fs`) with browser-safe alternatives (like `memfs`), preventing runtime errors in the deployed application.
