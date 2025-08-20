@@ -8,7 +8,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@jata/common/*": ["../../packages/common/src/*"]
+      "@jata/common/*": ["../../packages/common/*"]
     },
 
     /* Bundler mode */
@@ -27,6 +27,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "../../packages/common/types/database.ts"],
+  "include": ["src", "../../packages/common/src/database.types.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
