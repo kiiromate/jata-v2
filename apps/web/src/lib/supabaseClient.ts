@@ -40,4 +40,4 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
  * providing authentication, database operations, and other Supabase services.
  * It ensures that all operations are type-safe based on the database schema.
  */
-export const supabase = createClient<Database>(supabaseUrl!, supabaseAnonKey!);
+export const supabase = createClient<Database>(supabaseUrl!, supabaseAnonKey!, { auth: { redirectTo: 'https://jata-app.vercel.app/dashboard' } });

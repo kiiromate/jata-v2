@@ -10,6 +10,7 @@
 
 import { useState, FormEvent, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 
 import { ApplicationCard } from '../components/ApplicationCard';
 import Welcome from '../components/Welcome';
@@ -161,6 +162,16 @@ const Dashboard = (): JSX.Element => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
+      <Alert className="mb-4">
+        <AlertTitle>Enhance your job hunt</AlertTitle>
+        <AlertDescription>
+          The JATA extension brings powerful tools right into your browser. 
+          <Link to="/install-extension" className="font-bold text-blue-600 hover:underline ml-2">
+            Learn More
+          </Link>
+        </AlertDescription>
+      </Alert>
+
       {isLoading || (applications && applications.length === 0) ? (
         <Welcome />
       ) : (

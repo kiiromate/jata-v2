@@ -12,7 +12,6 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showExtensionPrompt, setShowExtensionPrompt] = useState(false);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +24,7 @@ const LoginPage = () => {
     if (error) {
       setError(error.message);
     } else {
-      setShowExtensionPrompt(true);
+      navigate('/dashboard');
     }
   };
 
@@ -64,17 +63,7 @@ const LoginPage = () => {
     }
   };
 
-  const handleInstallExtension = () => {
-    // Logic to redirect to extension store or provide installation instructions
-    console.log("Installing extension...");
-    setShowExtensionPrompt(false);
-    navigate('/dashboard');
-  };
-
-  const handleSkipExtension = () => {
-    setShowExtensionPrompt(false);
-    navigate('/dashboard');
-  };
+  
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-light-gray">
@@ -169,22 +158,7 @@ const LoginPage = () => {
         )}
       </div>
 
-      {showExtensionPrompt && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-pure-white p-8 rounded-lg shadow-lg text-center space-y-4">
-            <h2 className="text-xl font-bold text-jet-black">Install JATA Extension</h2>
-            <p className="text-charcoal-gray">To get the most out of JATA, install our browser extension.</p>
-            <div className="flex justify-center space-x-4">
-              <button onClick={handleInstallExtension} className="btn bg-soft-olive hover:bg-dark-olive text-pure-white">
-                Install Extension
-              </button>
-              <button onClick={handleSkipExtension} className="btn bg-cool-gray hover:bg-charcoal-gray text-jet-black">
-                Skip for now
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 };

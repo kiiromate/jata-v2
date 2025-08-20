@@ -20,8 +20,16 @@ This phase establishes the application's public-facing identity and core navigat
 ### 14. Polishing the Core Experience
 This phase addresses key usability and UX friction points in the authentication and onboarding flows. It includes improving form UX (password visibility), enhancing validation, and creating a stable, intentional onboarding sequence.
 
-### 15. The JATA Design System V2 & Content Strategy
-This phase focuses on a comprehensive aesthetic and UX overhaul. It involves implementing the defined design system (colors, typography, components), refining information architecture, and enhancing the application's microcopy and tone to be more organic and intuitive.
+---
+### 15. The JATA Design System V1 & Initial Redesign
+This phase implements the initial redesign of the application's visual identity, heavily inspired by `superhi.com`. This includes adopting the new typography, layout principles, and scroll-triggered animations for the landing page.
+
+### 15.5. Polishing the User Journey & Design System V2
+This phase focuses on critical UX details that make the application feel cohesive and professional. Key tasks include:
+    *   **Customizing System Emails**: Configuring Supabase Auth to use custom, branded email templates for a seamless onboarding experience.
+    *   **Implementing a Cohesive Theme**: Re-implementing a robust light/dark mode theme that uses a defined, modern color palette and applies it consistently across the entire application.
+    *   **Refining the Onboarding Flow**: Optimizing the timing and presentation of the "Install Extension" prompt to feel more organic and less intrusive.
+    *   **Finalizing the Extension Workflow**: Creating a dedicated page that provides clear, step-by-step instructions for manually installing the browser extension.
 
 ### 16. Go-To-Market Readiness
 This final phase prepares the application for public launch. It includes implementing foundational SEO, setting up product analytics (PostHog), error tracking (Sentry), and ensuring the deployment pipeline is stable and documented.
