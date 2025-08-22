@@ -1,35 +1,30 @@
-# JATA V2 - Gemini CLI Master Guide
-
-This is the single source of truth for the JATA project. It defines the standards, technologies, and architectural patterns for all code generation.
-
----
-## Act I: Core Functionality (Completed)
-This act focused on building the core, end-to-end user workflow. It covered the initial build through Phase 11, resulting in a stateful application where a user can manage resumes, analyze job descriptions, generate content, and view analytics.
-
----
 ## Act II: Productization & Polish (In Progress)
 
-This act transforms the functional application into a professional, user-friendly, and robust product ready for V1 launch, based on the Product Strategy Document.
+### Phase 1: Analytics Transformation (Current)
+**Objective**: To resolve all existing errors on the analytics page and transform it into a source of competitive, actionable intelligence for the user.
+**Key Tasks**:
+1.  **Enhance the `get_user_analytics` RPC**: Add deeper insights like industry trends and success pattern analysis.
+2.  **Redesign the Analytics UI**: Implement a new, intuitive layout with interactive charts.
+3.  **Implement Robust Error Handling**: Ensure the page is resilient and provides helpful feedback.
 
-### 12. Critical Bug Fixes & Security Hardening
-This phase addresses blocking issues that compromise the application's integrity and core user experience. Key tasks include fixing the authentication bypass vulnerability and resolving the failing onboarding modal UX.
+### Phase 2: Profile & Settings Enhancement
+**Objective**: To build a comprehensive user profile and account settings section, turning JATA into a central hub for a user's professional identity.
 
-### 13. The Professional Shell & Brand Identity
-This phase establishes the application's public-facing identity and core navigational structure. It involves creating a public landing page, a consistent app layout (header/footer), and updating branding elements (site title, favicon, logo placeholders).
+### Phase 3: Dashboard Activity Intelligence
+**Objective**: To implement the "30-Day Activity Card," transforming the dashboard from a simple list into a source of motivational, at-a-glance insights.
 
-### 14. Polishing the Core Experience
-This phase addresses key usability and UX friction points in the authentication and onboarding flows. It includes improving form UX (password visibility), enhancing validation, and creating a stable, intentional onboarding sequence.
+### Phase 4: Sophisticated Error Handling
+**Objective**: To implement scenario-specific 404 and error pages that guide the user and enhance their experience even when things go wrong.
 
----
-### 15. The JATA Design System V1 & Initial Redesign
-This phase implements the initial redesign of the application's visual identity, heavily inspired by `superhi.com`. This includes adopting the new typography, layout principles, and scroll-triggered animations for the landing page.
+### Phase 2: Profile & Settings Enhancement (Completed)
+**Objective**: To build a comprehensive user profile and account settings section, turning JATA into a central hub for a user's professional identity.
 
-### 15.5. Polishing the User Journey & Design System V2
-This phase focuses on critical UX details that make the application feel cohesive and professional. Key tasks include:
-    *   **Customizing System Emails**: Configuring Supabase Auth to use custom, branded email templates for a seamless onboarding experience.
-    *   **Implementing a Cohesive Theme**: Re-implementing a robust light/dark mode theme that uses a defined, modern color palette and applies it consistently across the entire application.
-    *   **Refining the Onboarding Flow**: Optimizing the timing and presentation of the "Install Extension" prompt to feel more organic and less intrusive.
-    *   **Finalizing the Extension Workflow**: Creating a dedicated page that provides clear, step-by-step instructions for manually installing the browser extension.
+### Phase 3: Dashboard Activity Intelligence (Completed)
+**Objective**: To implement the "30-Day Activity Card," transforming the dashboard from a simple list into a source of motivational, at-a-glance insights.
 
-### 16. Go-To-Market Readiness
-This final phase prepares the application for public launch. It includes implementing foundational SEO, setting up product analytics (PostHog), error tracking (Sentry), and ensuring the deployment pipeline is stable and documented.
+### Phase 4: Sophisticated Error Handling (Current)
+**Objective**: To implement scenario-specific error pages and integrate a real-time error reporting system for production monitoring.
+**Key Tasks**:
+1.  **Create Reusable Error Components**: Build generic, styled components for displaying errors. *(Completed)*
+2.  **Implement Scenario-Specific Pages**: Customize the 404 page and root error boundary. *(Completed)*
+3.  **Integrate Sentry Error Reporting**: Connect the `ErrorBoundary` to the Sentry service to capture and report production errors.

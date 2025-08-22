@@ -12,6 +12,7 @@ import { useState, FormEvent, useMemo } from 'react';
 
 import { ApplicationCard } from '../components/ApplicationCard';
 import Onboarding from '../components/Onboarding';
+import { ActivityCard } from '../components/ActivityCard';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useDashboardStore } from '../store/dashboardStore';
@@ -20,6 +21,12 @@ import type { Database } from '../../../../packages/common/types/database';
 
 
 type ApplicationInsert = Database['public']['Tables']['applications']['Insert'];
+
+interface UserAnalyticsData {
+  applications_submitted: number;
+  interviews_landed: number;
+  average_response_time_days: number | null;
+}
 
 /**
  * @component CreateApplicationModal
@@ -142,6 +149,19 @@ const Dashboard = (): JSX.Element => {
     enabled: !!user, // Only run the query if the user is available
   });
 
+  // New useQuery for analytics data
+  const { data: analyticsData, isLoading: isLoadingAnalytics } = useQuery<UserAnalyticsData, Error>({
+    queryKey: ['user-analytics', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_user_analytics'); // Using the updated RPC
+      if (error) {
+        throw new Error(error.message);
+      }
+      return data as UserAnalyticsData;
+    },
+    enabled: !!user,
+  });
+
   const filteredApplications = useMemo(() => {
     if (!applications) return [];
 
@@ -169,17 +189,23 @@ const Dashboard = (): JSX.Element => {
 
       {!authLoading && profile && !profile.has_completed_onboarding ? (
         <Onboarding />
-      ) : isLoading ? (
-        <p>Loading applications...</p>
+      ) : isLoading || isLoadingAnalytics ? (
+        <div className="w-full max-w-md h-40 bg-gray-200 rounded-lg animate-pulse mb-6"></div>
       ) : (
         <>
-          
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Dashboard</h1>
             <button onClick={openModal} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 whitespace-nowrap">
               Create Application
             </button>
           </div>
+
+          {/* New: 30-Day Activity Card */}
+          {analyticsData && (
+            <div className="mb-6">
+              <ActivityCard data={analyticsData} />
+            </div>
+          )}
 
           <div className="mb-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

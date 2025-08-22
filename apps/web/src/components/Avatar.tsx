@@ -1,6 +1,7 @@
 interface AvatarProps {
   avatarUrl: string | null;
   userId: string | undefined;
+  className?: string;
 }
 
 const avatarColors = [
@@ -32,14 +33,14 @@ function selectColor(str: string) {
   return avatarColors[index];
 }
 
-const Avatar: React.FC<AvatarProps> = ({ avatarUrl, userId }) => {
+const Avatar: React.FC<AvatarProps> = ({ avatarUrl, userId, className }) => {
   const name = userId || 'User';
   const initial = name.charAt(0).toUpperCase();
   const colorClass = selectColor(name);
 
   return (
     <div
-      className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ${!avatarUrl ? colorClass : ''}`}>
+      className={`rounded-full flex items-center justify-center overflow-hidden ${!avatarUrl ? colorClass : ''} ${className}`}>
       {avatarUrl ? (
         <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
       ) : (

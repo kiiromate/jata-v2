@@ -122,11 +122,12 @@ alter table "public"."applications" alter column "created_at" set default timezo
 
 alter table "public"."applications" alter column "created_at" set not null;
 
-alter table "public"."applications" alter column "id" drop default;
-
-alter table "public"."applications" alter column "id" add generated always as identity;
-
-alter table "public"."applications" alter column "id" set data type integer using "id"::integer;
+-- The following lines were commented out to fix a migration error.
+-- The original migration attempted to change the 'id' column of the 'applications' table
+-- from UUID to an integer identity, which is a breaking change and caused an error.
+-- alter table "public"."applications" alter column "id" drop default;
+-- alter table "public"."applications" alter column "id" add generated always as identity;
+-- alter table "public"."applications" alter column "id" set data type integer using "id"::integer;
 
 CREATE INDEX idx_applications_user_id ON public.applications USING btree (user_id);
 
