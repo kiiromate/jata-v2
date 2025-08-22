@@ -149,7 +149,7 @@ const ProfilePage: React.FC = () => {
             <ul className="space-y-2">
               {resumes.map((resume) => (
                 <li key={resume.id} className="p-2 border rounded-md">
-                  {resume.resume_name}
+                  {resume.filename}
                 </li>
               ))}
             </ul>
