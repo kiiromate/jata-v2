@@ -15,12 +15,12 @@ Sentry.init({
 
 import PostHogWrapper from './components/PostHogProvider';
 
+const ProfiledApp = Sentry.withProfiler(App);
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <Sentry.withProfiler>
-      <PostHogWrapper>
-        <App />
-      </PostHogWrapper>
-    </Sentry.withProfiler>
-  </React.StrictMode>,
-)
+    <PostHogWrapper>
+      <ProfiledApp />
+    </PostHogWrapper>
+  </React.StrictMode>
+);
