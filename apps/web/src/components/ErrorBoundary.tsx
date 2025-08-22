@@ -2,6 +2,7 @@ import { Component, ErrorInfo, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import ErrorDisplay from './ErrorDisplay';
 import { Button } from '@/components/ui/button';
+import { captureException } from "@sentry/react";
 
 interface Props {
   children: ReactNode;
@@ -24,6 +25,7 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    captureException(error, { extra: errorInfo });
     console.error('Uncaught error:', error, errorInfo);
   }
 
