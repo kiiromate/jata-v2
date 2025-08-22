@@ -15,7 +15,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
-import type { Database } from '../lib/database.types';
+import type { Database } from '@jata/common';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 

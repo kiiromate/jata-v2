@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 import { GoogleDriveService } from '../services/googleDriveService';
-import Avatar from '../components/Avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'; // New import
 import { ProfileForm } from '../components/ProfileForm';
 import { AvatarUpload } from '../components/AvatarUpload'; // New import
@@ -19,8 +18,6 @@ const Settings = () => {
   // const [activeView, setActiveView] = useState('profile'); // Removed
   const [driveConnected, setDriveConnected] = useState(false);
   const [connectingDrive, setConnectingDrive] = useState(false);
-  const [loadingProfile, setLoadingProfile] = useState(false); // Changed to false as ProfileForm handles loading
-  const [profileError, setProfileError] = useState<string | null>(null); // ProfileForm handles its own errors
 
   // Removed useEffect for fetching profile data
 

@@ -58,14 +58,14 @@ const ResumeTailorPage = () => {
   useEffect(() => {
     // Auto-select the first resume when the list loads
     if (!selectedResumeId && resumes && resumes.length > 0) {
-      const firstResumeId = resumes[0].id.toString();
+      const firstResumeId = resumes[0].id;
       setSelectedResumeId(firstResumeId);
-      setResumeText(resumes[0].content || '');
+      setResumeText(resumes[0].resume_text || '');
     } else {
       // Update resume text when selection changes
-      const selectedResume = resumes?.find(r => r.id.toString() === selectedResumeId);
+      const selectedResume = resumes?.find(r => r.id === selectedResumeId);
       if (selectedResume) {
-        setResumeText(selectedResume.content || '');
+        setResumeText(selectedResume.resume_text || '');
       }
     }
   }, [selectedResumeId, resumes]);
@@ -155,7 +155,7 @@ const ResumeTailorPage = () => {
               </SelectTrigger>
               <SelectContent>
                 {resumes?.map(resume => (
-                  <SelectItem key={resume.id} value={resume.id.toString()}>{resume.filename}</SelectItem>
+                  <SelectItem key={resume.id} value={resume.id}>{resume.resume_name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

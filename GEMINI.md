@@ -1,30 +1,29 @@
+# JATA V2 - Gemini CLI Master Guide
+
+This document outlines the execution plan for the JATA V2 Product Strategy. It translates the high-level strategic objectives into actionable, technical phases for implementation via the Gemini CLI.
+
+---
+## Act I: Core Functionality (Completed)
+This act focused on building the core, end-to-end user workflow, resulting in a stateful application where a user can manage resumes, analyze job descriptions, generate content, and view analytics.
+
+---
 ## Act II: Productization & Polish (In Progress)
 
-### Phase 1: Analytics Transformation (Current)
-**Objective**: To resolve all existing errors on the analytics page and transform it into a source of competitive, actionable intelligence for the user.
-**Key Tasks**:
-1.  **Enhance the `get_user_analytics` RPC**: Add deeper insights like industry trends and success pattern analysis.
-2.  **Redesign the Analytics UI**: Implement a new, intuitive layout with interactive charts.
-3.  **Implement Robust Error Handling**: Ensure the page is resilient and provides helpful feedback.
-
-### Phase 2: Profile & Settings Enhancement
-**Objective**: To build a comprehensive user profile and account settings section, turning JATA into a central hub for a user's professional identity.
-
-### Phase 3: Dashboard Activity Intelligence
-**Objective**: To implement the "30-Day Activity Card," transforming the dashboard from a simple list into a source of motivational, at-a-glance insights.
-
-### Phase 4: Sophisticated Error Handling
-**Objective**: To implement scenario-specific 404 and error pages that guide the user and enhance their experience even when things go wrong.
+### Phase 1: Analytics Transformation (Completed)
+**Objective**: Resolved all errors on the analytics page and transformed it into a source of competitive, actionable intelligence.
 
 ### Phase 2: Profile & Settings Enhancement (Completed)
-**Objective**: To build a comprehensive user profile and account settings section, turning JATA into a central hub for a user's professional identity.
+**Objective**: Built a comprehensive user profile and account settings section, turning JATA into a central hub for a user's professional identity.
 
 ### Phase 3: Dashboard Activity Intelligence (Completed)
-**Objective**: To implement the "30-Day Activity Card," transforming the dashboard from a simple list into a source of motivational, at-a-glance insights.
+**Objective**: Implemented the "30-Day Activity Card," transforming the dashboard into a source of motivational, at-a-glance insights.
 
-### Phase 4: Sophisticated Error Handling (Current)
-**Objective**: To implement scenario-specific error pages and integrate a real-time error reporting system for production monitoring.
+### Phase 4: Sophisticated Error Handling (Completed)
+**Objective**: Implemented scenario-specific error pages and integrated Sentry for real-time production error reporting.
+
+### Phase 16: Go-To-Market Readiness (Current)
+**Objective**: To prepare the application for a successful public launch by implementing foundational SEO, product analytics, and performing a final review.
 **Key Tasks**:
-1.  **Create Reusable Error Components**: Build generic, styled components for displaying errors. *(Completed)*
-2.  **Implement Scenario-Specific Pages**: Customize the 404 page and root error boundary. *(Completed)*
-3.  **Integrate Sentry Error Reporting**: Connect the `ErrorBoundary` to the Sentry service to capture and report production errors.
+1.  **Implement Foundational SEO**: Optimize the landing page for discoverability.
+2.  **Integrate Product Analytics**: Set up PostHog to understand user behavior.
+3.  **Conduct Final Pre-Launch Review**: Perform a last pass for bugs and inconsistencies.

@@ -2,6 +2,7 @@ import '@/App.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import PostHogProvider from './components/PostHogProvider';
 import SigninPage from '@/pages/SigninPage';
 import SignupPage from '@/pages/SignupPage';
 import Dashboard from '@/pages/Dashboard';
@@ -29,61 +30,63 @@ function App() {
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <AuthProvider>
           <QueryClientProvider client={queryClient}>
-            <Router>
-              <div className="min-h-screen bg-gray-50">
-                <Routes>
-                  <Route element={<RootLayout />}>
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/signin" element={<SigninPage />} />
-                    <Route path="/signup" element={<SignupPage />} />
-                    <Route path="/update-password" element={<UpdatePasswordPage />} />
-                    <Route path="/auth/callback" element={<AuthCallbackPage />} />
-                    <Route path="/auth/confirm" element={<AuthCallbackPage />} />
-                    <Route path="/install-extension" element={<InstallExtensionPage />} />
-                    <Route path="/dashboard" element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Dashboard />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    } />
-                    <Route
-                      path="/resume-tailor/:id"
-                      element={
+            <PostHogProvider>
+              <Router>
+                <div className="min-h-screen bg-gray-50">
+                  <Routes>
+                    <Route element={<RootLayout />}>
+                      <Route path="/" element={<LandingPage />} />
+                      <Route path="/signin" element={<SigninPage />} />
+                      <Route path="/signup" element={<SignupPage />} />
+                      <Route path="/update-password" element={<UpdatePasswordPage />} />
+                      <Route path="/auth/callback" element={<AuthCallbackPage />} />
+                      <Route path="/auth/confirm" element={<AuthCallbackPage />} />
+                      <Route path="/install-extension" element={<InstallExtensionPage />} />
+                      <Route path="/dashboard" element={
                         <ProtectedRoute>
                           <AppLayout>
-                            <ResumeTailorPage />
+                            <Dashboard />
                           </AppLayout>
                         </ProtectedRoute>
-                      }
-                    />
-                    <Route path="/profile" element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <ProfilePage />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/settings" element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Settings />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/analytics" element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <AnalyticsPage />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/error" element={<ErrorPage />} />
-                    <Route path="*" element={<NotFoundPage />} />
-                  </Route>
-                </Routes>
-              </div>
-            </Router>
+                      } />
+                      <Route
+                        path="/resume-tailor/:id"
+                        element={
+                          <ProtectedRoute>
+                            <AppLayout>
+                              <ResumeTailorPage />
+                            </AppLayout>
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route path="/profile" element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <ProfilePage />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/settings" element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <Settings />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/analytics" element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <AnalyticsPage />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/error" element={<ErrorPage />} />
+                      <Route path="*" element={<NotFoundPage />} />
+                    </Route>
+                  </Routes>
+                </div>
+              </Router>
+            </PostHogProvider>
           </QueryClientProvider>
         </AuthProvider>
       </ThemeProvider>

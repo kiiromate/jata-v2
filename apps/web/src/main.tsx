@@ -11,10 +11,16 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
 });
 
+
+
+import PostHogWrapper from './components/PostHogProvider';
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Sentry.withProfiler>
-      <App />
+      <PostHogWrapper>
+        <App />
+      </PostHogWrapper>
     </Sentry.withProfiler>
   </React.StrictMode>,
 )
