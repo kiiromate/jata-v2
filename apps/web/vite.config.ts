@@ -9,8 +9,8 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), tsconfigPaths(), sentryVitePlugin({
-    org: "josh-t-g-s-organization",
-    project: "javascript-react",
+    org: "kaze-keza",
+    project: "4509889225883728",
   })],
   optimizeDeps: {
     exclude: ['pdf-parse'],
