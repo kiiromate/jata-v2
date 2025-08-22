@@ -2,20 +2,14 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 import { GoogleDriveService } from '../services/googleDriveService';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'; // New import
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ProfileForm } from '../components/ProfileForm';
-import { AvatarUpload } from '../components/AvatarUpload'; // New import
+import { AvatarUpload } from '../components/AvatarUpload';
 
 const Settings = () => {
   const { session } = useAuth();
-  // const [uploading, setUploading] = useState(false); // Removed
-  // const [avatarUrl, setAvatarUrl] = useState<string | null>(null); // Removed
-  // const [displayName, setDisplayName] = useState(''); // Removed
-  // const [bio, setBio] = useState(''); // Removed
-  // const [savingProfile, setSavingProfile] = useState(false); // Removed
   const [deleting, setDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
-  // const [activeView, setActiveView] = useState('profile'); // Removed
   const [driveConnected, setDriveConnected] = useState(false);
   const [connectingDrive, setConnectingDrive] = useState(false);
 
