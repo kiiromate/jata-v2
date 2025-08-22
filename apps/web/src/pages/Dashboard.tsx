@@ -9,10 +9,9 @@
  */
 
 import { useState, FormEvent, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 
 import { ApplicationCard } from '../components/ApplicationCard';
-import Welcome from '../components/Welcome';
+import Onboarding from '../components/Onboarding';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useDashboardStore } from '../store/dashboardStore';
@@ -34,7 +33,7 @@ type ApplicationInsert = Database['public']['Tables']['applications']['Insert'];
 const CreateApplicationModal = (): JSX.Element | null => {
   const { isModalOpen, closeModal } = useDashboardStore();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState<Omit<ApplicationInsert, 'user_id'>>({
     title: '',
     company: '',
@@ -42,11 +41,13 @@ const CreateApplicationModal = (): JSX.Element | null => {
     status: 'Applied',
     url: '',
     source: '',
-    industry: ''
+    industry: '',
+    job_description: ''
   });
 
   const createApplicationMutation = useMutation({
     mutationFn: async (newApplication: Omit<ApplicationInsert, 'user_id'>) => {
+      if (authLoading) throw new Error('Authentication still loading');
       if (!user) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
@@ -96,6 +97,10 @@ const CreateApplicationModal = (): JSX.Element | null => {
             <label htmlFor="date_applied" className="block text-sm font-medium text-gray-700">Date Applied</label>
             <input id="date_applied" type="date" value={formData.date_applied} onChange={handleInputChange} required className="mt-1 block w-full input" />
           </div>
+          <div>
+            <label htmlFor="job_description" className="block text-sm font-medium text-gray-700">Job Description</label>
+            <textarea id="job_description" value={formData.job_description || ''} onChange={handleInputChange} className="mt-1 block w-full input" rows={3} />
+          </div>
           <div className="flex justify-end space-x-2">
             <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">Cancel</button>
             <button type="submit" disabled={createApplicationMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50">
@@ -116,7 +121,7 @@ const CreateApplicationModal = (): JSX.Element | null => {
  */
 const Dashboard = (): JSX.Element => {
   const { openModal } = useDashboardStore();
-  const { user } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All Status');
   const [sortOrder, setSortOrder] = useState('Newest First');
@@ -162,24 +167,26 @@ const Dashboard = (): JSX.Element => {
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
 
-      {!isLoading && applications && applications.length === 0 ? (
-        <Welcome />
+      {!authLoading && profile && !profile.has_completed_onboarding ? (
+        <Onboarding />
+      ) : isLoading ? (
+        <p>Loading applications...</p>
       ) : (
         <>
           
-                    <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-            <button onClick={openModal} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Dashboard</h1>
+            <button onClick={openModal} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 whitespace-nowrap">
               Create Application
             </button>
           </div>
 
           <div className="mb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <input
                 type="text"
                 placeholder="Search by job title or company..."
-                className="sm:col-span-1 w-full input"
+                className="md:col-span-1 w-full input"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />

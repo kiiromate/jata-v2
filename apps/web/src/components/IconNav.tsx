@@ -5,7 +5,7 @@ import UserDropdown from './UserDropdown';
 
 const IconNav = () => {
   return (
-    <div className="flex items-center space-x-4 mr-4">
+    <div className="flex items-center space-x-2 sm:space-x-4 mr-2 sm:mr-4">
       <Tooltip text="Dashboard">
         <Link to="/dashboard" className="p-2 rounded-full hover:bg-gray-200 transition-colors">
           <LayoutDashboard className="w-5 h-5 text-gray-700" />

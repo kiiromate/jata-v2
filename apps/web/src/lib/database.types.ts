@@ -16,6 +16,7 @@ export interface Database {
           date_applied: string
           id: number
           industry: string | null
+          job_description: string | null
           source: string | null
           status: string
           title: string
@@ -29,6 +30,7 @@ export interface Database {
           date_applied: string
           id?: number
           industry?: string | null
+          job_description?: string | null
           source?: string | null
           status?: string
           title: string
@@ -42,6 +44,7 @@ export interface Database {
           date_applied?: string
           id?: number
           industry?: string | null
+          job_description?: string | null
           source?: string | null
           status?: string
           title?: string
@@ -57,6 +60,33 @@ export interface Database {
             referencedColumns: ["id"]
           }
         ]
+      }
+      profiles: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          full_name: string | null
+          avatar_url: string | null
+          has_completed_onboarding: boolean
+        }
+        Insert: {
+          id: string
+          created_at?: string
+          updated_at?: string
+          full_name?: string | null
+          avatar_url?: string | null
+          has_completed_onboarding?: boolean
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          full_name?: string | null
+          avatar_url?: string | null
+          has_completed_onboarding?: boolean
+        }
+        Relationships: []
       }
       scrape_configs: {
         Row: {
