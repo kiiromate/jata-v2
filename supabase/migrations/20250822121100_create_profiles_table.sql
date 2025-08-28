@@ -27,7 +27,7 @@ BEGIN
   VALUES (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url');
   RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = 'public';
 
 -- Trigger to call the function on new user creation
 CREATE TRIGGER on_auth_user_created
