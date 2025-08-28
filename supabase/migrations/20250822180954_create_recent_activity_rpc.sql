@@ -25,7 +25,7 @@ BEGIN
 
   RETURN activity_data;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = 'public';
 
 -- Grant permissions
 GRANT EXECUTE ON FUNCTION public.get_recent_activity() TO authenticated;
