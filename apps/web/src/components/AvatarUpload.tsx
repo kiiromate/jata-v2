@@ -81,11 +81,9 @@ export const AvatarUpload = () => {
     return <div>Loading avatar...</div>;
   }
 
-  const currentAvatarUrl = user?.user_metadata?.avatar_url || null;
-
   return (
     <div className="flex flex-col items-center gap-4">
-      {/* <Avatar avatarUrl={currentAvatarUrl} userId={user?.id} className="w-24 h-24" /> */}
+      {/* <Avatar avatarUrl={user?.user_metadata?.avatar_url} name={user?.user_metadata?.full_name} className="w-24 h-24" /> */}
       <Input
         type="file"
         accept="image/*"

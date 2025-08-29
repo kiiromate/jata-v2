@@ -11,5 +11,5 @@ ALTER TABLE public.resumes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can manage their own resumes"
 ON public.resumes
 FOR ALL
-USING (auth.uid() = user_id)
-WITH CHECK (auth.uid() = user_id);
+USING ((select auth.uid()) = user_id)
+WITH CHECK ((select auth.uid()) = user_id);

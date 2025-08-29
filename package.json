@@ -10,11 +10,14 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
+    "@sentry/react": "^10.7.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.14.9",
     "eslint": "^8.57.0",
+    "gsap": "^3.13.0",
     "pnpm": "^10.14.0",
     "prettier": "^3.3.2",
+    "sherif": "^1.6.1",
     "supabase": "^2.33.9",
     "turbo": "^2.0.4",
     "typescript": "^5.5.2",
@@ -23,8 +26,5 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "packageManager": "pnpm@9.4.0",
-  "dependencies": {
-    "gsap": "^3.13.0"
-  }
+  "packageManager": "pnpm@9.4.0"
 }

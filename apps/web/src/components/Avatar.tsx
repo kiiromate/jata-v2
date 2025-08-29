@@ -1,6 +1,6 @@
 interface AvatarProps {
   avatarUrl: string | null;
-  userId: string | undefined;
+  name: string | undefined | null;
   className?: string;
 }
 
@@ -33,10 +33,19 @@ function selectColor(str: string) {
   return avatarColors[index];
 }
 
-const Avatar: React.FC<AvatarProps> = ({ avatarUrl, userId, className }) => {
-  const name = userId || 'User';
-  const initial = name.charAt(0).toUpperCase();
-  const colorClass = selectColor(name);
+// Function to get initials from a name
+const getInitials = (name: string) => {
+  const names = name.split(' ');
+  if (names.length > 1) {
+    return `${names[0].charAt(0)}${names[1].charAt(0)}`.toUpperCase();
+  }
+  return name.charAt(0).toUpperCase();
+};
+
+const Avatar: React.FC<AvatarProps> = ({ avatarUrl, name, className }) => {
+  const displayName = name || 'User';
+  const initials = getInitials(displayName);
+  const colorClass = selectColor(displayName);
 
   return (
     <div
@@ -45,7 +54,7 @@ const Avatar: React.FC<AvatarProps> = ({ avatarUrl, userId, className }) => {
         <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
       ) : (
         <span className="text-white font-semibold select-none" aria-hidden>
-          {initial}
+          {initials}
         </span>
       )}
     </div>

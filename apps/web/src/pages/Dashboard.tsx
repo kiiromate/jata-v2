@@ -153,7 +153,7 @@ const Dashboard = (): JSX.Element => {
   const { data: analyticsData, isLoading: isLoadingAnalytics } = useQuery<UserAnalyticsData, Error>({
     queryKey: ['user-analytics', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_user_analytics'); // Using the updated RPC
+      const { data, error } = await supabase.rpc('get_user_analytics_v2' as never); // Using the updated RPC
       if (error) {
         throw new Error(error.message);
       }
