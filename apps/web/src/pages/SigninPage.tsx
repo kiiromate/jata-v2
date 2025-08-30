@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useNavigate } from "react-router-dom";
+import { usePostHog } from 'posthog-js/react';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 const SigninPage = () => {
+  const posthog = usePostHog();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('signIn'); // 'signIn' or 'signUp'
   const [email, setEmail] = useState('');
@@ -24,6 +26,7 @@ const SigninPage = () => {
     if (error) {
       setError(error.message);
     } else {
+      posthog.capture('user_signed_in');
       navigate('/dashboard');
     }
   };

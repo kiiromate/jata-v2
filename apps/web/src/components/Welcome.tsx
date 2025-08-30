@@ -1,8 +1,18 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
+import { useDashboardStore } from '../store/dashboardStore';
 
 const Welcome: React.FC = () => {
+  const navigate = useNavigate();
+  const { openModal } = useDashboardStore();
+
+  const handleAddApplication = () => {
+    navigate('/dashboard');
+    openModal();
+  };
+
   return (
     <Card className="w-[400px] mx-auto my-8">
       <CardHeader>
@@ -20,7 +30,7 @@ const Welcome: React.FC = () => {
       </CardContent>
       <CardFooter className="flex justify-center space-x-4">
         <Button>Install Browser Extension</Button>
-        <Button variant="outline">Add First Application Manually</Button>
+        <Button variant="outline" onClick={handleAddApplication}>Add First Application Manually</Button>
       </CardFooter>
     </Card>
   );

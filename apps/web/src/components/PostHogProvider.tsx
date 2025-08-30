@@ -8,7 +8,7 @@ interface PostHogProviderProps {
 
 const PostHogWrapper: React.FC<PostHogProviderProps> = ({ children }) => {
   const posthogKey = import.meta.env.VITE_POSTHOG_KEY;
-  const posthogHost = import.meta.env.VITE_PUBLIC_POSTHOG_HOST;
+  const posthogHost = import.meta.env.VITE_POSTHOG_HOST;
 
   if (posthogKey && posthogHost) {
     posthog.init(posthogKey, {

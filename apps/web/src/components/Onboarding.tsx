@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import { useDashboardStore } from '../store/dashboardStore';
 
 const Onboarding = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { openModal } = useDashboardStore();
   const [step, setStep] = useState(1);
 
   const completeOnboardingMutation = useMutation({
@@ -33,6 +35,7 @@ const Onboarding = () => {
 
   const handleCompleteOnboarding = () => {
     completeOnboardingMutation.mutate();
+    openModal();
   };
 
   return (
