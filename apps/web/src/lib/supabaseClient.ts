@@ -11,7 +11,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@jata/common';
+import type { Database } from '../../../../packages/common/src/database.types';
 
 /**
  * The Supabase project URL, retrieved from environment variables.

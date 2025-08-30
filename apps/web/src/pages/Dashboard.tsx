@@ -7,7 +7,6 @@ import Welcome from "@/components/Welcome";
 import { ActivityCard } from "@/components/ActivityCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button"; // Import Button
-import * as Sentry from "@sentry/react"; // Import Sentry
 
 const Dashboard = () => {
   const { data: applications, isLoading: isLoadingApplications } = useQuery({

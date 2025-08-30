@@ -1,14 +1,6 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = | string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
   }
@@ -21,6 +13,7 @@ export type Database = {
           date_applied: string
           id: number
           industry: string | null
+          job_description: string | null
           source: string | null
           status: string
           title: string
@@ -34,6 +27,7 @@ export type Database = {
           date_applied: string
           id?: never
           industry?: string | null
+          job_description?: string | null
           source?: string | null
           status?: string
           title: string
@@ -47,6 +41,7 @@ export type Database = {
           date_applied?: string
           id?: never
           industry?: string | null
+          job_description?: string | null
           source?: string | null
           status?: string
           title?: string
@@ -202,7 +197,11 @@ export type Database = {
     Functions: {
       get_recent_activity: {
         Args: Record<PropertyKey, never>
-        Returns: Json
+        Returns: {
+          applications_submitted: number
+          interviews_landed: number
+          average_response_time_days: number | null
+        }
       }
       get_user_analytics: {
         Args: Record<PropertyKey, never>
