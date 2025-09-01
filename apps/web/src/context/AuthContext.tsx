@@ -39,33 +39,83 @@ export const AuthProvider = ({ children }: AuthProviderProps): JSX.Element => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        const currentUser = session?.user ?? null;
-        setSession(session);
-        setUser(currentUser);
+    let isMounted = true;
 
-        if (currentUser) {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', currentUser.id)
-            .single();
+    const fetchSession = async () => {
+      try {
+        // Fetch initial session data
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
 
-          if (error) {
-            console.error('Error fetching profile:', error);
-            setProfile(null);
+        if (isMounted) {
+          setSession(session);
+          const currentUser = session?.user ?? null;
+          setUser(currentUser);
+
+          if (currentUser) {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', currentUser.id)
+              .single();
+
+            if (profileError) {
+              console.error('Error fetching profile:', profileError);
+              setProfile(null);
+            } else {
+              setProfile(profileData);
+            }
           } else {
-            setProfile(data);
+            setProfile(null);
           }
-        } else {
+        }
+      } catch (error) {
+        console.error('Error in auth session fetch:', error);
+        if (isMounted) {
+          setSession(null);
+          setUser(null);
           setProfile(null);
         }
-        setLoading(false);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (isMounted) {
+          setSession(session);
+          const currentUser = session?.user ?? null;
+          setUser(currentUser);
+
+          if (currentUser) {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', currentUser.id)
+              .single();
+            
+            if (profileError) {
+              console.error('Error fetching profile on auth change:', profileError);
+              setProfile(null);
+            } else {
+              setProfile(profileData);
+            }
+          } else {
+            setProfile(null);
+          }
+          // Ensure loading is false after the listener acts, especially for sign-in/out events
+          setLoading(false); 
+        }
       }
     );
 
     return () => {
+      isMounted = false;
       authListener?.subscription.unsubscribe();
     };
   }, []);
