@@ -39,33 +39,29 @@ export const AuthProvider = ({ children }: AuthProviderProps): JSX.Element => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getInitialSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Only set loading to false after profile is fetched (or if there's no user)
-        if (!session?.user) {
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Error fetching initial session:", error);
-        setLoading(false);
-      }
-    };
-
-    getInitialSession();
-
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        const currentUser = session?.user ?? null;
         setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Only set loading to false after profile is fetched (or if there's no user)
-        if (!session?.user) {
-          setLoading(false);
+        setUser(currentUser);
+
+        if (currentUser) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
+
+          if (error) {
+            console.error('Error fetching profile:', error);
+            setProfile(null);
+          } else {
+            setProfile(data);
+          }
+        } else {
+          setProfile(null);
         }
+        setLoading(false);
       }
     );
 
@@ -74,37 +70,16 @@ export const AuthProvider = ({ children }: AuthProviderProps): JSX.Element => {
     };
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      const fetchProfile = async () => {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.error('Error fetching profile:', error);
-        } else {
-          setProfile(data);
-        }
-        
-        // Set loading to false after profile is fetched
-        setLoading(false);
-      };
-
-      fetchProfile();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
   const value = {
     session,
     user,
     profile,
     loading,
   };
+
+  if (loading) {
+    return <div>Loading...</div>; // Or a more sophisticated loading spinner
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

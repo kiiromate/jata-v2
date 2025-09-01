@@ -6,7 +6,6 @@ import { ApplicationCard } from "@/components/ApplicationCard";
 import Welcome from "@/components/Welcome";
 import { ActivityCard } from "@/components/ActivityCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button"; // Import Button
 
 const Dashboard = () => {
   const { data: applications, isLoading: isLoadingApplications } = useQuery({
@@ -53,17 +52,6 @@ const Dashboard = () => {
         recentActivity && <ActivityCard data={recentActivity} />
       )}
 
-      {/* Sentry Test Button */}
-      <div className="my-4">
-        <Button
-          variant="destructive"
-          onClick={() => {
-            throw new Error(`Sentry test error from JATA dashboard - ${new Date().toISOString()}`);
-          }}
-        >
-          Test Sentry
-        </Button>
-      </div>
 
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">My Applications</h1>
