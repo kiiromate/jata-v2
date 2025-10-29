@@ -137,6 +137,12 @@ const SignupPage = () => {
               </div>
             </div>
             <button type="submit" className="btn">Sign Up</button>
+            <p className="text-xs text-center text-charcoal-gray mt-4">
+              By signing up, you agree to our{' '}
+              <a href="/terms" className="text-soft-olive hover:underline">Terms of Service</a>
+              {' '}and{' '}
+              <a href="/privacy" className="text-soft-olive hover:underline">Privacy Policy</a>
+            </p>
           </form>
         )}
       </div>

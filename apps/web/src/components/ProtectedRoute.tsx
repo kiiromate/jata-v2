@@ -4,29 +4,38 @@ import React, { useEffect, useState } from "react";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error || !data.session) {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error || !data.session) {
+          navigate("/signin");
+          setIsAuthenticated(false);
+        } else {
+          setIsAuthenticated(true);
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err);
         navigate("/signin");
-      } else {
-        setIsAuthenticated(true);
+      } finally {
+        setIsChecking(false);
       }
-      setIsLoading(false);
     };
 
     checkSession();
   }, [navigate]);
 
-  if (isLoading) {
-    return <div>Loading...</div>; // Or a spinner component
+  // Show nothing while checking (very brief)
+  if (isChecking) {
+    return null;
   }
 
+  // If not authenticated, don't render (navigation already triggered)
   if (!isAuthenticated) {
-    return null; // Or a redirect component, though navigate is already called
+    return null;
   }
 
   return <>{children}</>;

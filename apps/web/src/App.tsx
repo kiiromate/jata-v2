@@ -18,10 +18,15 @@ import AppLayout from '@/components/AppLayout';
 import InstallExtensionPage from '@/pages/InstallExtensionPage';
 import Settings from '@/pages/Settings';
 import AuthCallbackPage from '@/pages/AuthCallbackPage';
+import FAQPage from '@/pages/FAQPage';
+import ContactPage from '@/pages/ContactPage';
+import PrivacyPolicyPage from '@/pages/PrivacyPolicyPage';
+import TermsOfServicePage from '@/pages/TermsOfServicePage';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ErrorPage from '@/pages/ErrorPage';
 import NotFoundPage from '@/pages/NotFoundPage';
+import { Toaster } from '@/components/ui/toaster';
 
 const queryClient = new QueryClient();
 
@@ -43,6 +48,10 @@ function App() {
                       <Route path="/auth/callback" element={<AuthCallbackPage />} />
                       <Route path="/auth/confirm" element={<AuthCallbackPage />} />
                       <Route path="/install-extension" element={<InstallExtensionPage />} />
+                      <Route path="/faq" element={<FAQPage />} />
+                      <Route path="/contact" element={<ContactPage />} />
+                      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                      <Route path="/terms" element={<TermsOfServicePage />} />
                       <Route path="/dashboard" element={
                         <ProtectedRoute>
                           <AppLayout>
@@ -97,6 +106,7 @@ function App() {
             </PostHogProvider>
           </QueryClientProvider>
         </AuthProvider>
+        <Toaster />
       </ThemeProvider>
     </ErrorBoundary>
   );

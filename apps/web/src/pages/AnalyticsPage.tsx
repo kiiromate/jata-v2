@@ -6,6 +6,7 @@ import ScoreAnalysisChart from '../components/ScoreAnalysisChart';
 import SuccessBySourceChart from '../components/SuccessBySourceChart';
 import ApplicationTimeSeriesChart from '../components/ApplicationTimeSeriesChart';
 import ApplicationInsights from '../components/ApplicationInsights';
+import AnalyticsSummaryCards from '../components/AnalyticsSummaryCards';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
 import { Info } from 'lucide-react';
 import SuccessByIndustryChart from '../components/SuccessByIndustryChart';
@@ -39,9 +40,9 @@ interface InsightsData {
 }
 
 const ChartSkeleton = () => (
-  <div className="bg-white p-6 rounded-lg border border-gray-200">
-    <Skeleton className="h-6 w-48 mb-4" />
-    <Skeleton className="h-[300px] w-full" />
+  <div className="bg-white p-sm rounded-lg border border-gray-200">
+    <Skeleton className="h-6 w-48 mb-sm" />
+    <Skeleton className="h-[280px] w-full" />
   </div>
 );
 
@@ -81,15 +82,15 @@ const AnalyticsPage = () => {
 
   if (isLoading || isLoadingTimeSeries || isLoadingInsights) {
     return (
-      <div className="container mx-auto p-4 max-w-7xl">
-        <div className="mb-8">
+      <div className="container mx-auto p-sm sm:p-md lg:p-lg max-w-7xl">
+        <div className="mb-md">
           <Skeleton className="h-10 w-32 mb-2" />
           <Skeleton className="h-5 w-96" />
         </div>
-        <div className="space-y-8">
-          <Skeleton className="h-48 w-full" />
+        <div className="space-y-md">
+          <Skeleton className="h-32 w-full" />
           <ChartSkeleton />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-sm">
             <ChartSkeleton />
             <ChartSkeleton />
           </div>
@@ -99,32 +100,43 @@ const AnalyticsPage = () => {
   }
 
   if (isError) {
-    return <div className="container mx-auto p-4 text-red-500">Error loading analytics: {error?.message}</div>;
+    return <div className="container mx-auto p-sm sm:p-md lg:p-lg text-red-500">Error loading analytics: {error?.message}</div>;
   }
 
   const hasData = data && (data.total_applications > 0 || data.interviews > 0 || data.offers > 0);
 
   return (
-    <div className="container mx-auto p-4 max-w-7xl">
-      <div className="mb-8">
+    <div className="container mx-auto p-sm sm:p-md lg:p-lg max-w-7xl">
+      <div className="mb-md">
         <h1 className="text-3xl font-bold tracking-tight mb-2">Analytics</h1>
         <p className="text-gray-600">Track your application performance and identify patterns.</p>
       </div>
 
       {hasData ? (
-        <div className="space-y-8">
+        <div className="space-y-md">
+          {/* Summary Cards */}
+          {insightsData && (
+            <AnalyticsSummaryCards
+              totalApplications={insightsData.totalApplications}
+              interviewRate={insightsData.interviewRate}
+              offerRate={insightsData.offerRate}
+              averageResponseTime={insightsData.averageResponseTime}
+              weekOverWeekChange={insightsData.weekOverWeekChange}
+            />
+          )}
+
           {/* Insights Section */}
           {insightsData && (
             <div>
-              <h2 className="text-xl font-medium tracking-tight mb-4">Key Insights</h2>
+              <h2 className="text-xl font-medium tracking-tight mb-sm">Key Insights</h2>
               <ApplicationInsights metrics={insightsData} />
             </div>
           )}
 
           {/* Time Series Chart */}
           {timeSeriesData && timeSeriesData.length > 0 && (
-            <div className="bg-white p-6 rounded-lg border border-gray-200">
-              <div className="flex items-center gap-2 mb-4">
+            <div className="bg-white p-sm rounded-lg border border-gray-200">
+              <div className="flex items-center gap-2 mb-sm">
                 <h2 className="text-lg font-medium tracking-tight">Application Trends</h2>
                 <TooltipProvider>
                   <Tooltip>
@@ -142,9 +154,9 @@ const AnalyticsPage = () => {
           )}
 
           {/* Funnel and Score Analysis */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-lg border border-gray-200">
-              <div className="flex items-center gap-2 mb-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-sm">
+            <div className="bg-white p-sm rounded-lg border border-gray-200">
+              <div className="flex items-center gap-2 mb-sm">
                 <h2 className="text-lg font-medium tracking-tight">Application Funnel</h2>
                 <TooltipProvider>
                   <Tooltip>
@@ -160,8 +172,8 @@ const AnalyticsPage = () => {
               <ApplicationFunnelChart data={data} />
             </div>
 
-            <div className="bg-white p-6 rounded-lg border border-gray-200">
-              <div className="flex items-center gap-2 mb-4">
+            <div className="bg-white p-sm rounded-lg border border-gray-200">
+              <div className="flex items-center gap-2 mb-sm">
                 <h2 className="text-lg font-medium tracking-tight">Score by Status</h2>
                 <TooltipProvider>
                   <Tooltip>
@@ -183,9 +195,9 @@ const AnalyticsPage = () => {
           </div>
 
           {/* Success by Source and Industry */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-lg border border-gray-200">
-              <div className="flex items-center gap-2 mb-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-sm">
+            <div className="bg-white p-sm rounded-lg border border-gray-200">
+              <div className="flex items-center gap-2 mb-sm">
                 <h2 className="text-lg font-medium tracking-tight">Success by Source</h2>
                 <TooltipProvider>
                   <Tooltip>
@@ -205,8 +217,8 @@ const AnalyticsPage = () => {
               )}
             </div>
 
-            <div className="bg-white p-6 rounded-lg border border-gray-200">
-              <div className="flex items-center gap-2 mb-4">
+            <div className="bg-white p-sm rounded-lg border border-gray-200">
+              <div className="flex items-center gap-2 mb-sm">
                 <h2 className="text-lg font-medium tracking-tight">Success by Industry</h2>
                 <TooltipProvider>
                   <Tooltip>

@@ -1,0 +1,226 @@
+export interface TermsSection {
+  id: string;
+  title: string;
+  content: string[];
+}
+
+export const effectiveDate = "January 15, 2025";
+
+export const termsOfServiceData: TermsSection[] = [
+  {
+    id: 'acceptance',
+    title: 'Acceptance of Terms',
+    content: [
+      'Welcome to JATA (Job Application Tailoring Assistant). These Terms of Service ("Terms") govern your access to and use of our platform, including our website, browser extension, and related services (collectively, the "Service").',
+      'By creating an account, accessing, or using JATA, you agree to be bound by these Terms and our Privacy Policy. If you do not agree to these Terms, you may not access or use the Service.',
+      'These Terms constitute a legally binding agreement between you ("you" or "User") and JATA ("we," "us," or "our"). We reserve the right to update these Terms at any time, and your continued use of the Service after changes are posted constitutes acceptance of the modified Terms.',
+    ],
+  },
+  {
+    id: 'description',
+    title: 'Description of Service',
+    content: [
+      'JATA is an AI-powered platform designed to help job seekers optimize their job applications. Our Service includes:',
+      '<strong>Resume Tailoring:</strong> AI-powered analysis and suggestions to align your resume with specific job descriptions.',
+      '<strong>Application Tracking:</strong> Tools to organize and track your job applications, including status updates and analytics.',
+      '<strong>Cover Letter Generation:</strong> AI-assisted creation of personalized cover letters based on job requirements.',
+      '<strong>Browser Extension:</strong> A tool to capture job descriptions from various job posting websites.',
+      '<strong>Analytics Dashboard:</strong> Insights and metrics about your application performance and success rates.',
+      'We reserve the right to modify, suspend, or discontinue any aspect of the Service at any time, with or without notice. We are not liable for any modification, suspension, or discontinuation of the Service.',
+    ],
+  },
+  {
+    id: 'eligibility',
+    title: 'Eligibility and Account Registration',
+    content: [
+      '<strong>Age Requirement:</strong> You must be at least 16 years old to use JATA. By using the Service, you represent and warrant that you meet this age requirement.',
+      '<strong>Account Creation:</strong> To access certain features, you must create an account by providing accurate and complete information, including a valid email address and password.',
+      '<strong>Account Security:</strong> You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You agree to notify us immediately of any unauthorized access or security breach.',
+      '<strong>Account Accuracy:</strong> You agree to provide accurate, current, and complete information during registration and to update such information to keep it accurate and current.',
+      '<strong>One Account Per User:</strong> You may only create one account. Creating multiple accounts may result in suspension or termination of all your accounts.',
+    ],
+  },
+  {
+    id: 'user-responsibilities',
+    title: 'User Responsibilities and Acceptable Use',
+    content: [
+      'When using JATA, you agree to:',
+      '<strong>Lawful Use:</strong> Use the Service only for lawful purposes and in accordance with these Terms. You may not use the Service in any way that violates applicable laws or regulations.',
+      '<strong>Accurate Information:</strong> Provide truthful and accurate information in your resumes, applications, and profile. You are solely responsible for the content you create and submit through the Service.',
+      '<strong>Respect Intellectual Property:</strong> Not copy, modify, distribute, or create derivative works based on the Service or its content without our express written permission.',
+      '<strong>No Misuse:</strong> Not attempt to gain unauthorized access to any part of the Service, other user accounts, or computer systems connected to the Service.',
+      '<strong>No Harmful Activities:</strong> Not transmit viruses, malware, or any other malicious code, or engage in activities that could harm, disable, or impair the Service.',
+      'You agree NOT to:',
+      '• Use the Service to harass, abuse, or harm others',
+      '• Impersonate any person or entity or misrepresent your affiliation',
+      '• Use automated systems (bots, scrapers) to access the Service without permission',
+      '• Interfere with or disrupt the Service or servers',
+      '• Attempt to reverse engineer, decompile, or extract source code',
+      '• Use the Service for any commercial purpose without our written consent',
+      '• Share your account credentials with others',
+    ],
+  },
+  {
+    id: 'content-ownership',
+    title: 'Content Ownership and License',
+    content: [
+      '<strong>Your Content:</strong> You retain all ownership rights to the content you create, upload, or submit through JATA, including resumes, cover letters, and application data ("User Content").',
+      '<strong>License to JATA:</strong> By submitting User Content, you grant us a limited, non-exclusive, royalty-free, worldwide license to use, store, process, and display your User Content solely for the purpose of providing and improving the Service. This includes processing your content through AI models to generate suggestions and analysis.',
+      '<strong>Content Responsibility:</strong> You are solely responsible for your User Content and the consequences of posting or publishing it. You represent and warrant that you own or have the necessary rights to all User Content you submit.',
+      '<strong>JATA\'s Content:</strong> The Service, including its design, features, text, graphics, logos, and software, is owned by JATA and protected by copyright, trademark, and other intellectual property laws. You may not use, copy, or distribute any JATA content without our express written permission.',
+      '<strong>Feedback:</strong> If you provide feedback, suggestions, or ideas about the Service, you grant us the right to use such feedback without any obligation to compensate you.',
+    ],
+  },
+  {
+    id: 'ai-services',
+    title: 'AI-Powered Features and Limitations',
+    content: [
+      'JATA uses artificial intelligence to provide resume analysis, suggestions, and content generation. You acknowledge and agree that:',
+      '<strong>AI Suggestions:</strong> AI-generated suggestions, recommendations, and content are provided for informational purposes only. They should be reviewed and verified by you before use.',
+      '<strong>No Guarantees:</strong> We do not guarantee that AI suggestions will result in job offers, interviews, or improved application success rates. Results may vary based on numerous factors beyond our control.',
+      '<strong>Human Review Required:</strong> You are responsible for reviewing, editing, and approving all AI-generated content before submitting it to employers. We are not responsible for any consequences resulting from your use of AI-generated content.',
+      '<strong>Accuracy Limitations:</strong> While we strive for accuracy, AI systems may occasionally produce incorrect, incomplete, or inappropriate suggestions. You should exercise judgment and critical thinking when using AI features.',
+      '<strong>No Professional Advice:</strong> JATA does not provide career counseling, legal advice, or professional resume writing services. Our AI tools are designed to assist, not replace, your own judgment and expertise.',
+    ],
+  },
+  {
+    id: 'browser-extension',
+    title: 'Browser Extension Terms',
+    content: [
+      'Our browser extension allows you to capture job descriptions from various websites. By using the extension, you agree that:',
+      '<strong>Permissions:</strong> The extension requires certain browser permissions to function properly. These permissions are used solely to provide the job capture functionality and are detailed in the extension\'s permission request.',
+      '<strong>Third-Party Sites:</strong> The extension interacts with third-party job posting websites. We are not responsible for the content, policies, or practices of these third-party sites.',
+      '<strong>Compliance:</strong> You agree to use the extension in compliance with the terms of service of the websites you visit. Some websites may prohibit automated data collection.',
+      '<strong>Data Collection:</strong> The extension only collects job posting data when you explicitly activate it. See our Privacy Policy for details on how this data is used and stored.',
+      '<strong>Updates:</strong> We may update the extension from time to time. Continued use of the extension after updates constitutes acceptance of any changes.',
+    ],
+  },
+  {
+    id: 'subscription-payment',
+    title: 'Subscription and Payment Terms',
+    content: [
+      '<strong>Free Tier:</strong> JATA offers a free tier with limited features. We reserve the right to modify or discontinue the free tier at any time.',
+      '<strong>Paid Subscriptions:</strong> Premium features may be available through paid subscription plans. Pricing, features, and terms for paid plans will be clearly displayed before purchase.',
+      '<strong>Billing:</strong> Subscription fees are billed in advance on a recurring basis (monthly or annually, depending on your plan). You authorize us to charge your payment method for all fees.',
+      '<strong>Auto-Renewal:</strong> Subscriptions automatically renew at the end of each billing period unless you cancel before the renewal date. You will be charged the then-current subscription rate.',
+      '<strong>Cancellation:</strong> You may cancel your subscription at any time through your account settings. Cancellation takes effect at the end of the current billing period. No refunds are provided for partial billing periods.',
+      '<strong>Price Changes:</strong> We may change subscription prices with at least 30 days\' notice. Price changes will take effect at your next renewal date.',
+      '<strong>Refunds:</strong> All fees are non-refundable except as required by law or as explicitly stated in these Terms.',
+    ],
+  },
+  {
+    id: 'termination',
+    title: 'Termination and Suspension',
+    content: [
+      '<strong>Termination by You:</strong> You may terminate your account at any time by going to Settings > Account > Delete Account. Upon termination, your access to the Service will cease, and your data will be deleted in accordance with our Privacy Policy.',
+      '<strong>Termination by Us:</strong> We reserve the right to suspend or terminate your account and access to the Service at any time, with or without notice, for any reason, including:',
+      '• Violation of these Terms or our policies',
+      '• Fraudulent, abusive, or illegal activity',
+      '• Extended periods of inactivity',
+      '• At our sole discretion for any other reason',
+      '<strong>Effect of Termination:</strong> Upon termination, your right to use the Service immediately ceases. We may delete your account and User Content, though some data may be retained as described in our Privacy Policy.',
+      '<strong>Survival:</strong> Sections of these Terms that by their nature should survive termination will survive, including provisions regarding content ownership, disclaimers, limitations of liability, and dispute resolution.',
+    ],
+  },
+  {
+    id: 'disclaimers',
+    title: 'Disclaimers and Warranties',
+    content: [
+      'THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. TO THE FULLEST EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, INCLUDING:',
+      '<strong>No Warranty of Results:</strong> We do not guarantee that using JATA will result in job offers, interviews, or employment. Your success depends on many factors beyond our control.',
+      '<strong>No Warranty of Accuracy:</strong> We do not warrant that the Service, AI suggestions, or any content will be accurate, complete, reliable, or error-free.',
+      '<strong>No Warranty of Availability:</strong> We do not guarantee that the Service will be uninterrupted, secure, or free from bugs, viruses, or other harmful components.',
+      '<strong>No Warranty of Fitness:</strong> We disclaim all implied warranties of merchantability, fitness for a particular purpose, and non-infringement.',
+      '<strong>Third-Party Content:</strong> We are not responsible for any third-party content, websites, or services accessed through or in connection with the Service.',
+      'Some jurisdictions do not allow the exclusion of certain warranties, so some of the above exclusions may not apply to you.',
+    ],
+  },
+  {
+    id: 'limitation-liability',
+    title: 'Limitation of Liability',
+    content: [
+      'TO THE MAXIMUM EXTENT PERMITTED BY LAW, JATA AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING:',
+      '• Loss of profits, revenue, data, or business opportunities',
+      '• Loss of employment opportunities or job offers',
+      '• Damage to reputation or professional standing',
+      '• Costs of procurement of substitute services',
+      '• Any other intangible losses',
+      'THIS LIMITATION APPLIES REGARDLESS OF THE LEGAL THEORY (CONTRACT, TORT, NEGLIGENCE, STRICT LIABILITY, OR OTHERWISE) AND EVEN IF WE HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.',
+      '<strong>Maximum Liability:</strong> Our total liability to you for all claims arising from or related to the Service shall not exceed the greater of (a) the amount you paid us in the 12 months before the claim arose, or (b) $100.',
+      '<strong>Essential Purpose:</strong> These limitations are fundamental elements of the agreement between you and JATA. The Service would not be provided without these limitations.',
+      'Some jurisdictions do not allow the limitation or exclusion of liability for incidental or consequential damages, so the above limitations may not apply to you.',
+    ],
+  },
+  {
+    id: 'indemnification',
+    title: 'Indemnification',
+    content: [
+      'You agree to indemnify, defend, and hold harmless JATA and its officers, directors, employees, agents, and affiliates from and against any claims, liabilities, damages, losses, costs, or expenses (including reasonable attorneys\' fees) arising from or related to:',
+      '• Your use or misuse of the Service',
+      '• Your User Content or any content you submit',
+      '• Your violation of these Terms',
+      '• Your violation of any rights of another person or entity',
+      '• Your violation of any applicable laws or regulations',
+      'We reserve the right to assume the exclusive defense and control of any matter subject to indemnification by you, and you agree to cooperate with our defense of such claims.',
+    ],
+  },
+  {
+    id: 'dispute-resolution',
+    title: 'Dispute Resolution and Arbitration',
+    content: [
+      '<strong>Informal Resolution:</strong> Before filing a claim, you agree to contact us at legal@jata.app to attempt to resolve the dispute informally. We will attempt to resolve disputes in good faith.',
+      '<strong>Binding Arbitration:</strong> If we cannot resolve a dispute informally within 60 days, any dispute arising from or relating to these Terms or the Service shall be resolved through binding arbitration, except as provided below.',
+      '<strong>Arbitration Rules:</strong> Arbitration will be conducted by a neutral arbitrator in accordance with the rules of the American Arbitration Association (AAA). The arbitrator\'s decision will be final and binding.',
+      '<strong>Exceptions:</strong> Either party may bring a claim in small claims court if it qualifies. Additionally, either party may seek injunctive or equitable relief in court to prevent infringement of intellectual property rights.',
+      '<strong>Class Action Waiver:</strong> You agree that disputes will be resolved on an individual basis. You waive any right to participate in a class action lawsuit or class-wide arbitration.',
+      '<strong>Location:</strong> Any arbitration or court proceeding will take place in [Jurisdiction to be specified].',
+      'Some jurisdictions do not allow arbitration agreements, so this section may not apply to you.',
+    ],
+  },
+  {
+    id: 'governing-law',
+    title: 'Governing Law and Jurisdiction',
+    content: [
+      'These Terms shall be governed by and construed in accordance with the laws of [Jurisdiction to be specified], without regard to its conflict of law principles.',
+      'Any legal action or proceeding arising under these Terms (except for arbitration as described above) will be brought exclusively in the courts located in [Jurisdiction to be specified], and you consent to personal jurisdiction in such courts.',
+      'If you are a consumer in the European Union, you may also have the right to bring proceedings in your country of residence.',
+    ],
+  },
+  {
+    id: 'changes-to-terms',
+    title: 'Changes to These Terms',
+    content: [
+      'We reserve the right to modify these Terms at any time. When we make changes, we will:',
+      '• Update the "Effective Date" at the top of these Terms',
+      '• Notify you by email or through a prominent notice on the Service',
+      '• For material changes, provide at least 30 days\' notice before the changes take effect',
+      'Your continued use of the Service after changes are posted constitutes your acceptance of the modified Terms. If you do not agree to the modified Terms, you must stop using the Service and may delete your account.',
+      'We encourage you to review these Terms periodically to stay informed of any updates.',
+    ],
+  },
+  {
+    id: 'general-provisions',
+    title: 'General Provisions',
+    content: [
+      '<strong>Entire Agreement:</strong> These Terms, together with our Privacy Policy, constitute the entire agreement between you and JATA regarding the Service and supersede all prior agreements.',
+      '<strong>Severability:</strong> If any provision of these Terms is found to be invalid or unenforceable, the remaining provisions will remain in full force and effect.',
+      '<strong>Waiver:</strong> Our failure to enforce any right or provision of these Terms will not be deemed a waiver of such right or provision.',
+      '<strong>Assignment:</strong> You may not assign or transfer these Terms or your account without our written consent. We may assign these Terms without restriction.',
+      '<strong>No Agency:</strong> Nothing in these Terms creates a partnership, joint venture, employment, or agency relationship between you and JATA.',
+      '<strong>Force Majeure:</strong> We are not liable for any failure or delay in performance due to circumstances beyond our reasonable control, including natural disasters, war, terrorism, labor disputes, or internet failures.',
+      '<strong>Export Controls:</strong> You agree to comply with all applicable export and import laws and regulations.',
+    ],
+  },
+  {
+    id: 'contact-information',
+    title: 'Contact Information',
+    content: [
+      'If you have questions, concerns, or disputes regarding these Terms of Service, please contact us:',
+      '<strong>Email:</strong> legal@jata.app',
+      '<strong>Support:</strong> Visit our Contact page at jata.app/contact',
+      '<strong>Mail:</strong> JATA Legal Department, [Address to be provided]',
+      'For general support inquiries, please use support@jata.app.',
+      'We will respond to your inquiry within 30 days. For urgent legal matters, please mark your email as "Urgent" in the subject line.',
+    ],
+  },
+];

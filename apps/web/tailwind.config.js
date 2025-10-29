@@ -8,6 +8,17 @@ export default {
   ],
   theme: {
   	extend: {
+  		spacing: {
+  			'xs': '0.5rem',   // 8px
+  			'sm': '1rem',     // 16px
+  			'md': '1.5rem',   // 24px
+  			'lg': '2rem',     // 32px
+  			'xl': '3rem',     // 48px
+  		},
+  		lineHeight: {
+  			'readable': '1.5',
+  			'relaxed-readable': '1.6',
+  		},
   		colors: {
   			// Custom brand colors
   			'pure-white': '#ffffff',

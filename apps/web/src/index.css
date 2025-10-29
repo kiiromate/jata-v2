@@ -6,6 +6,15 @@
 @layer base {
   body {
     @apply bg-background text-foreground font-sans;
+    line-height: 1.5;
+  }
+  
+  p, li, td {
+    line-height: 1.5;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    line-height: 1.4;
   }
   :root {
 
@@ -132,4 +141,16 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Theme transition classes for smooth theme switching */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color 300ms ease-in-out,
+              color 300ms ease-in-out,
+              border-color 300ms ease-in-out,
+              box-shadow 300ms ease-in-out !important;
+  transition-delay: 0s !important;
 }
