@@ -334,14 +334,13 @@ const App: React.FC = () => {
     return (
       <div className="w-[400px] bg-gray-900 text-white p-6 font-sans">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">JATA</h1>
-          <p className="text-sm text-gray-400">Job Application Tracker</p>
+          <h1 className="text-xl font-semibold tracking-tight">JATA</h1>
         </div>
         <div className="text-center py-8">
-          <p className="text-gray-300 mb-4">Please sign in to use JATA</p>
+          <p className="text-gray-300 text-sm mb-4">Sign in to track applications</p>
           <button
             onClick={() => chrome.tabs.create({ url: 'https://jata.app/signin' })}
-            className="bg-indigo-600 text-white rounded-md px-6 py-3 font-semibold hover:bg-indigo-700 transition-colors duration-200"
+            className="bg-indigo-600 text-white rounded-md px-6 py-2.5 text-sm font-medium hover:bg-indigo-700 transition-colors duration-200"
           >
             Sign In
           </button>
@@ -357,41 +356,56 @@ const App: React.FC = () => {
     'jobDescription',
   ];
 
+  const fieldLabels: Record<string, string> = {
+    jobTitle: 'Job Title',
+    companyName: 'Company',
+    jobUrl: 'Job URL',
+    jobDescription: 'Description',
+  };
+
+  const fieldPlaceholders: Record<string, string> = {
+    jobTitle: 'Software Engineer',
+    companyName: 'Company name',
+    jobUrl: 'https://...',
+    jobDescription: 'Job description text',
+  };
+
   return (
-    <div className="w-[400px] bg-gray-900 text-white p-6 font-sans">
+    <div className="w-[400px] bg-gray-900 text-white p-5 font-sans">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">JATA</h1>
+        <h1 className="text-xl font-semibold tracking-tight">JATA</h1>
         <button
           onClick={openDashboard}
-          className="text-sm text-indigo-400 hover:text-indigo-300"
+          className="text-sm text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
         >
-          Open Dashboard
+          Dashboard
         </button>
       </div>
 
       {queueSize > 0 && (
-        <div className="bg-yellow-900 border border-yellow-700 rounded-md p-2 mb-4 text-sm">
-          {queueSize} application(s) queued. {isOnline() ? 'Syncing...' : 'Offline'}
+        <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-md p-2.5 mb-4 text-xs">
+          {queueSize} {queueSize === 1 ? 'application' : 'applications'} queued{' '}
+          {isOnline() ? '(syncing)' : '(will sync when online)'}
         </div>
       )}
 
       {statusMessage && (
-        <p className="text-center text-yellow-400 mb-4 text-sm">{statusMessage}</p>
+        <p className="text-center text-amber-400 mb-4 text-xs">{statusMessage}</p>
       )}
 
       <button
         onClick={handleAutoFill}
         disabled={isLoading || !!isScraping}
-        className="w-full mb-4 bg-purple-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-purple-700 disabled:bg-gray-500 transition-colors duration-200"
+        className="w-full mb-4 bg-indigo-600 text-white rounded-md py-2 text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors duration-200"
       >
-        Auto-Detect Job Details
+        Extract from Page
       </button>
 
       <div className="space-y-3">
         {displayFields.map((key) => (
           <div key={key}>
-            <label className="block text-xs font-medium text-gray-400 capitalize mb-1">
-              {key.replace(/([A-Z])/g, ' $1')}
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">
+              {fieldLabels[key]}
             </label>
             <div className="flex items-center gap-2">
               {key === 'jobDescription' ? (
@@ -400,8 +414,8 @@ const App: React.FC = () => {
                   onChange={(e) =>
                     setData((prev) => ({ ...prev, [key]: e.target.value }))
                   }
-                  placeholder={`Enter or select ${key}`}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white resize-none"
+                  placeholder={fieldPlaceholders[key]}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   rows={3}
                 />
               ) : (
@@ -411,16 +425,16 @@ const App: React.FC = () => {
                   onChange={(e) =>
                     setData((prev) => ({ ...prev, [key]: e.target.value }))
                   }
-                  placeholder={`Enter or select ${key}`}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white"
+                  placeholder={fieldPlaceholders[key]}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               )}
               <button
                 onClick={() => handleSelect(key)}
                 disabled={!!isScraping || isLoading}
-                className="px-3 py-2 bg-indigo-600 text-white rounded-md text-xs font-semibold hover:bg-indigo-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors duration-200 whitespace-nowrap"
+                className="px-3 py-2 bg-gray-700 text-white rounded-md text-xs font-medium hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors duration-200 whitespace-nowrap"
               >
-                Select
+                Pick
               </button>
             </div>
           </div>
@@ -430,13 +444,14 @@ const App: React.FC = () => {
       <button
         onClick={handleSave}
         disabled={!!isScraping || isLoading}
-        className="w-full mt-6 bg-green-600 text-white rounded-md py-3 text-base font-semibold hover:bg-green-700 disabled:bg-gray-500 transition-colors duration-200"
+        className="w-full mt-6 bg-gray-800 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-700 disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
       >
-        {isLoading ? 'Saving...' : 'Save Application'}
+        {isLoading ? 'Saving' : 'Save to Dashboard'}
       </button>
 
-      <div className="mt-4 text-center text-xs text-gray-500">
-        {isOnline() ? '🟢 Online' : '🔴 Offline - Saving to queue'}
+      <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-500">
+        <div className={`w-1.5 h-1.5 rounded-full ${isOnline() ? 'bg-green-500' : 'bg-gray-500'}`} />
+        <span>{isOnline() ? 'Connected' : 'Offline mode'}</span>
       </div>
     </div>
   );
