@@ -11,6 +11,7 @@ import ResumeTailorPage from '@/pages/ResumeTailorPage';
 import UpdatePasswordPage from '@/pages/UpdatePasswordPage';
 import ProfilePage from '@/pages/ProfilePage';
 import AnalyticsPage from '@/pages/AnalyticsPage';
+import CoverLetterPage from '@/pages/CoverLetterPage';
 import LandingPage from '@/pages/LandingPage';
 import RootLayout from '@/components/RootLayout';
 import AppLayout from '@/components/AppLayout';
@@ -77,6 +78,13 @@ function App() {
                         <ProtectedRoute>
                           <AppLayout>
                             <AnalyticsPage />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/cover-letter" element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <CoverLetterPage />
                           </AppLayout>
                         </ProtectedRoute>
                       } />

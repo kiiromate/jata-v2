@@ -150,6 +150,77 @@ const startScraping = () => {
     document.addEventListener('keydown', keydownHandler);
 };
 /**
+ * Auto-extract job details using smart detection
+ */
+const autoExtractJobDetails = () => {
+    const currentUrl = window.location.href;
+    // Detect job board and extract accordingly
+    let jobTitle = '';
+    let companyName = '';
+    let jobDescription = '';
+    let source = 'Unknown';
+    // LinkedIn
+    if (/linkedin\.com\/jobs/.test(currentUrl)) {
+        source = 'LinkedIn';
+        jobTitle = document.querySelector('.job-details-jobs-unified-top-card__job-title, .jobs-unified-top-card__job-title, h1.t-24')?.textContent?.trim() || '';
+        companyName = document.querySelector('.job-details-jobs-unified-top-card__company-name, .jobs-unified-top-card__company-name')?.textContent?.trim() || '';
+        jobDescription = document.querySelector('.jobs-description__content, .jobs-description-content__text')?.textContent?.trim() || '';
+    }
+    // Indeed
+    else if (/indeed\.com/.test(currentUrl)) {
+        source = 'Indeed';
+        jobTitle = document.querySelector('h1.jobsearch-JobInfoHeader-title, .jobsearch-JobInfoHeader-title')?.textContent?.trim() || '';
+        companyName = document.querySelector('[data-company-name="true"], .jobsearch-InlineCompanyRating-companyHeader')?.textContent?.trim() || '';
+        jobDescription = document.querySelector('#jobDescriptionText, .jobsearch-jobDescriptionText')?.textContent?.trim() || '';
+    }
+    // Greenhouse
+    else if (/greenhouse\.io|boards\.greenhouse\.io/.test(currentUrl)) {
+        source = 'Greenhouse';
+        jobTitle = document.querySelector('.app-title, h1.app-title, .posting-headline h2')?.textContent?.trim() || '';
+        companyName = document.querySelector('.company-name, [data-company-name]')?.textContent?.trim() || '';
+        jobDescription = document.querySelector('#content, .posting-content')?.textContent?.trim() || '';
+    }
+    // Lever
+    else if (/lever\.co/.test(currentUrl)) {
+        source = 'Lever';
+        jobTitle = document.querySelector('.posting-headline h2, h2')?.textContent?.trim() || '';
+        companyName = document.querySelector('.main-header-text-link')?.textContent?.trim() || '';
+        jobDescription = document.querySelector('.content-wrapper, .section-wrapper')?.textContent?.trim() || '';
+    }
+    // Workday
+    else if (/myworkdayjobs\.com/.test(currentUrl)) {
+        source = 'Workday';
+        jobTitle = document.querySelector('h3[data-automation-id="jobPostingHeader"], [data-automation-id="jobPostingHeader"]')?.textContent?.trim() || '';
+        companyName = document.querySelector('[data-automation-id="companyName"]')?.textContent?.trim() || '';
+        jobDescription = document.querySelector('[data-automation-id="jobPostingDescription"]')?.textContent?.trim() || '';
+    }
+    // ZipRecruiter
+    else if (/ziprecruiter\.com/.test(currentUrl)) {
+        source = 'ZipRecruiter';
+        jobTitle = document.querySelector('h1.job_title, .job-title')?.textContent?.trim() || '';
+        companyName = document.querySelector('a.hiring_company_text, .hiring-company-text')?.textContent?.trim() || '';
+        jobDescription = document.querySelector('.job-description, .jobDescriptionSection')?.textContent?.trim() || '';
+    }
+    // Generic fallback
+    else {
+        source = 'Manual';
+        jobTitle = document.querySelector('h1, [role="heading"][aria-level="1"], .job-title, .position-title')?.textContent?.trim() || '';
+        companyName = document.querySelector('.company-name, [itemprop="hiringOrganization"], .employer')?.textContent?.trim() || '';
+        jobDescription = document.querySelector('.job-description, .description, #job-description, article, main')?.textContent?.trim() || '';
+    }
+    // Clean up and truncate description
+    if (jobDescription && jobDescription.length > 5000) {
+        jobDescription = jobDescription.substring(0, 5000);
+    }
+    return {
+        jobTitle: jobTitle ? jobTitle.replace(/\s+/g, ' ').trim() : '',
+        companyName: companyName ? companyName.replace(/\s+/g, ' ').trim() : '',
+        jobUrl: currentUrl,
+        jobDescription: jobDescription ? jobDescription.replace(/\s+/g, ' ').trim() : '',
+        source,
+    };
+};
+/**
  * Listens for messages from the background script to start or stop the scraper.
  */
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -160,6 +231,16 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     else if (message.action === 'cancelScraping') {
         cleanup();
         sendResponse({ status: 'Scraping canceled' });
+    }
+    else if (message.action === 'autoExtract') {
+        try {
+            const extractedData = autoExtractJobDetails();
+            sendResponse({ status: 'success', data: extractedData });
+        }
+        catch (error) {
+            console.error('Auto-extraction failed:', error);
+            sendResponse({ status: 'error', data: null });
+        }
     }
     return true; // Keep message channel open for async response
 });

@@ -1,30 +1,30 @@
 import { useRef, ElementType, useEffect } from 'react';
-import { ShieldCheck, Bot, BarChart } from 'lucide-react';
+import { FileText, Repeat, LineChart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 
 const features = [
   {
-    title: 'Smart Tracking',
-    description: 'Manage all your applications in one place. Know the status of every application, from sent to hired.',
-    icon: ShieldCheck,
-    color: 'bg-blue-200',
-    textColor: 'text-blue-800',
+    title: 'Application Tracking',
+    description: 'Track every application from submission to response. View status, dates, and details in a single organized dashboard.',
+    icon: FileText,
+    color: 'bg-blue-50',
+    textColor: 'text-blue-900',
   },
   {
-    title: 'AI Optimization',
-    description: 'Our AI analyzes job descriptions and helps you tailor your resume to beat the ATS and impress recruiters.',
-    icon: Bot,
-    color: 'bg-green-200',
-    textColor: 'text-green-800',
+    title: 'Resume Tailoring',
+    description: 'Match your resume to job requirements. Identify missing keywords and optimize content for applicant tracking systems.',
+    icon: Repeat,
+    color: 'bg-green-50',
+    textColor: 'text-green-900',
   },
   {
-    title: 'Insightful Analytics',
-    description: 'Understand your job search performance. Get insights into which resumes and strategies are working.',
-    icon: BarChart,
-    color: 'bg-orange-200',
-    textColor: 'text-orange-800',
+    title: 'Search Analytics',
+    description: 'View response rates by industry, source, and job type. Use data to focus on opportunities that match your profile.',
+    icon: LineChart,
+    color: 'bg-orange-50',
+    textColor: 'text-orange-900',
   },
 ];
 
@@ -38,11 +38,11 @@ const FeatureCard = ({ feature, index }: { feature: { title: string; description
       initial={{ opacity: 0, y: 50 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.5, delay: index * 0.2 }}
-      className={`p-8 rounded-2xl ${feature.color} ${feature.textColor}`}
+      className={`p-8 rounded-lg ${feature.color} ${feature.textColor}`}
     >
-      <p className="font-mono text-sm uppercase mb-4 font-semibold opacity-80">{feature.title}</p>
-      <feature.icon className="w-12 h-12 mb-6" />
-      <p className="text-xl leading-snug">{feature.description}</p>
+      <feature.icon className="w-10 h-10 mb-6 opacity-80" strokeWidth={1.5} />
+      <h3 className="text-lg font-semibold mb-3 tracking-tight">{feature.title}</h3>
+      <p className="text-base leading-relaxed opacity-90">{feature.description}</p>
     </motion.div>
   );
 };
@@ -58,65 +58,89 @@ const LandingPage = () => {
   }, [session, navigate]);
 
   return (
-    <div className="bg-background text-foreground font-sans">
+    <div className="bg-background text-foreground font-sans antialiased">
       {/* Hero Section */}
-      <motion.header initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} className="py-32 px-4 hero-section">
+      <motion.header
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+        className="py-32 px-4 hero-section"
+      >
         <div className="max-w-4xl mx-auto text-center">
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="text-6xl md:text-8xl font-bold tracking-tighter leading-tight mb-4">
-            Stop Playing the Job Application Lottery
-          </motion.h1>
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }} className="text-xl md:text-2xl text-muted-foreground mb-8">
-            Jata helps you tailor your resume to each job, track your applications, and get hired faster.
-          </motion.p>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }}>
-          <Link
-            to="/signup"
-            className="inline-block bg-gray-800 text-white font-bold text-lg py-4 px-10 rounded-full hover:bg-gray-700 transition-all duration-300 transform hover:scale-105"
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="text-5xl md:text-7xl font-bold tracking-tight leading-tight mb-6"
           >
-            Get Started For Free
-          </Link>
-        </motion.div>
+            Track Applications.
+            <br />
+            Tailor Resumes.
+            <br />
+            Find Patterns.
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed"
+          >
+            A job application tracker that helps you organize your search,
+            optimize your materials, and understand what works.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+          >
+            <Link
+              to="/signup"
+              className="inline-block bg-gray-900 text-white font-medium text-base py-3 px-8 rounded-md hover:bg-gray-800 transition-colors duration-200"
+            >
+              Start Tracking
+            </Link>
+          </motion.div>
         </div>
       </motion.header>
 
       {/* Problem Section */}
-      <section className="py-20 px-4 bg-muted">
+      <section className="py-20 px-4 bg-gray-50">
         <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold tracking-tighter leading-tight mb-12">
-            The Modern Job Search is Broken
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-12">
+            Common job search challenges
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <motion.div
-              className="p-6 bg-background rounded-lg shadow-sm"
+              className="p-6 bg-white rounded-lg border border-gray-200"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <h3 className="text-xl font-semibold mb-2">Resume Black Holes</h3>
-              <p className="text-foreground/80">
-                You spend hours tailoring your resume, only to hear nothing back. It feels like your applications disappear into a void.
+              <h3 className="text-lg font-semibold mb-2">No responses</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Applications submitted without knowing if your materials matched the requirements or reached the right person.
               </p>
             </motion.div>
             <motion.div
-              className="p-6 bg-background rounded-lg shadow-sm"
+              className="p-6 bg-white rounded-lg border border-gray-200"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
             >
-              <h3 className="text-xl font-semibold mb-2">Disorganized Tracking</h3>
-              <p className="text-foreground/80">
-                Spreadsheets, notes, and email folders everywhere. It's impossible to keep track of which resume you sent to which company.
+              <h3 className="text-lg font-semibold mb-2">Lost details</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Scattered notes across spreadsheets, emails, and documents make it difficult to remember which version you sent to each company.
               </p>
             </motion.div>
             <motion.div
-              className="p-6 bg-background rounded-lg shadow-sm"
+              className="p-6 bg-white rounded-lg border border-gray-200"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.6 }}
             >
-              <h3 className="text-xl font-semibold mb-2">Lack of Feedback</h3>
-              <p className="text-foreground/80">
-                You don't know why you're getting rejected. There's no data to help you improve your strategy.
+              <h3 className="text-lg font-semibold mb-2">No feedback loop</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Without data on which applications led to interviews, it's hard to know what to change or where to focus next.
               </p>
             </motion.div>
           </div>
@@ -124,13 +148,31 @@ const LandingPage = () => {
       </section>
 
       {/* Solution Showcase Section */}
-      <section className="py-20 px-4 bg-pink-50">
+      <section className="py-20 px-4 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-3 gap-8">
             {features.map((feature, index) => (
               <FeatureCard key={feature.title} feature={feature} index={index} />
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-4 bg-gray-900 text-white">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-6">
+            Start organizing your search today
+          </h2>
+          <p className="text-lg text-gray-300 mb-8 leading-relaxed">
+            Free account. No credit card required.
+          </p>
+          <Link
+            to="/signup"
+            className="inline-block bg-white text-gray-900 font-medium text-base py-3 px-8 rounded-md hover:bg-gray-100 transition-colors duration-200"
+          >
+            Create Account
+          </Link>
         </div>
       </section>
     </div>

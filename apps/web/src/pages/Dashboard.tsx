@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ApplicationCard } from "@/components/ApplicationCard";
+import { ApplicationCardSkeleton } from "@/components/ApplicationCardSkeleton";
 import Welcome from "@/components/Welcome";
 import { ActivityCard } from "@/components/ActivityCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,7 +28,18 @@ const Dashboard = () => {
   });
 
   if (isLoadingApplications) {
-    return <div>Loading applications...</div>;
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <Skeleton className="h-20 w-full mb-6" />
+        <Skeleton className="h-32 w-full mb-6" />
+        <Skeleton className="h-8 w-48 mb-4" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <ApplicationCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (!applications || applications.length === 0) {
@@ -37,11 +49,11 @@ const Dashboard = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <Alert className="mb-6">
-        <AlertTitle>Supercharge your job search!</AlertTitle>
+        <AlertTitle>Browser extension available</AlertTitle>
         <AlertDescription>
-          JATA works best with our browser extension.
-          <Link to="/install-extension" className="font-bold underline ml-2">
-            Learn More
+          Capture job details directly from job boards.
+          <Link to="/install-extension" className="font-medium underline ml-2">
+            Install Extension
           </Link>
         </AlertDescription>
       </Alert>

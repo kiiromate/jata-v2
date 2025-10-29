@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, BarChart2, MessageSquarePlus, Puzzle } from 'lucide-react';
+import { LayoutDashboard, BarChart2, FileText, MessageSquarePlus, Puzzle } from 'lucide-react';
 import Tooltip from './Tooltip';
 import UserDropdown from './UserDropdown';
 
@@ -14,6 +14,11 @@ const IconNav = () => {
       <Tooltip text="Analytics">
         <Link to="/analytics" className="p-2 rounded-full hover:bg-gray-200 transition-colors">
           <BarChart2 className="w-5 h-5 text-gray-700" />
+        </Link>
+      </Tooltip>
+      <Tooltip text="Cover Letter">
+        <Link to="/cover-letter" className="p-2 rounded-full hover:bg-gray-200 transition-colors">
+          <FileText className="w-5 h-5 text-gray-700" />
         </Link>
       </Tooltip>
       <Tooltip text="Feedback">

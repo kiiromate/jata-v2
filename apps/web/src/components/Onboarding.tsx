@@ -3,11 +3,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { useDashboardStore } from '../store/dashboardStore';
+import { useToast } from '../components/ui/use-toast';
 
 const Onboarding = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { openModal } = useDashboardStore();
+  const { toast } = useToast();
   const [step, setStep] = useState(1);
 
   const completeOnboardingMutation = useMutation({
@@ -25,7 +27,11 @@ const Onboarding = () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
     onError: (error: Error) => {
-      alert(`Error completing onboarding: ${error.message}`);
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -39,36 +45,42 @@ const Onboarding = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-xl p-4 sm:p-6 lg:p-8 max-w-xs sm:max-w-lg lg:max-w-2xl mx-auto my-8 sm:my-16 text-center">
+    <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 max-w-xs sm:max-w-lg lg:max-w-2xl mx-auto my-8 sm:my-16 text-center">
       {step === 1 && (
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">Welcome to JATA!</h1>
-          <p className="text-sm sm:text-base text-gray-600 mb-6">Your ultimate companion for streamlining your job application process. Manage resumes, tailor applications, and track your progress with ease.</p>
-          <button onClick={handleNextStep} className="w-full sm:w-auto px-6 py-3 text-base sm:text-lg font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
-            Get Started
+          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-4">Welcome to JATA</h1>
+          <p className="text-sm sm:text-base text-gray-600 mb-6 leading-relaxed">
+            A tool for tracking job applications, tailoring resumes, and analyzing your search.
+          </p>
+          <button onClick={handleNextStep} className="w-full sm:w-auto px-6 py-3 text-base sm:text-lg font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors">
+            Continue
           </button>
         </div>
       )}
       {step === 2 && (
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Install the Browser Extension</h2>
-          <p className="text-sm sm:text-base text-gray-600 mb-6">Effortlessly scrape job descriptions from any website with our powerful browser extension. It's the fastest way to get started with JATA.</p>
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4">Browser Extension</h2>
+          <p className="text-sm sm:text-base text-gray-600 mb-6 leading-relaxed">
+            Install the extension to capture job details directly from LinkedIn, Indeed, and other job boards.
+          </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-            <a href="/install-extension" className="w-full sm:w-auto px-6 py-3 text-base sm:text-lg font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 text-center">
+            <a href="/install-extension" className="w-full sm:w-auto px-6 py-3 text-base sm:text-lg font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 text-center transition-colors">
               Install Extension
             </a>
-            <button onClick={handleNextStep} className="w-full sm:w-auto px-6 py-3 text-base sm:text-lg font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">
-              I'll do this later
+            <button onClick={handleNextStep} className="w-full sm:w-auto px-6 py-3 text-base sm:text-lg font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors">
+              Skip for now
             </button>
           </div>
         </div>
       )}
       {step === 3 && (
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Add Your First Application</h2>
-          <p className="text-sm sm:text-base text-gray-600 mb-6">You're all set! You can now start adding applications to your dashboard. Let's add your first one now.</p>
-          <button onClick={handleCompleteOnboarding} className="w-full sm:w-auto px-6 py-3 text-base sm:text-lg font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
-            Add First Application Manually
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4">Add Your First Application</h2>
+          <p className="text-sm sm:text-base text-gray-600 mb-6 leading-relaxed">
+            Ready to start tracking. Add your first application to your dashboard.
+          </p>
+          <button onClick={handleCompleteOnboarding} className="w-full sm:w-auto px-6 py-3 text-base sm:text-lg font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors">
+            Add Application
           </button>
         </div>
       )}
