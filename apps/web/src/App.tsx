@@ -26,6 +26,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ErrorPage from '@/pages/ErrorPage';
 import NotFoundPage from '@/pages/NotFoundPage';
+import DiagnosticPage from '@/pages/DiagnosticPage';
 import { Toaster } from '@/components/ui/toaster';
 
 const queryClient = new QueryClient();
@@ -98,6 +99,13 @@ function App() {
                         </ProtectedRoute>
                       } />
                       <Route path="/error" element={<ErrorPage />} />
+                      <Route path="/diagnostic" element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <DiagnosticPage />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      } />
                       <Route path="*" element={<NotFoundPage />} />
                     </Route>
                   </Routes>
