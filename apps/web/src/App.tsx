@@ -28,12 +28,12 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <ThemeProvider defaultTheme="system" storageKey="jata-theme">
         <AuthProvider>
           <QueryClientProvider client={queryClient}>
             <PostHogProvider>
               <Router>
-                <div className="min-h-screen bg-gray-50">
+                <div className="min-h-screen bg-background">
                   <Routes>
                     <Route element={<RootLayout />}>
                       <Route path="/" element={<LandingPage />} />

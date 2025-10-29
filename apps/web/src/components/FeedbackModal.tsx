@@ -76,22 +76,22 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Overlay */}
       <div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 z-10 animate-in fade-in zoom-in duration-200">
+      <div className="relative bg-card rounded-lg border border-border shadow-xl max-w-md w-full mx-4 p-6 z-10 animate-in fade-in zoom-in duration-200">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Close"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <h2 className="text-2xl font-bold mb-2">Send Feedback</h2>
-        <p className="text-gray-600 mb-6">
+        <h2 className="text-2xl font-medium mb-2 text-card-foreground">Send Feedback</h2>
+        <p className="text-muted-foreground mb-6">
           Help us improve JATA by sharing your thoughts, suggestions, or reporting issues.
         </p>
 
