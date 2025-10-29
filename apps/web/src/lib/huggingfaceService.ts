@@ -10,7 +10,7 @@ const HF_API_URL = 'https://api-inference.huggingface.co/models';
 const HF_API_KEY = import.meta.env.VITE_HUGGING_FACE_API_KEY || '';
 
 // Lightweight models for free tier
-const MODELS = {
+export const MODELS = {
   // Text generation - good for bullet points
   TEXT_GEN: 'mistralai/Mistral-7B-Instruct-v0.2',
   // Alternative smaller model
@@ -29,7 +29,7 @@ interface HFResponse {
 /**
  * Call Hugging Face Inference API
  */
-async function callHuggingFace(
+export async function callHuggingFace(
   model: string,
   inputs: string | object,
   parameters?: object
