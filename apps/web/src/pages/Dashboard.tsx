@@ -7,8 +7,16 @@ import { ApplicationCardSkeleton } from "@/components/ApplicationCardSkeleton";
 import Welcome from "@/components/Welcome";
 import { ActivityCard } from "@/components/ActivityCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import DashboardWelcomeCard from "@/components/DashboardWelcomeCard";
+import DashboardStatsCard from "@/components/DashboardStatsCard";
+import CreateApplicationModal from "@/components/CreateApplicationModal";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { useDashboardStore } from "@/store/dashboardStore";
 
 const Dashboard = () => {
+  const { openModal } = useDashboardStore();
+  
   const { data: applications, isLoading: isLoadingApplications } = useQuery({
     queryKey: ['applications'],
     queryFn: async () => {
@@ -29,11 +37,11 @@ const Dashboard = () => {
 
   if (isLoadingApplications) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <Skeleton className="h-20 w-full mb-6" />
-        <Skeleton className="h-32 w-full mb-6" />
-        <Skeleton className="h-8 w-48 mb-4" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="p-sm sm:p-md lg:p-lg">
+        <Skeleton className="h-20 w-full mb-md" />
+        <Skeleton className="h-32 w-full mb-md" />
+        <Skeleton className="h-8 w-48 mb-sm" />
+        <div className="grid gap-sm md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <ApplicationCardSkeleton key={i} />
           ))}
@@ -46,9 +54,27 @@ const Dashboard = () => {
     return <Welcome />;
   }
 
+  // Calculate stats
+  const totalApplications = applications?.length || 0;
+  const activeApplications = applications?.filter(
+    (app) => app.status === 'applied' || app.status === 'interviewing'
+  ).length || 0;
+  const interviews = applications?.filter(
+    (app) => app.status === 'interviewing' || app.status === 'offer'
+  ).length || 0;
+  
+  // Calculate applications from this week
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const thisWeek = applications?.filter(
+    (app) => new Date(app.created_at) >= oneWeekAgo
+  ).length || 0;
+
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <Alert className="mb-6">
+    <div className="p-sm sm:p-md lg:p-lg">
+      <CreateApplicationModal />
+      
+      <Alert className="mb-md">
         <AlertTitle>Browser extension available</AlertTitle>
         <AlertDescription>
           Capture job details directly from job boards.
@@ -58,19 +84,30 @@ const Dashboard = () => {
         </AlertDescription>
       </Alert>
 
+      <DashboardWelcomeCard />
+
+      <DashboardStatsCard
+        totalApplications={totalApplications}
+        activeApplications={activeApplications}
+        interviews={interviews}
+        thisWeek={thisWeek}
+      />
+
       {isLoadingActivity ? (
-        <Skeleton className="h-32 w-full mb-6" />
+        <Skeleton className="h-32 w-full mb-md" />
       ) : (
         recentActivity && <ActivityCard data={recentActivity} />
       )}
 
-
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-sm mt-md">
         <h1 className="text-2xl font-bold">My Applications</h1>
-        {/* Add filter/sort controls here if needed */}
+        <Button onClick={openModal} size="sm">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Application
+        </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-sm md:grid-cols-2 lg:grid-cols-3">
         {applications.map((app) => (
           <ApplicationCard key={app.id} application={app} />
         ))}

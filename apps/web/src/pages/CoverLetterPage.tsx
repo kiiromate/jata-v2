@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -158,9 +158,9 @@ const CoverLetterPage: React.FC = () => {
 
   if (authLoading) {
     return (
-      <div className="container mx-auto p-4 max-w-5xl">
-        <Skeleton className="h-10 w-64 mb-6" />
-        <div className="grid gap-6 lg:grid-cols-2">
+      <div className="container mx-auto p-sm sm:p-md lg:p-lg max-w-5xl">
+        <Skeleton className="h-10 w-64 mb-md" />
+        <div className="grid gap-sm lg:grid-cols-2">
           <Card>
             <CardHeader>
               <Skeleton className="h-7 w-48" />
@@ -177,20 +177,20 @@ const CoverLetterPage: React.FC = () => {
 
   if (!user) {
     return (
-      <div className="container mx-auto p-4">
+      <div className="container mx-auto p-sm sm:p-md lg:p-lg">
         <p className="text-center text-gray-600">Please log in to generate cover letters.</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-5xl">
-      <div className="mb-8">
+    <div className="container mx-auto p-sm sm:p-md lg:p-lg max-w-5xl">
+      <div className="mb-md">
         <h1 className="text-3xl font-bold tracking-tight mb-2">Cover Letter Generator</h1>
         <p className="text-gray-600">Create professional, tailored cover letters for your applications.</p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-sm lg:grid-cols-2">
         {/* Input Form */}
         <Card>
           <CardHeader>
@@ -198,7 +198,7 @@ const CoverLetterPage: React.FC = () => {
             <CardDescription>Tell us about the role you're applying for.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleGenerate} className="space-y-4">
+            <form onSubmit={handleGenerate} className="space-y-sm">
               <div>
                 <Label htmlFor="userName">Your Name *</Label>
                 <Input
@@ -302,7 +302,7 @@ const CoverLetterPage: React.FC = () => {
           <CardContent>
             {generatedLetter ? (
               <div>
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4 max-h-96 overflow-y-auto">
+                <div className="bg-gray-50 p-sm rounded-lg border border-gray-200 mb-sm max-h-96 overflow-y-auto">
                   <pre className="whitespace-pre-wrap text-sm font-mono">{generatedLetter}</pre>
                 </div>
                 <div className="flex gap-2">

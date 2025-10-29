@@ -12,21 +12,21 @@
  * provides a convenient way to access this context.
  */
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 import type { Database } from '@jata/common';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
-interface AuthContextType {
+export interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
   loading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -53,17 +53,21 @@ export const AuthProvider = ({ children }: AuthProviderProps): JSX.Element => {
           setUser(currentUser);
 
           if (currentUser) {
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', currentUser.id)
-              .single();
+            try {
+              const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', currentUser.id)
+                .maybeSingle();
 
-            if (profileError) {
-              console.error('Error fetching profile:', profileError);
+              if (profileError && profileError.code !== 'PGRST116') {
+                // Only log if it's not a "no rows returned" error
+                console.warn('Error fetching profile:', profileError.message);
+              }
+              setProfile(profileData || null);
+            } catch (err) {
+              console.warn('Could not fetch profile, continuing without it');
               setProfile(null);
-            } else {
-              setProfile(profileData);
             }
           } else {
             setProfile(null);
@@ -93,17 +97,21 @@ export const AuthProvider = ({ children }: AuthProviderProps): JSX.Element => {
           setUser(currentUser);
 
           if (currentUser) {
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', currentUser.id)
-              .single();
-            
-            if (profileError) {
-              console.error('Error fetching profile on auth change:', profileError);
+            try {
+              const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', currentUser.id)
+                .maybeSingle();
+              
+              if (profileError && profileError.code !== 'PGRST116') {
+                // Only log if it's not a "no rows returned" error
+                console.warn('Error fetching profile on auth change:', profileError.message);
+              }
+              setProfile(profileData || null);
+            } catch (err) {
+              console.warn('Could not fetch profile on auth change, continuing without it');
               setProfile(null);
-            } else {
-              setProfile(profileData);
             }
           } else {
             setProfile(null);
@@ -127,29 +135,6 @@ export const AuthProvider = ({ children }: AuthProviderProps): JSX.Element => {
     loading,
   };
 
-  if (loading) {
-    return <div>Loading...</div>; // Or a more sophisticated loading spinner
-  }
-
+  // Don't block rendering - let pages handle their own loading states
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-/**
- * @hook useAuth
- * @description A custom hook to easily consume the authentication context.
- *
- * This hook abstracts the `useContext` call and provides a clear, typed way to
- * access the authentication state. It also ensures that the hook is used within
- * an `AuthProvider` tree.
- *
- * @returns {AuthContextType} The authentication context value.
- * @throws {Error} If used outside of an `AuthProvider`.
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };

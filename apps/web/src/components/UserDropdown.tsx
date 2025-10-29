@@ -3,7 +3,7 @@ import { useTheme } from './ThemeProvider'; // Corrected import
 import { supabase } from '../lib/supabaseClient';
 import { Link, useNavigate } from 'react-router-dom';
 import { Settings, Moon, Sun, Laptop, LogOut } from 'lucide-react';
-import { useAuth } from '../context/AuthContext'; // Corrected import
+import { useAuth } from '../hooks/useAuth';
 import Avatar from './Avatar';
 import { Button } from '@/components/ui/button';
 
@@ -37,8 +37,14 @@ const UserDropdown = () => {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button onClick={() => setIsOpen(!isOpen)} className="flex items-center justify-center w-10 h-10 bg-gray-200 rounded-full" aria-label="User menu" title="Open user menu">
-        <Avatar avatarUrl={avatarUrl} name={profile?.full_name} />
+      <button 
+        onClick={() => setIsOpen(!isOpen)} 
+        className="flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-full" 
+        aria-label="User menu" 
+        title="Open user menu"
+        aria-expanded={isOpen}
+      >
+        <Avatar avatarUrl={avatarUrl} name={profile?.full_name || user?.email} className="w-10 h-10" />
       </button>
       {isOpen && (
         <div className="absolute right-0 w-56 mt-2 bg-white rounded-md shadow-xl z-20 overflow-hidden">

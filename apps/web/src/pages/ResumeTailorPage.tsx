@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileUpload } from "@/components/FileUpload";
 import type { FileUploadResult } from "@/services/fileUploadService";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@jata/common";
 
 type Resume = Database['public']['Tables']['resumes']['Row'];
@@ -100,16 +100,16 @@ const ResumeTailorPage = () => {
   });
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-4">
+    <div className="container mx-auto p-sm sm:p-md lg:p-lg">
+      <div className="flex justify-between items-center mb-sm">
         <h1 className="text-3xl font-bold">
           Resume Tailor for {applicationData ? `${applicationData.title} at ${applicationData.company}` : 'Your Application'}
         </h1>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
         <div>
-          <h2 className="text-xl font-semibold mb-4">Job Description</h2>
-          <div className="space-y-4">
+          <h2 className="text-xl font-semibold mb-sm">Job Description</h2>
+          <div className="space-y-sm">
             <div className="space-y-2">
               <Input
                 type="text"
@@ -147,8 +147,8 @@ const ResumeTailorPage = () => {
           </div>
         </div>
         <div>
-          <h2 className="text-xl font-semibold mb-4">Your Resume</h2>
-          <div className="space-y-4">
+          <h2 className="text-xl font-semibold mb-sm">Your Resume</h2>
+          <div className="space-y-sm">
             <Select onValueChange={setSelectedResumeId} value={selectedResumeId} disabled={isLoadingResumes}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a resume" />
@@ -177,18 +177,18 @@ const ResumeTailorPage = () => {
           </div>
         </div>
       </div>
-      <div className="mt-4 text-center">
+      <div className="mt-sm text-center">
         <Button onClick={() => analyze({ resumeText, jobDescription })} disabled={isAnalyzing || !jobDescription.trim() || !resumeText.trim()}>
           {isAnalyzing ? "Analyzing..." : "Analyze & Tailor"}
         </Button>
       </div>
       {analysisError && (
-        <div className="mt-4 text-red-500 text-center">
+        <div className="mt-sm text-red-500 text-center">
           <p>Error: {analysisErrorMessage?.message}</p>
         </div>
       )}
       {analysis && (
-        <div className="mt-8 space-y-6">
+        <div className="mt-md space-y-sm">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -205,7 +205,7 @@ const ResumeTailorPage = () => {
                   ))}
                 </div>
               </div>
-              <div className="mt-4">
+              <div className="mt-sm">
                 <h3 className="font-semibold text-red-700">Missing Skills ({analysis.missingSkills.length})</h3>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {analysis.missingSkills.map((skill) => (

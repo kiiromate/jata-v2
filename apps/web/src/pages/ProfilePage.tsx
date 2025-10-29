@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -109,16 +109,16 @@ const ProfilePage: React.FC = () => {
 
   if (authLoading) {
     return (
-      <div className="container mx-auto p-4">
-        <Skeleton className="h-10 w-64 mb-6" />
-        <div className="space-y-8">
+      <div className="container mx-auto p-sm sm:p-md lg:p-lg">
+        <Skeleton className="h-10 w-64 mb-md" />
+        <div className="space-y-md">
           <Card>
             <CardHeader>
               <Skeleton className="h-7 w-48 mb-2" />
               <Skeleton className="h-5 w-96" />
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-sm">
                 <Skeleton className="h-20 w-full" />
                 <Skeleton className="h-20 w-full" />
                 <Skeleton className="h-10 w-32" />
@@ -140,23 +140,23 @@ const ProfilePage: React.FC = () => {
 
   if (!user) {
     return (
-      <div className="container mx-auto p-4">
+      <div className="container mx-auto p-sm sm:p-md lg:p-lg">
         <p className="text-center text-gray-600">Please log in to view your resume vault.</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">My Resume Vault</h1>
+    <div className="container mx-auto p-sm sm:p-md lg:p-lg">
+      <h1 className="text-3xl font-bold mb-md">My Resume Vault</h1>
 
-      <Card className="mb-8">
+      <Card className="mb-md">
         <CardHeader>
           <CardTitle>Upload New Resume</CardTitle>
           <CardDescription>Upload your resume file (PDF or DOCX) and give it a name.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-sm">
             <div>
               <Label htmlFor="resumeName">Resume Name</Label>
               <Input
