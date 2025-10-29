@@ -4,10 +4,13 @@ import { supabase } from "@/lib/supabaseClient";
 import ApplicationFunnelChart from '../components/ApplicationFunnelChart';
 import ScoreAnalysisChart from '../components/ScoreAnalysisChart';
 import SuccessBySourceChart from '../components/SuccessBySourceChart';
+import ApplicationTimeSeriesChart from '../components/ApplicationTimeSeriesChart';
+import ApplicationInsights from '../components/ApplicationInsights';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
 import { Info } from 'lucide-react';
 import SuccessByIndustryChart from '../components/SuccessByIndustryChart';
 import EmptyState from '../components/EmptyState';
+import { Skeleton } from '../components/ui/skeleton';
 
 interface UserAnalyticsData {
   total_applications: number;
@@ -17,6 +20,30 @@ interface UserAnalyticsData {
   success_by_source: { source: string; total_applications: number; interviews: number; offers: number; }[];
   success_by_industry: { industry: string; total_applications: number; interviews: number; offers: number; }[];
 }
+
+interface TimeSeriesDataPoint {
+  date: string;
+  applications: number;
+  interviews: number;
+  offers: number;
+}
+
+interface InsightsData {
+  totalApplications: number;
+  interviewRate: number;
+  offerRate: number;
+  averageResponseTime: number;
+  weekOverWeekChange: number;
+  topPerformingSource?: string;
+  topPerformingIndustry?: string;
+}
+
+const ChartSkeleton = () => (
+  <div className="bg-white p-6 rounded-lg border border-gray-200">
+    <Skeleton className="h-6 w-48 mb-4" />
+    <Skeleton className="h-[300px] w-full" />
+  </div>
+);
 
 const AnalyticsPage = () => {
   const { data, isLoading, isError, error } = useQuery<UserAnalyticsData, Error>({
@@ -30,13 +57,52 @@ const AnalyticsPage = () => {
     },
   });
 
-  if (isLoading) {
-    return <div className="container mx-auto p-4">Loading analytics...</div>;
+  const { data: timeSeriesData, isLoading: isLoadingTimeSeries } = useQuery<TimeSeriesDataPoint[], Error>({
+    queryKey: ["application-time-series"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_application_time_series');
+      if (error) {
+        throw new Error(error.message);
+      }
+      return data as TimeSeriesDataPoint[];
+    },
+  });
+
+  const { data: insightsData, isLoading: isLoadingInsights } = useQuery<InsightsData, Error>({
+    queryKey: ["application-insights"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_application_insights');
+      if (error) {
+        throw new Error(error.message);
+      }
+      return data as InsightsData;
+    },
+  });
+
+  if (isLoading || isLoadingTimeSeries || isLoadingInsights) {
+    return (
+      <div className="container mx-auto p-4 max-w-7xl">
+        <div className="mb-8">
+          <Skeleton className="h-10 w-32 mb-2" />
+          <Skeleton className="h-5 w-96" />
+        </div>
+        <div className="space-y-8">
+          <Skeleton className="h-48 w-full" />
+          <ChartSkeleton />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ChartSkeleton />
+            <ChartSkeleton />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (isError) {
     return <div className="container mx-auto p-4 text-red-500">Error loading analytics: {error?.message}</div>;
   }
+
+  const hasData = data && (data.total_applications > 0 || data.interviews > 0 || data.offers > 0);
 
   return (
     <div className="container mx-auto p-4 max-w-7xl">
@@ -45,8 +111,36 @@ const AnalyticsPage = () => {
         <p className="text-gray-600">Track your application performance and identify patterns.</p>
       </div>
 
-      {data ? (
+      {hasData ? (
         <div className="space-y-8">
+          {/* Insights Section */}
+          {insightsData && (
+            <div>
+              <h2 className="text-xl font-medium tracking-tight mb-4">Key Insights</h2>
+              <ApplicationInsights metrics={insightsData} />
+            </div>
+          )}
+
+          {/* Time Series Chart */}
+          {timeSeriesData && timeSeriesData.length > 0 && (
+            <div className="bg-white p-6 rounded-lg border border-gray-200">
+              <div className="flex items-center gap-2 mb-4">
+                <h2 className="text-lg font-medium tracking-tight">Application Trends</h2>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-gray-400 cursor-pointer" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Track your applications, interviews, and offers over the last 12 weeks.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <ApplicationTimeSeriesChart data={timeSeriesData} />
+            </div>
+          )}
+
           {/* Funnel and Score Analysis */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-lg border border-gray-200">
@@ -63,11 +157,7 @@ const AnalyticsPage = () => {
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              {data.total_applications > 0 || data.interviews > 0 || data.offers > 0 ? (
-                <ApplicationFunnelChart data={data} />
-              ) : (
-                <EmptyState message="No data available yet. Track applications to see your funnel." />
-              )}
+              <ApplicationFunnelChart data={data} />
             </div>
 
             <div className="bg-white p-6 rounded-lg border border-gray-200">
