@@ -26,9 +26,15 @@ export default defineConfig({
       input: {
         popup: path.resolve(__dirname, 'index.html'),
         background: path.resolve(__dirname, 'src/background.ts'),
+        scraper: path.resolve(__dirname, 'src/contentScripts/scraper.ts'),
       },
       output: {
-        entryFileNames: `src/[name].js`,
+        entryFileNames: (chunkInfo) => {
+          if (chunkInfo.name === 'scraper') {
+            return 'src/contentScripts/[name].js';
+          }
+          return 'src/[name].js';
+        },
       }
     },
   },

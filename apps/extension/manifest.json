@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "JATA",
+  "name": "JATA - Job Application Tracker",
   "version": "1.0.0",
-  "description": "JATA Chrome Extension",
+  "description": "Intelligently track and optimize your job applications with AI-powered insights",
   "permissions": [
     "storage",
     "scripting",
-    "activeTab"
+    "activeTab",
+    "tabs"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -16,6 +17,14 @@
     "type": "module"
   },
   "action": {
-    "default_popup": "index.html"
-  }
+    "default_popup": "index.html",
+    "default_title": "JATA - Track this job"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/contentScripts/scraper.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }
