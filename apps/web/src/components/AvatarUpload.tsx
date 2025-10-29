@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 // import Avatar from '../Avatar'; // Custom Avatar component
 import { useToast } from '../hooks/use-toast'; // Corrected path for useToast
+import { AvatarSkeleton } from './AvatarSkeleton';
 
 export const AvatarUpload = () => {
   const queryClient = useQueryClient();
@@ -78,7 +79,7 @@ export const AvatarUpload = () => {
   };
 
   if (isUserLoading) {
-    return <div>Loading avatar...</div>;
+    return <AvatarSkeleton />;
   }
 
   return (

@@ -73,8 +73,13 @@ const Settings = () => {
     if (confirmText !== 'DELETE') return;
     try {
       setDeleting(true);
+
+      // Get the Supabase URL from environment or use default
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+      const functionUrl = `${supabaseUrl}/functions/v1/delete-user`;
+
       // Call an Edge Function with service role to delete the user securely
-      const res = await fetch('http://127.0.0.1:54321/functions/v1/delete-user', {
+      const res = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -82,10 +87,12 @@ const Settings = () => {
         },
         body: JSON.stringify({ user_id: session.user.id }),
       });
+
       if (!res.ok) {
         const txt = await res.text();
         throw new Error(txt || 'Failed to delete account');
       }
+
       // Sign out after deletion request
       await supabase.auth.signOut();
       window.location.href = '/';
@@ -144,7 +151,7 @@ const Settings = () => {
                 <button
                   onClick={connectGoogleDrive}
                   disabled={connectingDrive}
-                  className="bg-soft-olive text-white px-4 py-2 rounded-md font-medium disabled:opacity-50"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50 transition-colors"
                 >
                   {connectingDrive ? 'Connecting...' : 'Connect Google Drive'}
                 </button>

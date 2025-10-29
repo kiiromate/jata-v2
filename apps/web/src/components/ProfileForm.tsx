@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '../hooks/use-toast';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
+import { ProfileFormSkeleton } from './ProfileFormSkeleton';
 
 interface UserProfile {
   id: string;
@@ -42,11 +43,15 @@ export function ProfileForm() {
       return data as UserProfile;
     },
     enabled: !!session?.user?.id, // Only run query if user is authenticated
-    onSuccess: (data) => {
-      setName(data.name || '');
-      setProfessionalSummary(data.professional_summary || '');
-    },
   });
+
+  // Update form fields when user data is loaded
+  useEffect(() => {
+    if (userData) {
+      setName(userData.name || '');
+      setProfessionalSummary(userData.professional_summary || '');
+    }
+  }, [userData]);
 
   // Mutation for updating user data
   const updateProfileMutation = useMutation<UserProfile, Error, Partial<UserProfile>>({
@@ -90,11 +95,16 @@ export function ProfileForm() {
   };
 
   if (isLoading) {
-    return <div>Loading profile...</div>;
+    return <ProfileFormSkeleton />;
   }
 
   if (isError) {
-    return <div>Error loading profile: {error?.message}</div>;
+    return (
+      <div className="space-y-4 p-4 border rounded-lg shadow-sm border-red-200 bg-red-50">
+        <p className="text-red-600 font-medium">Error loading profile</p>
+        <p className="text-red-500 text-sm">{error?.message}</p>
+      </div>
+    );
   }
 
   return (
