@@ -1,13 +1,30 @@
 /**
  * @file Enhanced AI Service for Resume Tailoring
- * @description Provides robust, regex-based skill extraction and analysis for resume optimization.
+ * @description Provides AI-powered skill extraction with regex fallbacks for zero-budget operation
  * @author JATA
  *
- * This service uses a three-stage pipeline:
- * 1. Text Pre-processing: Cleans and standardizes input text
- * 2. Regex-Based Skill Extraction: Uses deterministic patterns to identify skills
- * 3. Post-processing and Filtering: Removes noise and irrelevant results
+ * This service uses a hybrid approach:
+ * 1. Primary: Hugging Face AI models for intelligent analysis
+ * 2. Fallback: Regex-based patterns when API unavailable or rate-limited
+ * 3. Zero-budget friendly: Caches results and optimizes API calls
  */
+
+import {
+  extractKeywordsFromJobDescription,
+  calculateMatchScore,
+  optimizeBulletPoint,
+  generateResumeSuggestions,
+  classifyIndustry,
+  calculateATSScore,
+} from '@/lib/huggingfaceService';
+
+// Re-export for convenience
+export {
+  extractKeywordsFromJobDescription,
+  optimizeBulletPoint,
+  classifyIndustry,
+  calculateATSScore,
+};
 
 /**
  * Interface for Zero-Shot Classification API response
@@ -143,6 +160,9 @@ export interface AnalysisResult {
   score: number;
   matchedSkills: string[];
   missingSkills: string[];
+  suggestions?: string[];
+  atsScore?: number;
+  atsIssues?: string[];
 }
 
 // A simplified list of skills for demonstration. In a real app, this would be more extensive.
@@ -184,6 +204,8 @@ const extractSkills = (text: string): Set<string> => {
 
 /**
  * Analyzes a resume against a job description to find matching and missing skills.
+ * Uses AI when available, falls back to regex patterns.
+ *
  * @param resumeText The text of the user's resume.
  * @param jobDescriptionText The text of the job description.
  * @returns An object containing the match score, matched skills, and missing skills.
@@ -192,25 +214,43 @@ export const analyzeResumeAgainstJobDescription = async (
   resumeText: string,
   jobDescriptionText: string
 ): Promise<AnalysisResult> => {
-  const resumeSkills = extractSkills(resumeText);
-  const jobSkills = extractSkills(jobDescriptionText);
+  try {
+    // Try AI-powered analysis first
+    const matchResult = await calculateMatchScore(resumeText, jobDescriptionText);
+    const suggestions = await generateResumeSuggestions(resumeText, jobDescriptionText);
+    const atsResult = calculateATSScore(resumeText);
 
-  if (jobSkills.size === 0) {
     return {
-      score: 0,
-      matchedSkills: [],
-      missingSkills: [],
+      score: matchResult.score,
+      matchedSkills: matchResult.matchedKeywords,
+      missingSkills: matchResult.missingKeywords,
+      suggestions,
+      atsScore: atsResult.score,
+      atsIssues: atsResult.issues,
+    };
+  } catch (error) {
+    console.warn('AI analysis failed, using regex fallback:', error);
+    // Fallback to regex-based analysis
+    const resumeSkills = extractSkills(resumeText);
+    const jobSkills = extractSkills(jobDescriptionText);
+
+    if (jobSkills.size === 0) {
+      return {
+        score: 0,
+        matchedSkills: [],
+        missingSkills: [],
+      };
+    }
+
+    const matchedSkills = [...jobSkills].filter(skill => resumeSkills.has(skill));
+    const missingSkills = [...jobSkills].filter(skill => !resumeSkills.has(skill));
+
+    const score = Math.round((matchedSkills.length / jobSkills.size) * 100);
+
+    return {
+      score,
+      matchedSkills,
+      missingSkills,
     };
   }
-
-  const matchedSkills = [...jobSkills].filter(skill => resumeSkills.has(skill));
-  const missingSkills = [...jobSkills].filter(skill => !resumeSkills.has(skill));
-
-  const score = Math.round((matchedSkills.length / jobSkills.size) * 100);
-
-  return {
-    score,
-    matchedSkills,
-    missingSkills,
-  };
 };

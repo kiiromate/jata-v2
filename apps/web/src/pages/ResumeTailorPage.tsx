@@ -41,7 +41,7 @@ const ResumeTailorPage = () => {
     enabled: !!applicationId,
   });
 
-  
+
 
   // Fetch user's resumes
   const { data: resumes, isLoading: isLoadingResumes } = useQuery<Resume[], Error>({
@@ -188,29 +188,77 @@ const ResumeTailorPage = () => {
         </div>
       )}
       {analysis && (
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>Analysis Result (Score: {analysis.score}%)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div>
-              <h3 className="font-semibold">Matched Skills:</h3>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {analysis.matchedSkills.map((skill) => (
-                  <Badge key={skill}>{skill}</Badge>
-                ))}
+        <div className="mt-8 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Resume Match Score</span>
+                <span className="text-3xl font-bold text-indigo-600">{analysis.score}%</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div>
+                <h3 className="font-semibold text-green-700">Matched Skills ({analysis.matchedSkills.length})</h3>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {analysis.matchedSkills.map((skill) => (
+                    <Badge key={skill} className="bg-green-100 text-green-800 border-green-300">{skill}</Badge>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <h3 className="font-semibold">Missing Skills:</h3>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {analysis.missingSkills.map((skill) => (
-                  <Badge key={skill} variant="destructive">{skill}</Badge>
-                ))}
+              <div className="mt-4">
+                <h3 className="font-semibold text-red-700">Missing Skills ({analysis.missingSkills.length})</h3>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {analysis.missingSkills.map((skill) => (
+                    <Badge key={skill} variant="destructive">{skill}</Badge>
+                  ))}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {analysis.atsScore !== undefined && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>ATS Compatibility Score</span>
+                  <span className={`text-3xl font-bold ${analysis.atsScore >= 80 ? 'text-green-600' : analysis.atsScore >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    {analysis.atsScore}%
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {analysis.atsIssues && analysis.atsIssues.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-gray-700 mb-2">Issues to Fix:</h3>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {analysis.atsIssues.map((issue, index) => (
+                        <li key={index} className="text-sm text-gray-600">{issue}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {analysis.suggestions && analysis.suggestions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>AI Suggestions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {analysis.suggestions.map((suggestion, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span className="text-indigo-600 font-bold mt-1">•</span>
+                      <span className="text-gray-700">{suggestion}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
     </div>
   );
