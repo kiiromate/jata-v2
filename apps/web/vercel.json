@@ -1,8 +1,8 @@
 {
-  "buildCommand": "cd ../.. && pnpm run build --filter=@jata/web",
-  "installCommand": "cd ../.. && pnpm install --no-frozen-lockfile",
+  "buildCommand": "cd ../.. && pnpm install && pnpm --filter @jata/web build",
   "outputDirectory": "dist",
-  "framework": null,
+  "installCommand": "pnpm install",
+  "framework": "vite",
   "rewrites": [
     {
       "source": "/(.*)",
