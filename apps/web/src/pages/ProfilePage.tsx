@@ -6,12 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@jata/common';
 
 type Resume = Database['public']['Tables']['resumes']['Row'];
 
 const ProfilePage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [resumeName, setResumeName] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -52,10 +55,17 @@ const ProfilePage: React.FC = () => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      alert('Resume uploaded successfully!');
+      toast({
+        title: 'Success',
+        description: 'Resume uploaded successfully.',
+      });
     },
     onError: (err) => {
-      alert(`Error uploading resume: ${err.message}`);
+      toast({
+        title: 'Upload failed',
+        description: err.message,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -63,17 +73,29 @@ const ProfilePage: React.FC = () => {
     e.preventDefault();
 
     if (!user) {
-      alert('You must be logged in to upload a resume.');
+      toast({
+        title: 'Authentication required',
+        description: 'You must be logged in to upload a resume.',
+        variant: 'destructive',
+      });
       return;
     }
 
     if (!resumeName.trim()) {
-      alert('Please enter a resume name.');
+      toast({
+        title: 'Missing information',
+        description: 'Please enter a resume name.',
+        variant: 'destructive',
+      });
       return;
     }
 
     if (!fileInputRef.current || !fileInputRef.current.files || fileInputRef.current.files.length === 0) {
-      alert('Please select a file to upload.');
+      toast({
+        title: 'Missing file',
+        description: 'Please select a file to upload.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -86,11 +108,42 @@ const ProfilePage: React.FC = () => {
   };
 
   if (authLoading) {
-    return <div>Loading authentication...</div>;
+    return (
+      <div className="container mx-auto p-4">
+        <Skeleton className="h-10 w-64 mb-6" />
+        <div className="space-y-8">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-7 w-48 mb-2" />
+              <Skeleton className="h-5 w-96" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-10 w-32" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-7 w-32" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-32 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   if (!user) {
-    return <div>Please log in to view your resume vault.</div>;
+    return (
+      <div className="container mx-auto p-4">
+        <p className="text-center text-gray-600">Please log in to view your resume vault.</p>
+      </div>
+    );
   }
 
   return (
@@ -128,12 +181,6 @@ const ProfilePage: React.FC = () => {
             <Button type="submit" disabled={uploadResumeMutation.isPending}>
               {uploadResumeMutation.isPending ? 'Uploading...' : 'Upload Resume'}
             </Button>
-            {uploadResumeMutation.isError && (
-              <p className="text-red-500 text-sm mt-2">Error: {uploadResumeMutation.error?.message}</p>
-            )}
-            {uploadResumeMutation.isSuccess && (
-              <p className="text-green-500 text-sm mt-2">Resume uploaded successfully!</p>
-            )}
           </form>
         </CardContent>
       </Card>
@@ -144,7 +191,11 @@ const ProfilePage: React.FC = () => {
         </CardHeader>
         <CardContent>
           {resumesLoading ? (
-            <p>Loading resumes...</p>
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
           ) : resumes && resumes.length > 0 ? (
             <ul className="space-y-2">
               {resumes.map((resume) => (
@@ -154,7 +205,7 @@ const ProfilePage: React.FC = () => {
               ))}
             </ul>
           ) : (
-            <p>You haven't uploaded any resumes yet.</p>
+            <p className="text-gray-600">You haven't uploaded any resumes yet.</p>
           )}
         </CardContent>
       </Card>

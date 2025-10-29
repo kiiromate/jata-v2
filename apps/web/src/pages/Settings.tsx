@@ -5,17 +5,15 @@ import { GoogleDriveService } from '../services/googleDriveService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ProfileForm } from '../components/ProfileForm';
 import { AvatarUpload } from '../components/AvatarUpload';
+import { useToast } from '../hooks/use-toast';
 
 const Settings = () => {
   const { session } = useAuth();
+  const { toast } = useToast();
   const [deleting, setDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const [driveConnected, setDriveConnected] = useState(false);
   const [connectingDrive, setConnectingDrive] = useState(false);
-
-  // Removed useEffect for fetching profile data
-
-  // Removed handleSaveProfile function
 
   const connectGoogleDrive = async () => {
     try {
@@ -31,11 +29,19 @@ const Settings = () => {
 
       if (error) {
         console.error('OAuth error:', error);
-        alert('Failed to connect to Google Drive. Please try again.');
+        toast({
+          title: 'Connection failed',
+          description: 'Failed to connect to Google Drive. Please try again.',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Drive connection error:', error);
-      alert('Failed to connect to Google Drive. Please try again.');
+      toast({
+        title: 'Connection failed',
+        description: 'Failed to connect to Google Drive. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setConnectingDrive(false);
     }
@@ -48,7 +54,7 @@ const Settings = () => {
         const driveService = new GoogleDriveService();
         const initialized = await driveService.initialize();
         setDriveConnected(initialized);
-        
+
         if (initialized) {
           // Try to create/find the resume folder and store its ID
           const folderId = await driveService.createOrFindResumeFolder();
@@ -85,15 +91,15 @@ const Settings = () => {
       window.location.href = '/';
     } catch (e) {
       console.error('Delete account error:', e);
-      alert('Unable to delete account. Please try again later.');
+      toast({
+        title: 'Deletion failed',
+        description: 'Unable to delete account. Please try again later.',
+        variant: 'destructive',
+      });
     } finally {
       setDeleting(false);
     }
   };
-
-  // Removed handleUpload function
-
-  // Removed loadingProfile and profileError checks as ProfileForm handles its own loading/errors
 
   return (
     <div className="container mx-auto p-8">
@@ -105,10 +111,10 @@ const Settings = () => {
           <TabsTrigger value="danger" className="w-full text-left justify-start text-red-500 data-[state=active]:bg-red-500/10 data-[state=active]:text-red-500">Danger Zone</TabsTrigger>
         </TabsList>
 
-        <div className="flex-1 space-y-8"> {/* This div replaces <main> */}
+        <div className="flex-1 space-y-8">
           <TabsContent value="profile">
             <section className="rounded-lg border p-6 space-y-6">
-              <h2 className="text-xl font-semibold">Profile</h2>
+              <h2 className="text-xl font-medium">Profile</h2>
               <div className="flex flex-col md:flex-row items-start gap-6 mb-6">
                 <AvatarUpload />
                 <ProfileForm />
@@ -118,7 +124,7 @@ const Settings = () => {
 
           <TabsContent value="integrations">
             <section className="rounded-lg border p-6">
-              <h2 className="text-xl font-semibold mb-4">Integrations</h2>
+              <h2 className="text-xl font-medium mb-4">Integrations</h2>
               <p className="text-muted-foreground mb-4">Connect Google Drive to store and access your resumes directly from your cloud storage.</p>
               {driveConnected ? (
                 <div className="flex items-center gap-3">
@@ -126,8 +132,8 @@ const Settings = () => {
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <span className="font-medium">Google Drive Connected</span>
                   </div>
-                  <button 
-                    onClick={connectGoogleDrive} 
+                  <button
+                    onClick={connectGoogleDrive}
                     disabled={connectingDrive}
                     className="bg-secondary text-secondary-foreground hover:bg-secondary/80 px-4 py-2 rounded-md font-medium text-sm"
                   >
@@ -135,8 +141,8 @@ const Settings = () => {
                   </button>
                 </div>
               ) : (
-                <button 
-                  onClick={connectGoogleDrive} 
+                <button
+                  onClick={connectGoogleDrive}
                   disabled={connectingDrive}
                   className="bg-soft-olive text-white px-4 py-2 rounded-md font-medium disabled:opacity-50"
                 >
@@ -148,7 +154,7 @@ const Settings = () => {
 
           <TabsContent value="danger">
             <section className="rounded-lg border p-6">
-              <h2 className="text-xl font-semibold text-destructive mb-4">Danger Zone</h2>
+              <h2 className="text-xl font-medium text-destructive mb-4">Danger Zone</h2>
               <p className="text-muted-foreground">Permanently remove your account and all associated data. This action cannot be undone.</p>
               <div className="mt-4 flex items-center gap-4">
                 <input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="Type DELETE to confirm" className="rounded-md border bg-background text-foreground px-3 py-2 w-1/2" />
