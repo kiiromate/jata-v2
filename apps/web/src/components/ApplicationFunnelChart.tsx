@@ -70,11 +70,11 @@ const ApplicationFunnelChart: React.FC<ApplicationFunnelChartProps> = ({ data })
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-semibold text-gray-900 mb-1">{data.name}</p>
-          <p className="text-sm text-gray-700">Count: {data.value}</p>
+        <div className="bg-card p-3 border border-border rounded-lg shadow-lg">
+          <p className="font-semibold mb-1">{data.name}</p>
+          <p className="text-sm">Count: {data.value}</p>
           {data.rate !== null && (
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Conversion: {data.rate.toFixed(1)}%
             </p>
           )}

@@ -100,7 +100,7 @@ const Dashboard = () => {
       )}
 
       <div className="flex justify-between items-center mb-sm mt-md">
-        <h1 className="text-2xl font-bold">My Applications</h1>
+        <h1 className="text-2xl font-medium">My Applications</h1>
         <Button onClick={openModal} size="sm">
           <Plus className="h-4 w-4 mr-2" />
           Add Application

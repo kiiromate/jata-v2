@@ -178,7 +178,7 @@ const CoverLetterPage: React.FC = () => {
   if (!user) {
     return (
       <div className="container mx-auto p-sm sm:p-md lg:p-lg">
-        <p className="text-center text-gray-600">Please log in to generate cover letters.</p>
+        <p className="text-center text-muted-foreground">Please log in to generate cover letters.</p>
       </div>
     );
   }
@@ -187,7 +187,7 @@ const CoverLetterPage: React.FC = () => {
     <div className="container mx-auto p-sm sm:p-md lg:p-lg max-w-5xl">
       <div className="mb-md">
         <h1 className="text-3xl font-bold tracking-tight mb-2">Cover Letter Generator</h1>
-        <p className="text-gray-600">Create professional, tailored cover letters for your applications.</p>
+        <p className="text-muted-foreground">Create professional, tailored cover letters for your applications.</p>
       </div>
 
       <div className="grid gap-sm lg:grid-cols-2">
@@ -256,7 +256,7 @@ const CoverLetterPage: React.FC = () => {
 
               <div>
                 <Label>Key Highlights (3 max) *</Label>
-                <p className="text-sm text-gray-600 mb-2">
+                <p className="text-sm text-muted-foreground mb-2">
                   List your relevant achievements or skills for this role.
                 </p>
                 {highlights.map((highlight, index) => (
@@ -302,7 +302,7 @@ const CoverLetterPage: React.FC = () => {
           <CardContent>
             {generatedLetter ? (
               <div>
-                <div className="bg-gray-50 p-sm rounded-lg border border-gray-200 mb-sm max-h-96 overflow-y-auto">
+                <div className="bg-muted p-sm rounded-lg border border-border mb-sm max-h-96 overflow-y-auto">
                   <pre className="whitespace-pre-wrap text-sm font-mono">{generatedLetter}</pre>
                 </div>
                 <div className="flex gap-2">
@@ -315,7 +315,7 @@ const CoverLetterPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-muted-foreground">
                 <p>No cover letter generated yet.</p>
                 <p className="text-sm mt-2">Complete the form and click "Generate Cover Letter" to get started.</p>
               </div>

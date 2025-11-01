@@ -40,7 +40,7 @@ interface InsightsData {
 }
 
 const ChartSkeleton = () => (
-  <div className="bg-white p-sm rounded-lg border border-gray-200">
+  <div className="bg-card p-sm rounded-lg border border-border">
     <Skeleton className="h-6 w-48 mb-sm" />
     <Skeleton className="h-[280px] w-full" />
   </div>
@@ -109,7 +109,7 @@ const AnalyticsPage = () => {
     <div className="container mx-auto p-sm sm:p-md lg:p-lg max-w-7xl">
       <div className="mb-md">
         <h1 className="text-3xl font-bold tracking-tight mb-2">Analytics</h1>
-        <p className="text-gray-600">Track your application performance and identify patterns.</p>
+        <p className="text-muted-foreground">Track your application performance and identify patterns.</p>
       </div>
 
       {hasData ? (
@@ -135,13 +135,13 @@ const AnalyticsPage = () => {
 
           {/* Time Series Chart */}
           {timeSeriesData && timeSeriesData.length > 0 && (
-            <div className="bg-white p-sm rounded-lg border border-gray-200">
+            <div className="bg-card p-sm rounded-lg border border-border">
               <div className="flex items-center gap-2 mb-sm">
                 <h2 className="text-lg font-medium tracking-tight">Application Trends</h2>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-gray-400 cursor-pointer" />
+                      <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">Track your applications, interviews, and offers over the last 12 weeks.</p>
@@ -155,13 +155,13 @@ const AnalyticsPage = () => {
 
           {/* Funnel and Score Analysis */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-sm">
-            <div className="bg-white p-sm rounded-lg border border-gray-200">
+            <div className="bg-card p-sm rounded-lg border border-border">
               <div className="flex items-center gap-2 mb-sm">
                 <h2 className="text-lg font-medium tracking-tight">Application Funnel</h2>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-gray-400 cursor-pointer" />
+                      <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">Conversion rates from applications to interviews to offers.</p>
@@ -172,13 +172,13 @@ const AnalyticsPage = () => {
               <ApplicationFunnelChart data={data} />
             </div>
 
-            <div className="bg-white p-sm rounded-lg border border-gray-200">
+            <div className="bg-card p-sm rounded-lg border border-border">
               <div className="flex items-center gap-2 mb-sm">
                 <h2 className="text-lg font-medium tracking-tight">Score by Status</h2>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-gray-400 cursor-pointer" />
+                      <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">Average Jata Score for each application status.</p>
@@ -196,13 +196,13 @@ const AnalyticsPage = () => {
 
           {/* Success by Source and Industry */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-sm">
-            <div className="bg-white p-sm rounded-lg border border-gray-200">
+            <div className="bg-card p-sm rounded-lg border border-border">
               <div className="flex items-center gap-2 mb-sm">
                 <h2 className="text-lg font-medium tracking-tight">Success by Source</h2>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-gray-400 cursor-pointer" />
+                      <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">Interview and offer rates by application source.</p>
@@ -217,13 +217,13 @@ const AnalyticsPage = () => {
               )}
             </div>
 
-            <div className="bg-white p-sm rounded-lg border border-gray-200">
+            <div className="bg-card p-sm rounded-lg border border-border">
               <div className="flex items-center gap-2 mb-sm">
                 <h2 className="text-lg font-medium tracking-tight">Success by Industry</h2>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-gray-400 cursor-pointer" />
+                      <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">Interview and offer rates by industry.</p>

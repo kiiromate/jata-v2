@@ -24,12 +24,12 @@ const ScoreAnalysisChart: React.FC<ScoreAnalysisChartProps> = ({ data }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-semibold text-gray-900 mb-2">{data.status}</p>
-          <p className="text-sm text-gray-700">
+        <div className="bg-card p-3 border border-border rounded-lg shadow-lg">
+          <p className="font-semibold mb-2">{data.status}</p>
+          <p className="text-sm">
             Average Score: <span className="font-medium">{data.average_score.toFixed(1)}</span>
           </p>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Applications: {data.count}
           </p>
         </div>
