@@ -125,9 +125,9 @@ const CreateApplicationModal: React.FC = () => {
     <Dialog open={isModalOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Add New Application</DialogTitle>
-          <DialogDescription>
-            Manually add a job application to track your progress.
+          <DialogTitle className="text-xl">Add New Application</DialogTitle>
+          <DialogDescription className="text-base">
+            Track a new job opportunity. Required fields are marked with <span className="text-red-500">*</span>
           </DialogDescription>
         </DialogHeader>
 
@@ -193,23 +193,45 @@ const CreateApplicationModal: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <Select
-              value={formData.status}
-              onValueChange={(value) => handleChange('status', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="saved">Saved</SelectItem>
-                <SelectItem value="applied">Applied</SelectItem>
-                <SelectItem value="interviewing">Interviewing</SelectItem>
-                <SelectItem value="offer">Offer</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => handleChange('status', value)}
+              >
+                <SelectTrigger id="status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="saved">💾 Saved</SelectItem>
+                  <SelectItem value="applied">📤 Applied</SelectItem>
+                  <SelectItem value="interviewing">💼 Interviewing</SelectItem>
+                  <SelectItem value="offer">🎉 Offer</SelectItem>
+                  <SelectItem value="rejected">❌ Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="source">Source</Label>
+              <Select
+                value={formData.source}
+                onValueChange={(value) => handleChange('source', value)}
+              >
+                <SelectTrigger id="source">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manual">✍️ Manual Entry</SelectItem>
+                  <SelectItem value="linkedin">💼 LinkedIn</SelectItem>
+                  <SelectItem value="indeed">🔍 Indeed</SelectItem>
+                  <SelectItem value="company_website">🏢 Company Website</SelectItem>
+                  <SelectItem value="referral">🤝 Referral</SelectItem>
+                  <SelectItem value="other">📋 Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">
