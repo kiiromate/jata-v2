@@ -11,18 +11,30 @@ interface ApplicationCardProps {
 
 export const ApplicationCard: React.FC<ApplicationCardProps> = ({ application }) => {
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 flex flex-col justify-between h-full transition-transform duration-200 hover:scale-105 hover:shadow-lg">
+    <div className="bg-card rounded-lg border border-border p-4 flex flex-col justify-between h-full transition-all duration-200 hover:shadow-lg hover:border-primary/50 hover:-translate-y-0.5 group">
       <div>
-        <div className="flex justify-between items-start">
-          <h3 className="font-bold text-lg text-gray-800">{application.title}</h3>
+        <div className="flex justify-between items-start gap-2 mb-2">
+          <h3 className="font-semibold text-lg text-card-foreground line-clamp-2 group-hover:text-primary transition-colors">
+            {application.title}
+          </h3>
           <StatusBadge status={application.status} />
         </div>
-        <p className="text-gray-600 text-sm mt-1">{application.company}</p>
+        <p className="text-muted-foreground text-sm">{application.company}</p>
       </div>
-      <div className="flex justify-between items-center mt-4">
-        <p className="text-xs text-gray-500">{new Date(application.date_applied).toLocaleDateString()}</p>
-        <Link to={`/resume-tailor/${application.id}`} className="text-sm text-indigo-600 hover:text-indigo-900">
-          Tailor Resume
+      <div className="flex justify-between items-center mt-4 pt-3 border-t border-border">
+        <time className="text-xs text-muted-foreground" dateTime={application.date_applied}>
+          {new Date(application.date_applied).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          })}
+        </time>
+        <Link 
+          to={`/resume-tailor/${application.id}`} 
+          className="text-sm font-medium text-primary hover:text-primary/80 hover:underline transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded px-1"
+          aria-label={`Tailor resume for ${application.title} at ${application.company}`}
+        >
+          Tailor Resume →
         </Link>
       </div>
     </div>
