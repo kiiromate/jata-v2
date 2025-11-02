@@ -14,27 +14,51 @@ const Welcome: React.FC = () => {
   };
 
   return (
-    <>
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
       <CreateApplicationModal />
-      <Card className="w-[400px] mx-auto my-8">
-        <CardHeader>
-          <CardTitle className="text-center text-2xl font-semibold">Welcome to JATA</CardTitle>
-          <CardDescription className="text-center mt-2">
-            Track your applications, tailor your resume, and analyze your job search.
+      <Card className="w-full max-w-2xl shadow-lg">
+        <CardHeader className="text-center space-y-4 pb-8">
+          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+            <span className="text-4xl">👋</span>
+          </div>
+          <CardTitle className="text-3xl font-bold">Welcome to JATA</CardTitle>
+          <CardDescription className="text-base">
+            Your AI-powered job application tracking assistant
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-sm text-muted-foreground">
-            Install the browser extension to capture job details from any job board,
-            or add an application manually.
-          </p>
+        <CardContent className="space-y-6">
+          <div className="text-center space-y-4">
+            <p className="text-muted-foreground">
+              Get started by adding your first job application. You can either:
+            </p>
+            <div className="grid md:grid-cols-2 gap-4 mt-6">
+              <div className="p-4 border border-border rounded-lg bg-muted/30 space-y-2">
+                <div className="text-2xl">🧩</div>
+                <h3 className="font-semibold">Install Extension</h3>
+                <p className="text-sm text-muted-foreground">
+                  Capture job details automatically from any job board
+                </p>
+              </div>
+              <div className="p-4 border border-border rounded-lg bg-muted/30 space-y-2">
+                <div className="text-2xl">✍️</div>
+                <h3 className="font-semibold">Manual Entry</h3>
+                <p className="text-sm text-muted-foreground">
+                  Add applications manually with custom details
+                </p>
+              </div>
+            </div>
+          </div>
         </CardContent>
-        <CardFooter className="flex justify-center space-x-4">
-          <Button onClick={handleInstallExtension}>Install Extension</Button>
-          <Button variant="outline" onClick={openModal}>Add Application</Button>
+        <CardFooter className="flex flex-col sm:flex-row justify-center gap-3 pt-6">
+          <Button onClick={handleInstallExtension} size="lg" className="w-full sm:w-auto">
+            Install Extension
+          </Button>
+          <Button variant="outline" onClick={openModal} size="lg" className="w-full sm:w-auto">
+            Add Application Manually
+          </Button>
         </CardFooter>
       </Card>
-    </>
+    </div>
   );
 };
 
