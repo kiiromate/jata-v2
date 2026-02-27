@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { AppHeader } from './AppHeader';
 import { cn } from '@/lib/utils';
+import { useExtensionSync } from '@/hooks/useExtensionSync';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -10,6 +11,9 @@ interface DashboardLayoutProps {
 type SidebarMode = 'collapsed' | 'expanded' | 'hover';
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+  // Sync session with extension
+  useExtensionSync();
+
   // Default to collapsed for a cleaner initial look
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('collapsed');
   

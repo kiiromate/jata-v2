@@ -5,6 +5,10 @@
  * clicked element, sending it back to the extension's background script.
  */
 
+interface ScraperMessage {
+  action: 'startScraping' | 'cancelScraping' | 'autoExtract';
+}
+
 /**
  * Generates a unique and stable CSS selector for a given HTML element.
  * It traverses up the DOM tree, building a selector string that is as specific as necessary.
@@ -247,9 +251,22 @@ const autoExtractJobDetails = () => {
 };
 
 /**
+ * Handles auto-extract requests and normalizes response shape.
+ */
+const handleAutoExtract = () => {
+  try {
+    const extractedData = autoExtractJobDetails();
+    return { data: extractedData };
+  } catch (error) {
+    console.error('Auto-extraction failed:', error);
+    return { data: null };
+  }
+};
+
+/**
  * Listens for messages from the background script to start or stop the scraper.
  */
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: ScraperMessage, _sender, sendResponse) => {
   if (message.action === 'startScraping') {
     startScraping();
     sendResponse({ status: 'Scraping started' });
@@ -257,15 +274,35 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     cleanup();
     sendResponse({ status: 'Scraping canceled' });
   } else if (message.action === 'autoExtract') {
-    try {
-      const extractedData = autoExtractJobDetails();
-      sendResponse({ status: 'success', data: extractedData });
-    } catch (error) {
-      console.error('Auto-extraction failed:', error);
-      sendResponse({ status: 'error', data: null });
-    }
+    sendResponse(handleAutoExtract());
   }
   return true; // Keep message channel open for async response
+});
+
+/**
+ * Listen for messages from the web app (Auth Sync)
+ * The web app posts a message to window, we pick it up and forward to background
+ */
+window.addEventListener('message', (event) => {
+  // Only accept messages from trusted origins (localhost or prod)
+  const trustedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:4173',
+    'https://jata.app'
+  ];
+  
+  // Also check if origin matches a Vercel deployment pattern if needed
+  const isTrusted = trustedOrigins.includes(event.origin) || event.origin.endsWith('.vercel.app');
+
+  if (!isTrusted) return;
+
+  if (event.data && event.data.type === 'JATA_SYNC_SESSION') {
+    console.log('JATA Extension: Received session sync from web app');
+    chrome.runtime.sendMessage({
+      action: 'SYNC_SESSION',
+      session: event.data.session
+    });
+  }
 });
 
 console.log('JATA content script loaded.');

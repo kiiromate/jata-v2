@@ -221,6 +221,19 @@ const autoExtractJobDetails = () => {
     };
 };
 /**
+ * Handles auto-extract requests and normalizes response shape.
+ */
+const handleAutoExtract = () => {
+    try {
+        const extractedData = autoExtractJobDetails();
+        return { data: extractedData };
+    }
+    catch (error) {
+        console.error('Auto-extraction failed:', error);
+        return { data: null };
+    }
+};
+/**
  * Listens for messages from the background script to start or stop the scraper.
  */
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -233,14 +246,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         sendResponse({ status: 'Scraping canceled' });
     }
     else if (message.action === 'autoExtract') {
-        try {
-            const extractedData = autoExtractJobDetails();
-            sendResponse({ status: 'success', data: extractedData });
-        }
-        catch (error) {
-            console.error('Auto-extraction failed:', error);
-            sendResponse({ status: 'error', data: null });
-        }
+        sendResponse(handleAutoExtract());
     }
     return true; // Keep message channel open for async response
 });

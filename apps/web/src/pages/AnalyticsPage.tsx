@@ -205,7 +205,7 @@ const AnalyticsPage = () => {
                       <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="max-w-xs">Interview and offer rates by application source.</p>
+                      <p className="max-w-xs">Which job boards are working best for you?</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -213,7 +213,7 @@ const AnalyticsPage = () => {
               {data.success_by_source && data.success_by_source.length > 0 ? (
                 <SuccessBySourceChart data={data.success_by_source} />
               ) : (
-                <EmptyState message="No data available yet. Track applications to see source analysis." />
+                <EmptyState message="No source data yet." />
               )}
             </div>
 
@@ -226,7 +226,7 @@ const AnalyticsPage = () => {
                       <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="max-w-xs">Interview and offer rates by industry.</p>
+                      <p className="max-w-xs">Which industries are responding to your applications?</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -234,13 +234,15 @@ const AnalyticsPage = () => {
               {data.success_by_industry && data.success_by_industry.length > 0 ? (
                 <SuccessByIndustryChart data={data.success_by_industry} />
               ) : (
-                <EmptyState message="No data available yet. Track applications to see industry analysis." />
+                <EmptyState message="No industry data yet." />
               )}
             </div>
           </div>
         </div>
       ) : (
-        <EmptyState message="No analytics data available. Start tracking applications to see insights." />
+        <EmptyState
+          message="No application data found. Start tracking applications to see analytics."
+        />
       )}
     </div>
   );

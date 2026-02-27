@@ -1,45 +1,40 @@
 /**
- * Professional color palette for charts
- * Intentional, non-generic colors for data visualization
+ * Centralized chart colors mapped to JATA design tokens.
  */
 
 export const CHART_COLORS = {
-  // Primary scale - for main data series
   primary: {
-    indigo: '#6366f1',
-    purple: '#8b5cf6',
-    cyan: '#06b6d4',
-    emerald: '#10b981',
-    amber: '#f59e0b',
+    indigo: 'var(--jata-accent-blue)',
+    purple: 'var(--jata-accent-rust)',
+    cyan: 'var(--jata-accent-orange)',
+    emerald: 'var(--jata-accent-lime)',
+    amber: 'hsl(var(--chart-2))',
   },
-  // Status colors
   status: {
-    applied: '#6366f1',     // Indigo
-    screening: '#8b5cf6',   // Purple
-    interview: '#06b6d4',   // Cyan
-    offer: '#10b981',       // Emerald
-    rejected: '#ef4444',    // Red
+    applied: 'var(--jata-accent-blue)',
+    screening: 'var(--jata-accent-rust)',
+    interview: 'var(--jata-accent-orange)',
+    offer: 'var(--jata-accent-lime)',
+    rejected: 'hsl(var(--destructive))',
   },
-  // Success gradient
   gradient: {
-    low: '#ef4444',         // Red
-    medium: '#f59e0b',      // Amber
-    high: '#10b981',        // Emerald
+    low: 'hsl(var(--destructive))',
+    medium: 'var(--jata-accent-orange)',
+    high: 'var(--jata-accent-lime)',
   },
-  // Neutral grays
   gray: {
-    50: '#f9fafb',
-    100: '#f3f4f6',
-    200: '#e5e7eb',
-    300: '#d1d5db',
-    400: '#9ca3af',
-    500: '#6b7280',
-    600: '#4b5563',
-    700: '#374151',
-    800: '#1f2937',
-    900: '#111827',
+    50: 'hsl(var(--muted) / 0.2)',
+    100: 'hsl(var(--muted) / 0.3)',
+    200: 'hsl(var(--border))',
+    300: 'hsl(var(--border) / 0.9)',
+    400: 'var(--jata-text-muted)',
+    500: 'var(--jata-text-muted)',
+    600: 'var(--jata-text-secondary)',
+    700: 'var(--jata-text-secondary)',
+    800: 'var(--jata-text-primary)',
+    900: 'var(--jata-text-primary)',
   },
-};
+} as const;
 
 /**
  * Get color based on score (0-100)

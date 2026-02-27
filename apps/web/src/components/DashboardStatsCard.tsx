@@ -9,6 +9,9 @@ interface DashboardStatsCardProps {
   thisWeek: number;
 }
 
+/**
+ * Renders dashboard summary cards with semantic JATA accent color mappings.
+ */
 const DashboardStatsCard: React.FC<DashboardStatsCardProps> = ({
   totalApplications,
   activeApplications,
@@ -20,29 +23,29 @@ const DashboardStatsCard: React.FC<DashboardStatsCardProps> = ({
       label: 'Total Applications',
       value: totalApplications,
       icon: Briefcase,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'text-[color:var(--jata-accent-blue)]',
+      bgColor: 'bg-[color:var(--jata-accent-blue)]/10',
     },
     {
       label: 'Active',
       value: activeApplications,
       icon: Clock,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-50',
+      color: 'text-[color:var(--jata-accent-lime)]',
+      bgColor: 'bg-[color:var(--jata-accent-lime)]/10',
     },
     {
       label: 'Interviews',
       value: interviews,
       icon: CheckCircle,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
+      color: 'text-[color:var(--jata-accent-orange)]',
+      bgColor: 'bg-[color:var(--jata-accent-orange)]/10',
     },
     {
       label: 'This Week',
       value: thisWeek,
       icon: Calendar,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
+      color: 'text-[color:var(--jata-accent-rust)]',
+      bgColor: 'bg-[color:var(--jata-accent-rust)]/10',
     },
   ];
 

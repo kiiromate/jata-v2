@@ -34,6 +34,17 @@ chrome.runtime.onInstalled.addListener((details) => {
  * @returns {boolean} - Returns true to indicate that the response will be sent asynchronously.
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Handle Auth Sync from Content Script
+  if (message.action === 'SYNC_SESSION' && message.session) {
+    console.log('Background: Received session sync');
+    const sessionStr = JSON.stringify(message.session);
+    chrome.storage.local.set({ 'jata-session': sessionStr }, () => {
+      console.log('Background: Session saved to storage');
+      sendResponse({ status: 'success' });
+    });
+    return true; // Async response
+  }
+
   // We only forward messages from other parts of the extension (like the popup),
   // not from content scripts, to avoid potential message loops.
   if (sender.tab) {

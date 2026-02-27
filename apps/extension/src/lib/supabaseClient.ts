@@ -26,6 +26,7 @@ export const supabase: SupabaseClient = createClient(
   SUPABASE_ANON_KEY,
   {
     auth: {
+      storageKey: 'jata-session',
       // Use storage adapter for extension
       storage: {
         getItem: async (key: string) => {
