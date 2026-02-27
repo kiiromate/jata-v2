@@ -81,7 +81,7 @@ const App: React.FC = () => {
    * Auto-extract job details on mount
    */
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn && typeof chrome !== 'undefined' && chrome.tabs) {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const activeTab = tabs[0];
         if (activeTab && activeTab.id) {
@@ -108,6 +108,8 @@ const App: React.FC = () => {
    * an element has been selected by the user.
    */
   useEffect(() => {
+    if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.onMessage) return;
+
     const messageListener = (message: Message, _sender: chrome.runtime.MessageSender, sendResponse: SendResponse) => {
       if (message.action === 'elementSelected' && message.data && isScraping) {
         console.log(`Received data for ${isScraping}:`, message.data?.textContent);
@@ -139,15 +141,25 @@ const App: React.FC = () => {
     setIsScraping(field);
     setStatusMessage(`Selecting ${field}...`);
 
-    chrome.runtime.sendMessage({ action: 'startScraping' }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error('Error sending startScraping message:', chrome.runtime.lastError.message);
-        setStatusMessage('Error: Could not start selector.');
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      chrome.runtime.sendMessage({ action: 'startScraping' }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Error sending startScraping message:', chrome.runtime.lastError.message);
+          setStatusMessage('Error: Could not start selector.');
+          setIsScraping(null);
+        } else {
+          console.log(response.status);
+        }
+      });
+    } else {
+      console.log('Mock: startScraping sent');
+      setTimeout(() => {
+        // Mock selection in dev mode
+        setData(prev => ({ ...prev, [field]: `Mock ${field}` }));
         setIsScraping(null);
-      } else {
-        console.log(response.status);
-      }
-    });
+        setStatusMessage('Mock selection complete');
+      }, 1000);
+    }
   };
 
   /**
