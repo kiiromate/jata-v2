@@ -13,6 +13,7 @@ import {
   formatCoverLetterForExport,
   type CoverLetterParams,
 } from '@/services/coverLetterService';
+import { formatAiGeneratedAt, type AiOutputMetadata } from '@/services/aiGateway';
 import { generateCoverLetterFileName } from '@/utils/fileNaming';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -31,6 +32,7 @@ const CoverLetterPage: React.FC = () => {
 
   // Generated cover letter
   const [generatedLetter, setGeneratedLetter] = useState<string | null>(null);
+  const [generatedMetadata, setGeneratedMetadata] = useState<AiOutputMetadata | null>(null);
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -55,6 +57,7 @@ const CoverLetterPage: React.FC = () => {
     onSuccess: ({ result, params }) => {
       const formatted = formatCoverLetterForExport(result, params);
       setGeneratedLetter(formatted);
+      setGeneratedMetadata(result.metadata || null);
       toast({
         title: 'Cover letter generated',
         description: 'Your cover letter is ready. Review and export below.',
@@ -272,7 +275,7 @@ const CoverLetterPage: React.FC = () => {
 
               <div>
                 <Label htmlFor="tone">Tone</Label>
-                <Select value={tone} onValueChange={(value: any) => setTone(value)}>
+                <Select value={tone} onValueChange={(value) => setTone(value as typeof tone)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -302,6 +305,15 @@ const CoverLetterPage: React.FC = () => {
           <CardContent>
             {generatedLetter ? (
               <div>
+                {generatedMetadata && (
+                  <div className="mb-sm rounded border border-border bg-muted p-3 text-xs text-muted-foreground">
+                    <p>Provider used: {generatedMetadata.provider}</p>
+                    <p>Model used: {generatedMetadata.model || 'not reported'}</p>
+                    <p>Generated: {formatAiGeneratedAt(generatedMetadata.generatedAt)}</p>
+                    <p>Cached result: {generatedMetadata.cached ? 'yes' : 'no'}</p>
+                    <p>Review before sending.</p>
+                  </div>
+                )}
                 <div className="bg-muted p-sm rounded-lg border border-border mb-sm max-h-96 overflow-y-auto">
                   <pre className="whitespace-pre-wrap text-sm font-mono">{generatedLetter}</pre>
                 </div>

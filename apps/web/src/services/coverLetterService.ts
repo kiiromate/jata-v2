@@ -1,11 +1,18 @@
 /**
  * Cover Letter Generation Service
  *
- * Generates professional, human-quality cover letters using Hugging Face.
- * Follows zero-budget constraint with intelligent fallbacks.
+ * Generates professional cover letters through the server-side AI router.
+ * Keeps provider secrets out of the browser and falls back locally.
  */
 
-import { callHuggingFace, MODELS } from '@/lib/huggingfaceService';
+import {
+  appendSafetySections,
+  createFallbackSafety,
+  invokeAiTask,
+  type AiOutputMetadata,
+  type AiSafetySections,
+  type AiTextOutput,
+} from './aiGateway';
 
 export interface CoverLetterParams {
   // Job details
@@ -36,94 +43,45 @@ export interface CoverLetterResult {
   closing: string;
   success: boolean;
   error?: string;
+  metadata?: AiOutputMetadata;
+  safety?: AiSafetySections;
 }
 
 /**
- * Generates a professional cover letter using AI
+ * Generates a professional cover letter through the AI Edge Function.
  */
 export async function generateCoverLetter(
   params: CoverLetterParams
 ): Promise<CoverLetterResult> {
   try {
-    const prompt = buildCoverLetterPrompt(params);
-
-    const response = await callHuggingFace(
-      MODELS.TEXT_GEN_SMALL,
-      prompt,
-      {
-        max_new_tokens: 500,
-        temperature: 0.7,
-        return_full_text: false,
-      }
-    );
-
-    const generatedText = response[0]?.generated_text || '';
-
-    if (!generatedText) {
-      // Fallback to template-based generation
-      return generateTemplateBasedCoverLetter(params);
-    }
-
-    // Parse the generated text into structured sections
-    const parsed = parseCoverLetterText(generatedText, params);
+    const payload = await invokeAiTask<AiTextOutput>('generateCoverLetter', {
+      jobTitle: params.jobTitle,
+      companyName: params.companyName,
+      jobDescription: params.jobDescription || '',
+      userName: params.userName,
+      userProfile: [params.userEmail, params.userPhone].filter(Boolean).join(' '),
+      highlights: params.highlights,
+      tone: params.tone,
+      notes: [params.customOpening, params.customClosing].filter(Boolean).join('\n'),
+    });
+    const parsed = parseCoverLetterText(payload.output.content);
 
     return {
       ...parsed,
       success: true,
+      metadata: payload.metadata,
+      safety: payload.output.safety,
     };
   } catch (error) {
     console.error('Cover letter generation error:', error);
-    // Fallback to template-based generation
     return generateTemplateBasedCoverLetter(params);
   }
 }
 
 /**
- * Builds an effective prompt for cover letter generation
- */
-function buildCoverLetterPrompt(params: CoverLetterParams): string {
-  const { jobTitle, companyName, highlights, tone, jobDescription } = params;
-
-  const toneInstructions = {
-    professional: 'Write in a professional, confident tone.',
-    conversational: 'Write in a warm, conversational yet professional tone.',
-    formal: 'Write in a formal, traditional business tone.',
-  };
-
-  const highlightsText = highlights.slice(0, 3).join('; ');
-  const jobDescSnippet = jobDescription
-    ? jobDescription.substring(0, 200)
-    : 'This is a role in my field of expertise.';
-
-  return `Write a concise, professional cover letter for a ${jobTitle} position at ${companyName}.
-
-${toneInstructions[tone]}
-
-Key qualifications to mention:
-${highlightsText}
-
-Job context: ${jobDescSnippet}
-
-Requirements:
-- 3 paragraphs maximum
-- First paragraph: Why I'm interested in this specific role and company
-- Second paragraph: My relevant experience and achievements
-- Third paragraph: My enthusiasm and call to action
-- Use short, direct sentences
-- Avoid buzzwords like "passionate", "synergy", "leverage"
-- Sound human, not AI-generated
-- No clichés
-
-Cover letter:`;
-}
-
-/**
  * Parses generated text into structured sections
  */
-function parseCoverLetterText(
-  text: string,
-  params: CoverLetterParams
-): Omit<CoverLetterResult, 'success'> {
+function parseCoverLetterText(text: string): Omit<CoverLetterResult, 'success'> {
   // Clean up the text
   const cleaned = text.trim();
 
@@ -157,7 +115,7 @@ function parseCoverLetterText(
 function generateTemplateBasedCoverLetter(
   params: CoverLetterParams
 ): CoverLetterResult {
-  const { jobTitle, companyName, highlights, userName, tone } = params;
+  const { jobTitle, companyName, highlights, tone } = params;
 
   // Opening paragraph - why this role/company
   const opening = params.customOpening || generateOpeningParagraph(jobTitle, companyName, tone);
@@ -170,7 +128,12 @@ function generateTemplateBasedCoverLetter(
   // Closing paragraph - enthusiasm and CTA
   const closing = params.customClosing || generateClosingParagraph(jobTitle, tone);
 
-  const content = [opening, ...body, closing].join('\n\n');
+  const safety = createFallbackSafety([
+    highlights.length > 0
+      ? 'Evidence needed: verify each highlight before sending.'
+      : 'Evidence needed: at least one verified CV highlight.',
+  ]);
+  const content = appendSafetySections([opening, ...body, closing].join('\n\n'), safety);
 
   return {
     content,
@@ -178,6 +141,13 @@ function generateTemplateBasedCoverLetter(
     body,
     closing,
     success: true,
+    metadata: {
+      provider: 'mock',
+      model: 'local-fallback',
+      generatedAt: new Date().toISOString(),
+      cached: false,
+    },
+    safety,
   };
 }
 
