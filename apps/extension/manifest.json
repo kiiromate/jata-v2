@@ -20,6 +20,14 @@
     "default_popup": "index.html",
     "default_title": "JATA - Track this job"
   },
+  "externally_connectable": {
+    "matches": [
+      "http://localhost:5173/*",
+      "http://localhost:4173/*",
+      "https://*.vercel.app/*",
+      "https://jata.app/*"
+    ]
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

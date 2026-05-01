@@ -1,0 +1,19 @@
+{
+  "builds": [
+    {
+      "src": "apps/web/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "apps/web/dist"
+      }
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/apps/web/$1" }
+  ],
+  "functions": {
+    "apps/web/api/**/*.ts": {
+      "runtime": "nodejs20.x"
+    }
+  }
+}

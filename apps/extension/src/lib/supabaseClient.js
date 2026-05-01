@@ -6,6 +6,7 @@
  * chrome.storage.local to ensure they persist across sessions.
  */
 import { createClient } from '@supabase/supabase-js';
+console.log('Supabase Client Initializing...');
 // These will be set during build time or loaded from chrome.storage
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -22,23 +23,41 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         storage: {
             getItem: async (key) => {
                 return new Promise((resolve) => {
-                    chrome.storage.local.get([key], (result) => {
-                        resolve(result[key] || null);
-                    });
+                    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                        chrome.storage.local.get([key], (result) => {
+                            resolve(result[key] || null);
+                        });
+                    }
+                    else {
+                        // Fallback for dev environment
+                        resolve(localStorage.getItem(key));
+                    }
                 });
             },
             setItem: async (key, value) => {
                 return new Promise((resolve) => {
-                    chrome.storage.local.set({ [key]: value }, () => {
+                    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                        chrome.storage.local.set({ [key]: value }, () => {
+                            resolve();
+                        });
+                    }
+                    else {
+                        localStorage.setItem(key, value);
                         resolve();
-                    });
+                    }
                 });
             },
             removeItem: async (key) => {
                 return new Promise((resolve) => {
-                    chrome.storage.local.remove([key], () => {
+                    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                        chrome.storage.local.remove([key], () => {
+                            resolve();
+                        });
+                    }
+                    else {
+                        localStorage.removeItem(key);
                         resolve();
-                    });
+                    }
                 });
             },
         },

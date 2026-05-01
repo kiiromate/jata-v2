@@ -47,31 +47,31 @@ const UserDropdown = () => {
         <Avatar avatarUrl={avatarUrl} name={profile?.full_name || user?.email} className="w-10 h-10" />
       </button>
       {isOpen && (
-        <div className="absolute right-0 w-56 mt-2 bg-white rounded-md shadow-xl z-20 overflow-hidden">
-          <Link to="/settings" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+        <div className="absolute right-0 w-56 mt-2 bg-popover border border-border rounded-md shadow-xl z-20 overflow-hidden text-popover-foreground">
+          <Link to="/settings" className="flex items-center px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors">
             <Settings className="w-5 h-5 mr-2" />
             Account Settings
           </Link>
-          <div className="border-t border-gray-100" />
+          <div className="border-t border-border" />
           <div className="px-4 py-2">
-            <div className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">Theme</div>
+            <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Theme</div>
             <div className="flex items-center space-x-2">
-              <Button variant={theme === 'light' ? 'secondary' : 'outline'} size="icon" onClick={() => setTheme('light')} aria-label="Light theme">
-                <Sun className="h-5 w-5" />
+              <Button variant={theme === 'light' ? 'secondary' : 'ghost'} size="icon" onClick={() => setTheme('light')} aria-label="Light theme" className="h-8 w-8">
+                <Sun className="h-4 w-4" />
                 <span className="sr-only">Light</span>
               </Button>
-              <Button variant={theme === 'system' ? 'secondary' : 'outline'} size="icon" onClick={() => setTheme('system')} aria-label="System theme">
-                <Laptop className="h-5 w-5" />
+              <Button variant={theme === 'system' ? 'secondary' : 'ghost'} size="icon" onClick={() => setTheme('system')} aria-label="System theme" className="h-8 w-8">
+                <Laptop className="h-4 w-4" />
                 <span className="sr-only">System</span>
               </Button>
-              <Button variant={theme === 'dark' ? 'secondary' : 'outline'} size="icon" onClick={() => setTheme('dark')} aria-label="Dark theme">
-                <Moon className="h-5 w-5" />
+              <Button variant={theme === 'dark' ? 'secondary' : 'ghost'} size="icon" onClick={() => setTheme('dark')} aria-label="Dark theme" className="h-8 w-8">
+                <Moon className="h-4 w-4" />
                 <span className="sr-only">Dark</span>
               </Button>
             </div>
           </div>
-          <div className="border-t border-gray-100" />
-          <button onClick={handleLogout} className="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100" title="Sign out">
+          <div className="border-t border-border" />
+          <button onClick={handleLogout} className="flex items-center w-full px-4 py-2 text-sm text-left hover:bg-destructive hover:text-destructive-foreground transition-colors" title="Sign out">
             <LogOut className="w-5 h-5 mr-2" />
             Sign out
           </button>

@@ -16,13 +16,37 @@ interface ApplicationFunnelChartProps {
   };
 }
 
+interface FunnelDataPoint {
+  value: number;
+  name: string;
+  fill: string;
+  rate: number | null;
+}
+
+interface FunnelLabelProps {
+  x?: number;
+  y?: number;
+  value?: number;
+  name?: string;
+  index?: number;
+  rate?: number | null;
+}
+
+interface FunnelTooltipProps {
+  active?: boolean;
+  payload?: Array<{ payload: FunnelDataPoint }>;
+}
+
+/**
+ * Renders the funnel chart for applications, interviews, and offers.
+ */
 const ApplicationFunnelChart: React.FC<ApplicationFunnelChartProps> = ({ data }) => {
   const { total_applications, interviews, offers } = data;
 
   const interviewRate = total_applications > 0 ? (interviews / total_applications) * 100 : 0;
   const offerRate = interviews > 0 ? (offers / interviews) * 100 : 0;
 
-  const funnelData = [
+  const funnelData: FunnelDataPoint[] = [
     {
       value: total_applications,
       name: 'Total Applications',
@@ -43,8 +67,14 @@ const ApplicationFunnelChart: React.FC<ApplicationFunnelChartProps> = ({ data })
     },
   ];
 
-  const CustomLabel = (props: any) => {
-    const { x, y, value, name, index, rate } = props;
+  /**
+   * Renders custom funnel labels and conversion percentages.
+   */
+  const renderCustomLabel = ({ x, y, value, name, index, rate }: FunnelLabelProps) => {
+    if (x === undefined || y === undefined || value === undefined || !name) {
+      return null;
+    }
+
     return (
       <text
         x={x}
@@ -66,16 +96,19 @@ const ApplicationFunnelChart: React.FC<ApplicationFunnelChartProps> = ({ data })
     );
   };
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
+  /**
+   * Renders tooltip details for the hovered funnel stage.
+   */
+  const renderCustomTooltip = ({ active, payload }: FunnelTooltipProps) => {
+    if (active && payload && payload.length > 0) {
+      const tooltipData = payload[0].payload;
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-semibold text-gray-900 mb-1">{data.name}</p>
-          <p className="text-sm text-gray-700">Count: {data.value}</p>
-          {data.rate !== null && (
-            <p className="text-sm text-gray-600 mt-1">
-              Conversion: {data.rate.toFixed(1)}%
+        <div className="bg-card p-3 border border-border rounded-lg shadow-lg">
+          <p className="font-semibold mb-1">{tooltipData.name}</p>
+          <p className="text-sm">Count: {tooltipData.value}</p>
+          {tooltipData.rate !== null && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Conversion: {tooltipData.rate.toFixed(1)}%
             </p>
           )}
         </div>
@@ -87,7 +120,7 @@ const ApplicationFunnelChart: React.FC<ApplicationFunnelChartProps> = ({ data })
   return (
     <ResponsiveContainer width="100%" height={300}>
       <FunnelChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-        <Tooltip content={<CustomTooltip />} />
+        <Tooltip content={renderCustomTooltip} />
         <Funnel
           dataKey="value"
           data={funnelData}
@@ -97,7 +130,7 @@ const ApplicationFunnelChart: React.FC<ApplicationFunnelChartProps> = ({ data })
           labelLine={false}
           lastShapeType="rectangle"
         >
-          <LabelList dataKey="name" position="right" fill="#000" stroke="none" content={CustomLabel} />
+          <LabelList dataKey="name" position="right" stroke="none" content={renderCustomLabel} />
         </Funnel>
       </FunnelChart>
     </ResponsiveContainer>

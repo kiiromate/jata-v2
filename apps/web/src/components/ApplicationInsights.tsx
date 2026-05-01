@@ -34,7 +34,7 @@ const ApplicationInsights: React.FC<ApplicationInsightsProps> = ({ metrics }) =>
 
   const getTrendIcon = (change?: number) => {
     if (!change || Math.abs(change) < 0.5) {
-      return <Minus className="w-4 h-4 text-gray-400" />;
+      return <Minus className="w-4 h-4 text-muted-foreground" />;
     }
     if (change > 0) {
       return <TrendingUp className="w-4 h-4 text-green-600" />;
@@ -43,7 +43,7 @@ const ApplicationInsights: React.FC<ApplicationInsightsProps> = ({ metrics }) =>
   };
 
   const getTrendColor = (change?: number): string => {
-    if (!change || Math.abs(change) < 0.5) return 'text-gray-600';
+    if (!change || Math.abs(change) < 0.5) return 'text-muted-foreground';
     return change > 0 ? 'text-green-600' : 'text-red-600';
   };
 
@@ -75,12 +75,12 @@ const ApplicationInsights: React.FC<ApplicationInsightsProps> = ({ metrics }) =>
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {insights.map((insight, index) => (
-          <Card key={index} className="border-gray-200">
+          <Card key={index}>
             <CardContent className="p-4">
               <div className="space-y-2">
-                <p className="text-sm text-gray-600">{insight.label}</p>
+                <p className="text-sm text-muted-foreground">{insight.label}</p>
                 <div className="flex items-end justify-between">
-                  <p className="text-2xl font-bold text-gray-900">{insight.value}</p>
+                  <p className="text-2xl font-bold">{insight.value}</p>
                   {insight.change !== undefined && (
                     <div className="flex items-center gap-1">
                       {getTrendIcon(insight.change)}

@@ -6,10 +6,26 @@ node_modules
 
 # Environment variables
 .env
+.env.*
+!.env.example
 apps\web\.env
+apps\web\.env.*
+!apps\web\.env.example
+apps/extension/.env
+apps/extension/.env.*
+!apps/extension/.env.example
+
+# Build output and local generated artifacts
+apps/web/dist/
+apps/extension/dist/
+bash.exe.stackdump
 
 # Turborepo cache
 **/.turbo
+
+# Supabase local state and backups
+supabase/.temp/
+old supabase data/
 
 # Local files
 # GEMINI.md

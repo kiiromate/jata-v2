@@ -31,19 +31,19 @@ const SuccessBySourceChart: React.FC<SuccessBySourceChartProps> = ({ data }) => 
     if (active && payload && payload.length) {
       const item = chartData.find(d => d.source === label);
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-semibold text-gray-900 mb-2">{label}</p>
+        <div className="bg-card p-3 border border-border rounded-lg shadow-lg">
+          <p className="font-semibold mb-2">{label}</p>
           <div className="space-y-1">
-            <p className="text-sm text-gray-700">
+            <p className="text-sm">
               Applications: <span className="font-medium">{item?.total_applications}</span>
             </p>
-            <p className="text-sm text-gray-700">
+            <p className="text-sm">
               Interviews: <span className="font-medium">{item?.interviews}</span>
             </p>
-            <p className="text-sm text-gray-700">
+            <p className="text-sm">
               Offers: <span className="font-medium">{item?.offers}</span>
             </p>
-            <div className="pt-2 mt-2 border-t border-gray-200">
+            <div className="pt-2 mt-2 border-t border-border">
               <p className="text-sm" style={{ color: CHART_COLORS.primary.indigo }}>
                 Interview Rate: <span className="font-medium">{payload[0]?.value.toFixed(1)}%</span>
               </p>
@@ -68,7 +68,7 @@ const SuccessBySourceChart: React.FC<SuccessBySourceChartProps> = ({ data }) => 
               className="w-3 h-3 rounded"
               style={{ backgroundColor: entry.color }}
             />
-            <span className="text-sm text-gray-600">{entry.value}</span>
+            <span className="text-sm text-muted-foreground">{entry.value}</span>
           </div>
         ))}
       </div>

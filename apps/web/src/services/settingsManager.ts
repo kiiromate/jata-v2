@@ -22,6 +22,9 @@ export interface UserSettings {
     googleDrive: boolean;
     googleDriveConnectedAt?: string;
   };
+  ai?: {
+    provider?: 'mock' | 'huggingface' | 'openrouter';
+  };
 }
 
 export interface ValidationResult {
@@ -206,6 +209,11 @@ class SettingsManager {
       }
     }
 
+    // Validate optional AI provider preference.
+    if (settings.ai?.provider && !['mock', 'huggingface', 'openrouter'].includes(settings.ai.provider)) {
+      errors['ai.provider'] = 'AI provider must be one of: mock, huggingface, openrouter';
+    }
+
     return {
       valid: Object.keys(errors).length === 0,
       errors,
@@ -278,6 +286,7 @@ class SettingsManager {
         ...DEFAULT_SETTINGS.integrations,
         ...(settings.integrations || {}),
       },
+      ai: settings.ai,
     };
   }
 

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { analyzeResumeAgainstJobDescription, type AnalysisResult } from "@/services/aiService";
+import { formatAiGeneratedAt } from "@/services/aiGateway";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileUpload } from "@/components/FileUpload";
@@ -17,7 +18,7 @@ import type { Database } from "@jata/common";
 type Resume = Database['public']['Tables']['resumes']['Row'];
 
 const ResumeTailorPage = () => {
-  const { applicationId } = useParams<{ applicationId: string }>();
+  const { id: applicationId } = useParams<{ id: string }>();
   const { user } = useAuth();
 
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
@@ -33,7 +34,7 @@ const ResumeTailorPage = () => {
       const { data, error } = await supabase
         .from('applications')
         .select('title, company')
-        .eq('id', parseInt(applicationId, 10))
+        .eq('id', applicationId)
         .single();
       if (error) throw new Error(error.message);
       return data;
@@ -189,6 +190,17 @@ const ResumeTailorPage = () => {
       )}
       {analysis && (
         <div className="mt-md space-y-sm">
+          {analysis.metadata && (
+            <Card>
+              <CardContent className="pt-6 text-xs text-muted-foreground">
+                <p>Provider used: {analysis.metadata.provider}</p>
+                <p>Model used: {analysis.metadata.model || 'not reported'}</p>
+                <p>Generated: {formatAiGeneratedAt(analysis.metadata.generatedAt)}</p>
+                <p>Cached result: {analysis.metadata.cached ? 'yes' : 'no'}</p>
+                <p>Review before sending.</p>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -250,7 +262,7 @@ const ResumeTailorPage = () => {
                 <ul className="space-y-2">
                   {analysis.suggestions.map((suggestion, index) => (
                     <li key={index} className="flex items-start gap-2">
-                      <span className="text-indigo-600 font-bold mt-1">•</span>
+                      <span className="text-indigo-600 font-bold mt-1">-</span>
                       <span className="text-gray-700">{suggestion}</span>
                     </li>
                   ))}

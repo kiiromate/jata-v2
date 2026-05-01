@@ -145,32 +145,29 @@ const InstallExtensionPage = () => {
               {/* Download Section */}
               <Card className="mb-md">
                 <CardHeader>
-                  <CardTitle>Step 1: Get Extension Files</CardTitle>
+                  <CardTitle>Step 1: Download Extension</CardTitle>
                   <CardDescription>
-                    The JATA extension is currently in development. Follow the manual installation steps below.
+                    Get the JATA browser extension to capture job details automatically from any job board.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Alert className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>Development Mode:</strong> The extension is available in your project folder at <code className="bg-muted px-2 py-1 rounded">apps/extension/dist</code>. 
-                      Build it first by running <code className="bg-muted px-2 py-1 rounded">pnpm --filter @jata/extension build</code> from the project root.
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <Button
-                    onClick={handleDownload}
-                    disabled={true}
-                    size="lg"
-                    className="w-full sm:w-auto"
-                    variant="outline"
-                  >
-                    Download (Coming Soon)
-                  </Button>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      The extension allows you to save job postings with a single click while browsing job boards like LinkedIn, Indeed, and more.
+                    </p>
+                    
+                    <Button
+                      onClick={handleDownload}
+                      disabled={downloadState.status === 'downloading'}
+                      size="lg"
+                      className="w-full sm:w-auto"
+                    >
+                      {getDownloadButtonContent()}
+                    </Button>
+                  </div>
                   
                   {downloadState.status === 'error' && (
-                    <Alert variant="destructive" className="mt-sm">
+                    <Alert variant="destructive" className="mt-4">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
                         {downloadState.error || 'Failed to download extension. Please try again.'}

@@ -1,11 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
 @import './styles/components.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  * {
+    @apply border-border;
+  }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-jata-deep-carbon text-jata-text-primary font-body;
     line-height: 1.5;
   }
   
@@ -14,108 +18,121 @@
   }
   
   h1, h2, h3, h4, h5, h6 {
+    @apply font-headline;
     line-height: 1.4;
+    font-weight: 600;
   }
+  
+  .font-data {
+    font-family: 'Space Grotesk', monospace;
+  }
+
   :root {
+    /* JATA Design System Tokens */
+    /* Dark Mode (Default) */
+    --jata-bg-primary: #0B0B0C;
+    --jata-bg-surface: #121315;
+    --jata-bg-elevated: #1A1A1C;
+    --jata-border: #2A2B2E;
+    --jata-text-primary: #E8E8E8;
+    --jata-text-secondary: #B7B7B7;
+    --jata-text-muted: #7F8A8E;
+    
+    --jata-accent-lime: #C5FF3E;
+    --jata-accent-orange: #FF8736;
+    --jata-accent-blue: #2271FF;
+    --jata-accent-rust: #B45A3D;
+    
+    /* Spacing */
+    --jata-space-xs: 8px;
+    --jata-space-sm: 16px;
+    --jata-space-md: 24px;
+    --jata-space-lg: 32px;
+    --jata-space-xl: 48px;
+    
+    /* Layout */
+    --jata-header-height: 48px;
+    --jata-sidebar-collapsed: 60px;
+    --jata-sidebar-expanded: 240px;
 
-    --background: 0 0% 100%;
+    /* Shadcn/UI Mappings to JATA (Default Dark) */
+    --background: 240 5% 4%; /* #0B0B0C - Deep Carbon */
+    --foreground: 0 0% 91%; /* #E8E8E8 - Silver Ash */
 
-    --foreground: 240 10% 3.9%;
+    --card: 220 7% 8%; /* #121315 - Iron Charcoal */
+    --card-foreground: 0 0% 91%;
 
-    --card: 0 0% 100%;
+    --popover: 220 7% 8%;
+    --popover-foreground: 0 0% 91%;
 
-    --card-foreground: 240 10% 3.9%;
+    --primary: 79 100% 62%; /* #C5FF3E - Lumen Lime */
+    --primary-foreground: 240 5% 4%;
 
-    --popover: 0 0% 100%;
+    --secondary: 220 5% 17%; /* #2A2B2E - Graphite Mist */
+    --secondary-foreground: 0 0% 91%;
 
-    --popover-foreground: 240 10% 3.9%;
-
-    --primary: 240 5.9% 10%;
-
-    --primary-foreground: 0 0% 98%;
-
-    --secondary: 240 4.8% 95.9%;
-
-    --secondary-foreground: 240 5.9% 10%;
-
-    --muted: 240 4.8% 95.9%;
-
-    --muted-foreground: 240 3.8% 46.1%;
-
-    --accent: 240 4.8% 95.9%;
-
-    --accent-foreground: 240 5.9% 10%;
-
-    --destructive: 0 84.2% 60.2%;
-
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 240 5.9% 90%;
-
-    --input: 240 5.9% 90%;
-
-    --ring: 240 10% 3.9%;
-
-    --chart-1: 12 76% 61%;
-
-    --chart-2: 173 58% 39%;
-
-    --chart-3: 197 37% 24%;
-
-    --chart-4: 43 74% 66%;
-
-    --chart-5: 27 87% 67%;
-
-    --radius: 0.5rem}
-  .dark {
-
-    --background: 240 10% 3.9%;
-
-    --foreground: 0 0% 98%;
-
-    --card: 240 10% 3.9%;
-
-    --card-foreground: 0 0% 98%;
-
-    --popover: 240 10% 3.9%;
-
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 0 0% 98%;
-
-    --primary-foreground: 240 5.9% 10%;
-
-    --secondary: 240 3.7% 15.9%;
-
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 240 3.7% 15.9%;
-
+    --muted: 220 5% 17%;
     --muted-foreground: 240 5% 64.9%;
 
-    --accent: 240 3.7% 15.9%;
+    --accent: 79 100% 62%;
+    --accent-foreground: 240 5% 4%;
 
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-
+    --destructive: 25 100% 61%; /* #FF8736 - Aural Orange as warning/destructive */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 3.7% 15.9%;
+    --border: 220 5% 17%; /* #2A2B2E */
+    --input: 220 5% 17%;
+    --ring: 79 100% 62%;
 
-    --input: 240 3.7% 15.9%;
+    --radius: 0.5rem;
+    
+    /* Chart Colors */
+    --chart-1: 79 100% 62%; /* Lumen Lime */
+    --chart-2: 25 100% 61%; /* Aural Orange */
+    --chart-3: 218 100% 57%; /* Cobalt Signal */
+    --chart-4: 14 49% 47%; /* Rust Neutral */
+    --chart-5: 240 5% 64.9%; /* Muted */
+  }
+  
+  .light {
+    /* Light Mode */
+    --jata-bg-primary: #FFFFFF;
+    --jata-bg-surface: #F5F6F7;
+    --jata-bg-elevated: #FFFFFF;
+    --jata-border: #E2E2E2;
+    --jata-text-primary: #101010;
+    --jata-text-secondary: #5A5A5A;
+    --jata-text-muted: #8A8A8A;
 
-    --ring: 240 4.9% 83.9%;
+    /* Shadcn/UI Mappings to JATA (Light) */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 6%; /* #101010 */
 
-    --chart-1: 220 70% 50%;
+    --card: 210 9% 96%; /* #F5F6F7 */
+    --card-foreground: 0 0% 6%;
 
-    --chart-2: 160 60% 45%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 6%;
 
-    --chart-3: 30 80% 55%;
+    --primary: 79 100% 62%; /* Keep Lime or darken slightly for light mode if needed */
+    --primary-foreground: 240 5% 4%;
 
-    --chart-4: 280 65% 60%;
+    --secondary: 210 9% 96%;
+    --secondary-foreground: 0 0% 6%;
 
-    --chart-5: 340 75% 55%}
+    --muted: 210 9% 96%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 210 9% 96%;
+    --accent-foreground: 0 0% 6%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 89%; /* #E2E2E2 */
+    --input: 0 0% 89%;
+    --ring: 79 100% 62%;
+  }
 }
 
 @layer components {
@@ -129,17 +146,6 @@
 
   .btn-secondary {
      @apply w-full px-6 py-3 text-sm font-medium tracking-wide text-secondary-foreground capitalize transition-colors duration-300 transform bg-secondary rounded-md hover:bg-secondary/80 focus:outline-none focus:ring focus:ring-ring focus:ring-opacity-80;
-  }
-}
-
-
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
   }
 }
 
