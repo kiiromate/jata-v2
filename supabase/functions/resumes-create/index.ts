@@ -4,8 +4,8 @@ import { createSupabaseClient, getUserId } from '../_shared/db.ts'
 import { z } from 'zod'
 
 const ResumeSchema = z.object({
-  resume_name: z.string(),
-  resume_text: z.string(),
+  filename: z.string().min(1),
+  content: z.string().min(1),
 })
 
 serve(async (req: Request): Promise<Response> => {
@@ -32,11 +32,11 @@ serve(async (req: Request): Promise<Response> => {
       })
     }
 
-    const { resume_name, resume_text } = validation.data
+    const { filename, content } = validation.data
 
     const { data, error } = await supabase
       .from('resumes')
-      .insert({ user_id: userId, resume_name, resume_text })
+      .insert({ user_id: userId, filename, content })
       .select()
       .single()
 

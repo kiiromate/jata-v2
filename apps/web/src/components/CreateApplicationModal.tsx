@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useDashboardStore } from '@/store/dashboardStore';
+import type { ApplicationStatus, Database } from '@jata/common';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +16,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -26,15 +26,17 @@ import {
 import { Loader2 } from 'lucide-react';
 
 interface ApplicationFormData {
-  job_title: string;
-  company_name: string;
-  job_url?: string;
-  location?: string;
-  salary_range?: string;
-  job_description?: string;
-  status: string;
+  title: string;
+  company: string;
+  url?: string;
+  industry?: string;
+  status: ApplicationStatus;
   source?: string;
 }
+
+type ApplicationInsert = Database['public']['Tables']['applications']['Insert'];
+
+const getToday = () => new Date().toISOString().split('T')[0];
 
 const CreateApplicationModal: React.FC = () => {
   const { user } = useAuth();
@@ -43,13 +45,11 @@ const CreateApplicationModal: React.FC = () => {
   const { isModalOpen, closeModal } = useDashboardStore();
 
   const [formData, setFormData] = useState<ApplicationFormData>({
-    job_title: '',
-    company_name: '',
-    job_url: '',
-    location: '',
-    salary_range: '',
-    job_description: '',
-    status: 'saved',
+    title: '',
+    company: '',
+    url: '',
+    industry: '',
+    status: 'Applied',
     source: 'manual',
   });
 
@@ -57,14 +57,21 @@ const CreateApplicationModal: React.FC = () => {
     mutationFn: async (data: ApplicationFormData) => {
       if (!user) throw new Error('User not authenticated');
 
+      const payload: ApplicationInsert = {
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        title: data.title.trim(),
+        company: data.company.trim(),
+        status: data.status,
+        date_applied: getToday(),
+        url: data.url?.trim() || null,
+        industry: data.industry?.trim() || null,
+        source: data.source?.trim() || 'manual',
+      };
+
       const { data: result, error } = await supabase
         .from('applications')
-        .insert([
-          {
-            user_id: user.id,
-            ...data,
-          },
-        ])
+        .insert(payload)
         .select()
         .single();
 
@@ -73,6 +80,7 @@ const CreateApplicationModal: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       toast({
         title: 'Application created',
         description: 'Your job application has been added successfully.',
@@ -90,13 +98,11 @@ const CreateApplicationModal: React.FC = () => {
 
   const handleClose = () => {
     setFormData({
-      job_title: '',
-      company_name: '',
-      job_url: '',
-      location: '',
-      salary_range: '',
-      job_description: '',
-      status: 'saved',
+      title: '',
+      company: '',
+      url: '',
+      industry: '',
+      status: 'Applied',
       source: 'manual',
     });
     closeModal();
@@ -105,7 +111,7 @@ const CreateApplicationModal: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.job_title.trim() || !formData.company_name.trim()) {
+    if (!formData.title.trim() || !formData.company.trim()) {
       toast({
         title: 'Missing required fields',
         description: 'Please fill in job title and company name.',
@@ -117,12 +123,12 @@ const CreateApplicationModal: React.FC = () => {
     createMutation.mutate(formData);
   };
 
-  const handleChange = (field: keyof ApplicationFormData, value: string) => {
+  const handleChange = <K extends keyof ApplicationFormData>(field: K, value: ApplicationFormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
-    <Dialog open={isModalOpen} onOpenChange={handleClose}>
+    <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="text-xl">Add New Application</DialogTitle>
@@ -134,26 +140,26 @@ const CreateApplicationModal: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="job_title">
+              <Label htmlFor="title">
                 Job Title <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="job_title"
-                value={formData.job_title}
-                onChange={(e) => handleChange('job_title', e.target.value)}
+                id="title"
+                value={formData.title}
+                onChange={(e) => handleChange('title', e.target.value)}
                 placeholder="Software Engineer"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="company_name">
+              <Label htmlFor="company">
                 Company Name <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="company_name"
-                value={formData.company_name}
-                onChange={(e) => handleChange('company_name', e.target.value)}
+                id="company"
+                value={formData.company}
+                onChange={(e) => handleChange('company', e.target.value)}
                 placeholder="Google"
                 required
               />
@@ -161,36 +167,14 @@ const CreateApplicationModal: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="job_url">Job URL</Label>
+            <Label htmlFor="url">Job URL</Label>
             <Input
-              id="job_url"
+              id="url"
               type="url"
-              value={formData.job_url}
-              onChange={(e) => handleChange('job_url', e.target.value)}
+              value={formData.url}
+              onChange={(e) => handleChange('url', e.target.value)}
               placeholder="https://example.com/job"
             />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => handleChange('location', e.target.value)}
-                placeholder="San Francisco, CA"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="salary_range">Salary Range</Label>
-              <Input
-                id="salary_range"
-                value={formData.salary_range}
-                onChange={(e) => handleChange('salary_range', e.target.value)}
-                placeholder="$100k - $150k"
-              />
-            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -198,17 +182,16 @@ const CreateApplicationModal: React.FC = () => {
               <Label htmlFor="status">Status</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value) => handleChange('status', value)}
+                onValueChange={(value) => handleChange('status', value as ApplicationStatus)}
               >
                 <SelectTrigger id="status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="saved">💾 Saved</SelectItem>
-                  <SelectItem value="applied">📤 Applied</SelectItem>
-                  <SelectItem value="interviewing">💼 Interviewing</SelectItem>
-                  <SelectItem value="offer">🎉 Offer</SelectItem>
-                  <SelectItem value="rejected">❌ Rejected</SelectItem>
+                  <SelectItem value="Applied">Applied</SelectItem>
+                  <SelectItem value="Interview">Interview</SelectItem>
+                  <SelectItem value="Offer">Offer</SelectItem>
+                  <SelectItem value="Rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -223,25 +206,24 @@ const CreateApplicationModal: React.FC = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="manual">✍️ Manual Entry</SelectItem>
-                  <SelectItem value="linkedin">💼 LinkedIn</SelectItem>
-                  <SelectItem value="indeed">🔍 Indeed</SelectItem>
-                  <SelectItem value="company_website">🏢 Company Website</SelectItem>
-                  <SelectItem value="referral">🤝 Referral</SelectItem>
-                  <SelectItem value="other">📋 Other</SelectItem>
+                  <SelectItem value="manual">Manual Entry</SelectItem>
+                  <SelectItem value="linkedin">LinkedIn</SelectItem>
+                  <SelectItem value="indeed">Indeed</SelectItem>
+                  <SelectItem value="company_website">Company Website</SelectItem>
+                  <SelectItem value="referral">Referral</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="job_description">Job Description</Label>
-            <Textarea
-              id="job_description"
-              value={formData.job_description}
-              onChange={(e) => handleChange('job_description', e.target.value)}
-              placeholder="Paste the job description here..."
-              rows={4}
+            <Label htmlFor="industry">Industry</Label>
+            <Input
+              id="industry"
+              value={formData.industry}
+              onChange={(e) => handleChange('industry', e.target.value)}
+              placeholder="Technology"
             />
           </div>
 

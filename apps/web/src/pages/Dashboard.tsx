@@ -13,29 +13,48 @@ import CreateApplicationModal from "@/components/CreateApplicationModal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useDashboardStore } from "@/store/dashboardStore";
+import { useAuth } from "@/hooks/useAuth";
+
+interface RecentActivityData {
+  applications_submitted: number;
+  interviews_landed: number;
+  average_response_time_days: number | null;
+}
 
 const Dashboard = () => {
   const { openModal } = useDashboardStore();
+  const { user, loading: authLoading } = useAuth();
   
   const { data: applications, isLoading: isLoadingApplications } = useQuery({
-    queryKey: ['applications'],
+    queryKey: ['applications', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('applications').select('*');
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('applications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date_applied', { ascending: false });
       if (error) throw new Error(error.message);
       return data;
     },
+    enabled: !!user,
   });
 
-  const { data: recentActivity, isLoading: isLoadingActivity } = useQuery({
-    queryKey: ['recentActivity'],
+  const { data: recentActivity, isLoading: isLoadingActivity } = useQuery<RecentActivityData | null>({
+    queryKey: ['recentActivity', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_recent_activity');
-      if (error) throw new Error(error.message);
-      return data;
+      if (error) {
+        console.warn('Recent activity unavailable:', error.message);
+        return null;
+      }
+      return data as RecentActivityData;
     },
+    enabled: !!user,
+    retry: false,
   });
 
-  if (isLoadingApplications) {
+  if (authLoading || !user || isLoadingApplications) {
     return (
       <div className="p-sm sm:p-md lg:p-lg">
         <Skeleton className="h-20 w-full mb-md" />
@@ -57,10 +76,10 @@ const Dashboard = () => {
   // Calculate stats
   const totalApplications = applications?.length || 0;
   const activeApplications = applications?.filter(
-    (app) => app.status === 'applied' || app.status === 'interviewing'
+    (app) => app.status === 'Applied' || app.status === 'Interview'
   ).length || 0;
   const interviews = applications?.filter(
-    (app) => app.status === 'interviewing' || app.status === 'offer'
+    (app) => app.status === 'Interview' || app.status === 'Offer'
   ).length || 0;
   
   // Calculate applications from this week
