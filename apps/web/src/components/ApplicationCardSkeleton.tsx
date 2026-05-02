@@ -1,8 +1,9 @@
 import { Skeleton } from './ui/skeleton';
 
+/* Renders a themed placeholder while an application card is loading. */
 export const ApplicationCardSkeleton = () => {
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 flex flex-col justify-between h-full">
+    <div className="bg-card rounded-lg border border-border p-4 flex flex-col justify-between h-full">
       <div>
         <div className="flex justify-between items-start">
           <Skeleton className="h-6 w-3/4" />
