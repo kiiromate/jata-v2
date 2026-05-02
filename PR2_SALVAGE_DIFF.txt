@@ -1,0 +1,23 @@
+M	apps/extension/src/App.js
+D	apps/web/dist/assets/index-DfhoMNQs.css
+A	apps/web/dist/assets/index-Dki9Yt1L.css
+R055	apps/web/dist/assets/index-BqQI1Eq4.js	apps/web/dist/assets/index-FjvJ7oWH.js
+R055	apps/web/dist/assets/index-BqQI1Eq4.js.map	apps/web/dist/assets/index-FjvJ7oWH.js.map
+M	apps/web/dist/index.html
+A	apps/web/dist/jata-extension.zip
+A	apps/web/public/jata-extension.zip
+M	apps/web/src/App.tsx
+M	apps/web/src/components/ApplicationCard.tsx
+M	apps/web/src/components/ApplicationCardSkeleton.tsx
+A	apps/web/src/components/AvatarSkeleton.tsx
+M	apps/web/src/components/AvatarUpload.tsx
+A	apps/web/src/components/FeedbackModal.tsx
+M	apps/web/src/components/Header.tsx
+M	apps/web/src/components/IconNav.tsx
+M	apps/web/src/components/ProfileForm.tsx
+A	apps/web/src/components/ProfileFormSkeleton.tsx
+M	apps/web/src/components/ThemeToggle.tsx
+M	apps/web/src/index.css
+M	apps/web/src/pages/InstallExtensionPage.tsx
+M	apps/web/src/pages/Settings.tsx
+A	supabase/migrations/20251029130000_create_feedback_table.sql
