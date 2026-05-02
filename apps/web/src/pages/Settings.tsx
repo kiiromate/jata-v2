@@ -53,12 +53,14 @@ const Settings = () => {
     loadSettings();
   }, []);
 
+  const settingsTheme = settings?.theme;
+
   // Sync theme with settings
   useEffect(() => {
-    if (settings && settings.theme !== theme) {
-      setTheme(settings.theme);
+    if (settingsTheme && settingsTheme !== theme) {
+      setTheme(settingsTheme);
     }
-  }, [settings?.theme]);
+  }, [settingsTheme, setTheme, theme]);
 
   // Handle settings changes with optimistic updates and rollback
   const handleSettingsChange = async (updates: Partial<UserSettings>) => {
@@ -215,8 +217,11 @@ const Settings = () => {
     if (confirmText !== 'DELETE') return;
     try {
       setDeleting(true);
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+      const functionUrl = `${supabaseUrl}/functions/v1/delete-user`;
+
       // Call an Edge Function with service role to delete the user securely
-      const res = await fetch('http://127.0.0.1:54321/functions/v1/delete-user', {
+      const res = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${session.access_token}`,
