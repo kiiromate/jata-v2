@@ -70,7 +70,8 @@ const ApplicationFunnelChart: React.FC<ApplicationFunnelChartProps> = ({ data })
   /**
    * Renders custom funnel labels and conversion percentages.
    */
-  const renderCustomLabel = ({ x, y, value, name, index, rate }: FunnelLabelProps) => {
+  const renderCustomLabel = (props: any) => {
+    const { x, y, value, name, index, rate } = props;
     if (x === undefined || y === undefined || value === undefined || !name) {
       return null;
     }
@@ -99,7 +100,8 @@ const ApplicationFunnelChart: React.FC<ApplicationFunnelChartProps> = ({ data })
   /**
    * Renders tooltip details for the hovered funnel stage.
    */
-  const renderCustomTooltip = ({ active, payload }: FunnelTooltipProps) => {
+  const renderCustomTooltip = (props: any) => {
+    const { active, payload } = props;
     if (active && payload && payload.length > 0) {
       const tooltipData = payload[0].payload;
       return (

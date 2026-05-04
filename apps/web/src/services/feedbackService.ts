@@ -52,7 +52,7 @@ export async function submitFeedback(feedbackData: FeedbackFormData): Promise<vo
     }
 
     // Prepare feedback submission
-    const submission: FeedbackSubmission = {
+    const submission: any = {
       user_id: user.id,
       type: feedbackData.type,
       message: feedbackData.message.trim(),
@@ -62,7 +62,7 @@ export async function submitFeedback(feedbackData: FeedbackFormData): Promise<vo
     };
 
     // Submit to Supabase
-    const { error: insertError } = await supabase
+    const { error: insertError } = await (supabase as any)
       .from('feedback')
       .insert([submission]);
 
@@ -138,7 +138,7 @@ export async function getUserFeedback(limit: number = 10): Promise<FeedbackSubmi
       throw new Error('Authentication required');
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('feedback')
       .select('*')
       .eq('user_id', user.id)

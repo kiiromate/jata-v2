@@ -45,7 +45,14 @@ export const AuthProvider = ({ children }: AuthProviderProps): JSX.Element => {
       try {
         // Fetch initial session data
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
+        
+        if (error) {
+          // If the refresh token is invalid, force a sign out to clear the stale session
+          if (error.message.includes('Refresh Token') || error.message.includes('refresh_token_not_found')) {
+             await supabase.auth.signOut();
+          }
+          throw error;
+        }
 
         if (isMounted) {
           setSession(session);

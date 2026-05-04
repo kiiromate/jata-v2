@@ -1,7 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 import { ApplicationCard } from "@/components/ApplicationCard";
 import { ApplicationCardSkeleton } from "@/components/ApplicationCardSkeleton";
 import Welcome from "@/components/Welcome";
@@ -93,15 +92,6 @@ const Dashboard = () => {
     <div className="p-sm sm:p-md lg:p-lg">
       <CreateApplicationModal />
       
-      <Alert className="mb-md">
-        <AlertTitle>Browser extension available</AlertTitle>
-        <AlertDescription>
-          Capture job details directly from job boards.
-          <Link to="/install-extension" className="font-medium underline ml-2">
-            Install Extension
-          </Link>
-        </AlertDescription>
-      </Alert>
 
       <DashboardWelcomeCard />
 

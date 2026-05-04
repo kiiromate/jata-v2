@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { AppHeader } from './AppHeader';
-import { cn } from '@/lib/utils';
 import { useExtensionSync } from '@/hooks/useExtensionSync';
 
 interface DashboardLayoutProps {

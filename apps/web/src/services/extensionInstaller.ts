@@ -292,7 +292,7 @@ class ExtensionInstallerService {
         onProgress?.(progress);
       }
 
-      const blob = new Blob(chunks, { type: 'application/zip' });
+      const blob = new Blob(chunks as any, { type: 'application/zip' });
       this.updateState({ status: 'ready', blob });
 
       return blob;

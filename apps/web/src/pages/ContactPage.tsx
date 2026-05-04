@@ -25,10 +25,10 @@ const ContactPage = () => {
     message: '',
     category: '',
   });
-  const [errors, setErrors] = useState<Partial<ContactFormData>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<ContactFormData> = {};
+    const newErrors: Record<string, string> = {};
 
     if (formData.name.trim().length < 2) {
       newErrors.name = 'Name must be at least 2 characters';

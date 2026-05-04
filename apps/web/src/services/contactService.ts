@@ -12,7 +12,7 @@ export interface ContactFormData {
   email: string;
   subject: string;
   message: string;
-  category: 'support' | 'sales' | 'partnership' | 'other';
+  category: 'support' | 'sales' | 'partnership' | 'other' | '';
 }
 
 export interface ContactSubmission extends ContactFormData {
@@ -147,9 +147,9 @@ export async function submitContact(contactData: ContactFormData): Promise<void>
     };
 
     // Submit to Supabase
-    const { error: insertError } = await supabase
+    const { error: insertError } = await (supabase as any)
       .from('contact_submissions')
-      .insert([submission]);
+      .insert([submission as any]);
 
     if (insertError) {
       console.error('Supabase insert error:', insertError);
