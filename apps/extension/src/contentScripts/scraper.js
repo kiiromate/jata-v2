@@ -1,10 +1,10 @@
-"use strict";
 /**
  * @file Content Script - Interactive Element Scraper
  * @description This script is injected into web pages to allow users to interactively
  * select an element. It highlights elements on hover and captures the data of the
  * clicked element, sending it back to the extension's background script.
  */
+import { isTrustedWebAppOrigin } from '../lib/webAppUrl';
 /**
  * Generates a unique and stable CSS selector for a given HTML element.
  * It traverses up the DOM tree, building a selector string that is as specific as necessary.
@@ -249,5 +249,20 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         sendResponse(handleAutoExtract());
     }
     return true; // Keep message channel open for async response
+});
+/**
+ * Listen for messages from the web app (Auth Sync)
+ * The web app posts a message to window, we pick it up and forward to background
+ */
+window.addEventListener('message', (event) => {
+    if (!isTrustedWebAppOrigin(event.origin))
+        return;
+    if (event.data && event.data.type === 'JATA_SYNC_SESSION') {
+        console.log('JATA Extension: Received session sync from web app');
+        chrome.runtime.sendMessage({
+            action: 'SYNC_SESSION',
+            session: event.data.session
+        });
+    }
 });
 console.log('JATA content script loaded.');

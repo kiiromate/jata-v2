@@ -9,6 +9,53 @@ interface ScraperMessage {
   action: 'startScraping' | 'cancelScraping' | 'autoExtract';
 }
 
+declare const __JATA_EXTENSION_CONFIGURED_WEB_APP_ORIGIN__: string | undefined;
+
+const LOCAL_DEV_WEB_APP_ORIGIN = 'http://localhost:5173';
+const LOCAL_PREVIEW_WEB_APP_ORIGIN = 'http://localhost:4173';
+const PRODUCTION_WEB_APP_ORIGIN = 'https://jata.app';
+
+const normalizeAuthSyncOrigin = (origin: string | undefined): string | null => {
+  const trimmed = origin?.trim();
+  if (!trimmed) return null;
+
+  const originWithProtocol = /^[a-z][a-z\d+\-.]*:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  try {
+    const url = new URL(originWithProtocol);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+
+    return url.origin;
+  } catch {
+    return null;
+  }
+};
+
+const getConfiguredAuthSyncOrigin = (): string | null => {
+  const configuredOrigin =
+    typeof __JATA_EXTENSION_CONFIGURED_WEB_APP_ORIGIN__ === 'string'
+      ? __JATA_EXTENSION_CONFIGURED_WEB_APP_ORIGIN__
+      : '';
+
+  return normalizeAuthSyncOrigin(configuredOrigin);
+};
+
+const isTrustedAuthSyncOrigin = (origin: string): boolean => {
+  const normalizedOrigin = normalizeAuthSyncOrigin(origin);
+  if (!normalizedOrigin) return false;
+
+  const configuredOrigin = getConfiguredAuthSyncOrigin();
+  if (configuredOrigin && normalizedOrigin === configuredOrigin) return true;
+  if (normalizedOrigin === LOCAL_DEV_WEB_APP_ORIGIN) return true;
+  if (normalizedOrigin === LOCAL_PREVIEW_WEB_APP_ORIGIN) return true;
+  if (normalizedOrigin === PRODUCTION_WEB_APP_ORIGIN) return true;
+
+  const url = new URL(normalizedOrigin);
+  return url.protocol === 'https:' && url.hostname.endsWith('.vercel.app');
+};
+
 /**
  * Generates a unique and stable CSS selector for a given HTML element.
  * It traverses up the DOM tree, building a selector string that is as specific as necessary.
@@ -284,17 +331,7 @@ chrome.runtime.onMessage.addListener((message: ScraperMessage, _sender, sendResp
  * The web app posts a message to window, we pick it up and forward to background
  */
 window.addEventListener('message', (event) => {
-  // Only accept messages from trusted origins (localhost or prod)
-  const trustedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:4173',
-    'https://jata.app'
-  ];
-  
-  // Also check if origin matches a Vercel deployment pattern if needed
-  const isTrusted = trustedOrigins.includes(event.origin) || event.origin.endsWith('.vercel.app');
-
-  if (!isTrusted) return;
+  if (!isTrustedAuthSyncOrigin(event.origin)) return;
 
   if (event.data && event.data.type === 'JATA_SYNC_SESSION') {
     console.log('JATA Extension: Received session sync from web app');

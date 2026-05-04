@@ -3,6 +3,7 @@ import './App.css';
 import { supabase, getCurrentUser, isAuthenticated } from './lib/supabaseClient';
 import { detectIndustry } from './lib/jobBoardDetector';
 import { addToQueue, getQueueSize, processQueue, isOnline } from './lib/offlineQueue';
+import { createWebAppUrl } from './lib/webAppUrl';
 
 /**
  * @type ApplicationData
@@ -301,7 +302,7 @@ const App: React.FC = () => {
    */
   const openDashboard = () => {
     chrome.tabs.create({
-      url: chrome.runtime.getURL('../../web/dist/index.html#/dashboard')
+      url: createWebAppUrl('/dashboard')
     });
   };
 
@@ -351,7 +352,7 @@ const App: React.FC = () => {
         <div className="text-center py-8">
           <p className="text-gray-300 text-sm mb-4">Sign in to track applications</p>
           <button
-            onClick={() => chrome.tabs.create({ url: 'https://jata.app/signin' })}
+            onClick={() => chrome.tabs.create({ url: createWebAppUrl('/signin') })}
             className="bg-indigo-600 text-white rounded-md px-6 py-2.5 text-sm font-medium hover:bg-indigo-700 transition-colors duration-200"
           >
             Sign In

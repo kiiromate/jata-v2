@@ -4,6 +4,7 @@ import './App.css';
 import { supabase, getCurrentUser, isAuthenticated } from './lib/supabaseClient';
 import { detectIndustry } from './lib/jobBoardDetector';
 import { addToQueue, getQueueSize, processQueue, isOnline } from './lib/offlineQueue';
+import { createWebAppUrl } from './lib/webAppUrl';
 /**
  * Main application component for the JATA Chrome Extension popup.
  * This component manages the UI for scraping job application data, sending scraping
@@ -251,7 +252,7 @@ const App = () => {
      */
     const openDashboard = () => {
         chrome.tabs.create({
-            url: chrome.runtime.getURL('../../web/dist/index.html#/dashboard')
+            url: createWebAppUrl('/dashboard')
         });
     };
     /**
@@ -283,7 +284,7 @@ const App = () => {
     }
     // Show login prompt if not authenticated
     if (!isLoggedIn) {
-        return (_jsxs("div", { className: "w-[400px] bg-gray-900 text-white p-6 font-sans", children: [_jsx("div", { className: "flex justify-between items-center mb-6", children: _jsx("h1", { className: "text-xl font-semibold tracking-tight", children: "JATA" }) }), _jsxs("div", { className: "text-center py-8", children: [_jsx("p", { className: "text-gray-300 text-sm mb-4", children: "Sign in to track applications" }), _jsx("button", { onClick: () => chrome.tabs.create({ url: 'https://jata.app/signin' }), className: "bg-indigo-600 text-white rounded-md px-6 py-2.5 text-sm font-medium hover:bg-indigo-700 transition-colors duration-200", children: "Sign In" })] })] }));
+        return (_jsxs("div", { className: "w-[400px] bg-gray-900 text-white p-6 font-sans", children: [_jsx("div", { className: "flex justify-between items-center mb-6", children: _jsx("h1", { className: "text-xl font-semibold tracking-tight", children: "JATA" }) }), _jsxs("div", { className: "text-center py-8", children: [_jsx("p", { className: "text-gray-300 text-sm mb-4", children: "Sign in to track applications" }), _jsx("button", { onClick: () => chrome.tabs.create({ url: createWebAppUrl('/signin') }), className: "bg-indigo-600 text-white rounded-md px-6 py-2.5 text-sm font-medium hover:bg-indigo-700 transition-colors duration-200", children: "Sign In" })] })] }));
     }
     const displayFields = [
         'jobTitle',
