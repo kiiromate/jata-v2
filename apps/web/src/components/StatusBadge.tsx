@@ -8,7 +8,6 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const getStatusStyles = () => {
     const normalizedStatus = status?.toLowerCase();
     switch (normalizedStatus) {
-      case 'interviewing':
       case 'interview':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800';
       case 'offer':
@@ -24,16 +23,22 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
     }
   };
 
-  const displayStatus = status || 'Unknown';
-  const capitalizedStatus = displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1).toLowerCase();
+  const normalizedStatus = status?.toLowerCase();
+  const displayStatus =
+    normalizedStatus === 'interviewing' ? 'Interview' :
+    normalizedStatus === 'applied' ? 'Applied' :
+    normalizedStatus === 'interview' ? 'Interview' :
+    normalizedStatus === 'offer' ? 'Offer' :
+    normalizedStatus === 'rejected' ? 'Rejected' :
+    status || 'Unknown';
 
   return (
     <span 
       className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-medium rounded-full border ${getStatusStyles()}`}
       role="status"
-      aria-label={`Application status: ${capitalizedStatus}`}
+      aria-label={`Application status: ${displayStatus}`}
     >
-      {capitalizedStatus}
+      {displayStatus}
     </span>
   );
 };

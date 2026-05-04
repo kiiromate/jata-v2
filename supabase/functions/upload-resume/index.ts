@@ -44,7 +44,7 @@ serve(async (req: Request): Promise<Response> => {
       })
     }
 
-    let resume_text = ''
+    let resumeContent = ''
     const fileBuffer = await file.arrayBuffer()
 
     if (file.type === 'application/pdf') {
@@ -55,10 +55,10 @@ serve(async (req: Request): Promise<Response> => {
         const content = await page.getTextContent()
         text += content.items.map((item: any) => item.str).join(' ') + '\n'
       }
-      resume_text = text
+      resumeContent = text
     } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       const result = await mammoth.extractRawText({ arrayBuffer: fileBuffer })
-      resume_text = result.value
+      resumeContent = result.value
     } else {
       return new Response(JSON.stringify({ error: 'Unsupported file type' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -68,8 +68,8 @@ serve(async (req: Request): Promise<Response> => {
 
     const { error: dbError } = await supabase.from('resumes').insert({
       user_id: userId,
-      resume_name: resumeName,
-      resume_text: resume_text,
+      filename: resumeName,
+      content: resumeContent,
     })
 
     if (dbError) {

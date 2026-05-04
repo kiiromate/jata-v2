@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  BarChart2, 
-  Mail, 
-  FolderOpen, 
-  Puzzle, 
+import {
+  LayoutDashboard,
+  Mail,
+  Puzzle,
   Settings,
   ChevronRight,
   ChevronLeft
@@ -36,10 +33,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { id: 'applications', label: 'Applications', icon: FileText, path: '/applications' },
-  { id: 'analytics', label: 'Analytics', icon: BarChart2, path: '/analytics' },
   { id: 'cover-letters', label: 'Cover Letters', icon: Mail, path: '/cover-letter' },
-  { id: 'resume-vault', label: 'Resume Vault', icon: FolderOpen, path: '/resume-vault' },
   { id: 'extension', label: 'Extension', icon: Puzzle, path: '/install-extension', badge: 'New' },
 ];
 

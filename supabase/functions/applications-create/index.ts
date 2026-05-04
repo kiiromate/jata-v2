@@ -1,10 +1,7 @@
 import { serve } from 'std/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
-import { z } from 'zod'
 import { createSupabaseClient, getUserId } from '../_shared/db.ts'
 import { CreateApplicationSchema } from '../_shared/schemas.ts'
-
-type Application = z.infer<typeof CreateApplicationSchema>
 
 serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
@@ -31,7 +28,7 @@ serve(async (req: Request): Promise<Response> => {
       })
     }
 
-    const applicationData = { ...result.data, user_id: userId };
+    const applicationData = { id: crypto.randomUUID(), ...result.data, user_id: userId };
 
     const { data, error } = await supabase
       .from('applications')

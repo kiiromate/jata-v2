@@ -6,119 +6,247 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type ApplicationStatus = 'Applied' | 'Interview' | 'Offer' | 'Rejected'
+
 export type Database = {
   public: {
     Tables: {
       applications: {
         Row: {
-          company: string
-          created_at: string
-          date_applied: string
-          id: number
-          industry: string | null
-          job_description: string | null
-          source: string | null
-          status: string
-          title: string
-          updated_at: string
-          url: string | null
+          id: string
           user_id: string
+          title: string
+          company: string
+          status: ApplicationStatus
+          date_applied: string
+          url: string | null
+          source: string | null
+          industry: string | null
+          created_at: string
+          updated_at: string
         }
         Insert: {
-          company: string
-          created_at?: string
-          date_applied: string
-          id?: number
-          industry?: string | null
-          job_description?: string | null
-          source?: string | null
-          status?: string
-          title: string
-          updated_at?: string
-          url?: string | null
+          id?: string
           user_id: string
+          title: string
+          company: string
+          status?: ApplicationStatus
+          date_applied: string
+          url?: string | null
+          source?: string | null
+          industry?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          company?: string
-          created_at?: string
-          date_applied?: string
-          id?: number
-          industry?: string | null
-          job_description?: string | null
-          source?: string | null
-          status?: string
-          title?: string
-          updated_at?: string
-          url?: string | null
+          id?: string
           user_id?: string
+          title?: string
+          company?: string
+          status?: ApplicationStatus
+          date_applied?: string
+          url?: string | null
+          source?: string | null
+          industry?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      resumes: {
+        Row: {
+          id: string
+          user_id: string
+          filename: string
+          content: string
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          filename: string
+          content: string
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          filename?: string
+          content?: string
+          created_at?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
       profiles: {
         Row: {
           id: string
-          created_at: string
-          updated_at: string
+          user_id?: string | null
+          created_at?: string | null
+          updated_at: string | null
           full_name: string | null
+          email?: string | null
           avatar_url: string | null
+          professional_summary?: string | null
+          skills?: string[] | null
+          experience_level?: string | null
+          industry?: string | null
+          location?: string | null
+          linkedin_url?: string | null
+          github_url?: string | null
+          portfolio_url?: string | null
+          phone?: string | null
           has_completed_onboarding: boolean
         }
         Insert: {
           id: string
-          created_at?: string
-          updated_at?: string
+          user_id?: string | null
+          created_at?: string | null
+          updated_at?: string | null
           full_name?: string | null
+          email?: string | null
           avatar_url?: string | null
+          professional_summary?: string | null
+          skills?: string[] | null
+          experience_level?: string | null
+          industry?: string | null
+          location?: string | null
+          linkedin_url?: string | null
+          github_url?: string | null
+          portfolio_url?: string | null
+          phone?: string | null
           has_completed_onboarding?: boolean
         }
         Update: {
           id?: string
-          created_at?: string
-          updated_at?: string
+          user_id?: string | null
+          created_at?: string | null
+          updated_at?: string | null
           full_name?: string | null
+          email?: string | null
           avatar_url?: string | null
+          professional_summary?: string | null
+          skills?: string[] | null
+          experience_level?: string | null
+          industry?: string | null
+          location?: string | null
+          linkedin_url?: string | null
+          github_url?: string | null
+          portfolio_url?: string | null
+          phone?: string | null
           has_completed_onboarding?: boolean
         }
         Relationships: []
       }
       scrape_configs: {
         Row: {
-          created_at: string
           id: number
-          updated_at: string
           user_id: string
+          domain?: string
+          field?: string
+          selector?: string
+          platform?: string
+          keywords?: string[]
+          location?: string | null
+          remote_only?: boolean
+          active?: boolean
+          created_at: string
+          updated_at: string
         }
         Insert: {
-          created_at?: string
           id?: number
-          updated_at?: string
           user_id: string
+          domain?: string
+          field?: string
+          selector?: string
+          platform?: string
+          keywords?: string[]
+          location?: string | null
+          remote_only?: boolean
+          active?: boolean
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          created_at?: string
           id?: number
-          updated_at?: string
           user_id?: string
+          domain?: string
+          field?: string
+          selector?: string
+          platform?: string
+          keywords?: string[]
+          location?: string | null
+          remote_only?: boolean
+          active?: boolean
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
       users: {
         Row: {
-          created_at: string
-          email: string
           id: string
+          email: string | null
+          name: string | null
+          full_name: string | null
+          display_name: string | null
+          avatar_url: string | null
+          bio: string | null
+          professional_summary: string | null
+          skills?: string[] | null
+          experience_level?: string | null
+          industry?: string | null
+          location?: string | null
+          linkedin_url?: string | null
+          github_url?: string | null
+          portfolio_url?: string | null
+          phone?: string | null
+          drive_folder_id: string | null
+          created_at: string
           updated_at: string
         }
         Insert: {
-          created_at?: string
-          email: string
           id: string
+          email?: string | null
+          name?: string | null
+          full_name?: string | null
+          display_name?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          professional_summary?: string | null
+          skills?: string[] | null
+          experience_level?: string | null
+          industry?: string | null
+          location?: string | null
+          linkedin_url?: string | null
+          github_url?: string | null
+          portfolio_url?: string | null
+          phone?: string | null
+          drive_folder_id?: string | null
+          created_at?: string
           updated_at?: string
         }
         Update: {
-          created_at?: string
-          email?: string
           id?: string
+          email?: string | null
+          name?: string | null
+          full_name?: string | null
+          display_name?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          professional_summary?: string | null
+          skills?: string[] | null
+          experience_level?: string | null
+          industry?: string | null
+          location?: string | null
+          linkedin_url?: string | null
+          github_url?: string | null
+          portfolio_url?: string | null
+          phone?: string | null
+          drive_folder_id?: string | null
+          created_at?: string
           updated_at?: string
         }
         Relationships: []
@@ -128,7 +256,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_recent_activity: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          applications_submitted: number
+          interviews_landed: number
+          average_response_time_days: number | null
+        }
+      }
+      get_application_time_series: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          date: string
+          applications: number
+          interviews: number
+          offers: number
+        }[]
+      }
+      get_application_insights: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
@@ -138,3 +286,7 @@ export type Database = {
     }
   }
 }
+
+export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]
+export type Enums<T extends keyof Database['public']['Enums']> = Database['public']['Enums'][T]
+export type Functions<T extends keyof Database['public']['Functions']> = Database['public']['Functions'][T]

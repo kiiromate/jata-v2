@@ -177,7 +177,7 @@ export function formatFileSize(bytes: number): string {
 
 export const uploadResume = async (fileName: string, content: string) => {
     const { data, error } = await supabase.functions.invoke('resumes-create', {
-      body: { file_name: fileName, content },
+      body: { filename: fileName, content },
     });
   
     if (error) {

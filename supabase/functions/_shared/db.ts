@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '../../../../packages/common/types/database';
+import type { Database } from '../../../packages/common/types/database.ts';
 
 export function createSupabaseClient(req: Request) {
   const authHeader = req.headers.get("Authorization") || "";
@@ -17,7 +17,7 @@ export function createSupabaseClient(req: Request) {
   );
 }
 
-export async function getUserId(req: Request): Promise<number | null> {
+export async function getUserId(req: Request): Promise<string | null> {
   try {
     const supabase = createSupabaseClient(req);
     const { data: { user }, error } = await supabase.auth.getUser();
@@ -27,7 +27,7 @@ export async function getUserId(req: Request): Promise<number | null> {
       return null;
     }
     
-    return parseInt(user.id, 10) || null;
+    return user.id;
   } catch (error) {
     console.error("Error getting user ID:", error);
     return null;
