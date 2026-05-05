@@ -20,6 +20,14 @@ apps/web/dist/
 apps/extension/dist/
 bash.exe.stackdump
 
+# Local TSC/diagnostic output files
+apps/web/tsc-errors.txt
+apps/web/tsc_output.txt
+apps/web/tsc_output_utf8.txt
+
+# Local migration concatenation artifact
+supabase/migrations_combined.sql
+
 # Turborepo cache
 **/.turbo
 

@@ -1,0 +1,61 @@
+{
+	"info": {
+		"name": "JATA v2 Launch Verification",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{USER_ACCESS_TOKEN}}" },
+							{ "key": "apikey", "value": "{{SUPABASE_ANON_KEY}}" }
+						],
+						"url": { "raw": "{{SUPABASE_URL}}/auth/v1/user" }
+					}
+				}
+			]
+		},
+		{
+			"name": "Applications",
+			"item": [
+				{
+					"name": "List Applications",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{USER_ACCESS_TOKEN}}" },
+							{ "key": "apikey", "value": "{{SUPABASE_ANON_KEY}}" }
+						],
+						"url": { "raw": "{{SUPABASE_URL}}/rest/v1/applications?select=*" }
+					}
+				}
+			]
+		},
+		{
+			"name": "Edge Functions",
+			"item": [
+				{
+					"name": "AI Generate (Mock)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{USER_ACCESS_TOKEN}}" },
+							{ "key": "apikey", "value": "{{SUPABASE_ANON_KEY}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"prompt\": \"Test generation\", \"context\": \"Mock context\"}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{SUPABASE_URL}}/functions/v1/ai-generate" }
+					}
+				}
+			]
+		}
+	]
+}
