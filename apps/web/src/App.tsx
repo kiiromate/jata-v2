@@ -43,8 +43,8 @@ function App() {
                 <div className="min-h-screen bg-jata-deep-carbon text-jata-text-primary">
                   <Routes>
                     {/* Public Routes */}
+                    <Route path="/" element={<LandingPage />} />
                     <Route element={<RootLayout />}>
-                      <Route path="/" element={<LandingPage />} />
                       <Route path="/signin" element={<SigninPage />} />
                       <Route path="/signup" element={<SignupPage />} />
                       <Route path="/update-password" element={<UpdatePasswordPage />} />
