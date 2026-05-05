@@ -15,6 +15,9 @@ apps/extension/.env
 apps/extension/.env.*
 !apps/extension/.env.example
 
+# MCP configuration (contains secrets)
+.mcp.json
+
 # Build output and local generated artifacts
 apps/web/dist/
 apps/extension/dist/
