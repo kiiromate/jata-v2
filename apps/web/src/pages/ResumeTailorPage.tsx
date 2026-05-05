@@ -30,16 +30,17 @@ const ResumeTailorPage = () => {
   const { data: applicationData, isLoading: isLoadingApplication } = useQuery({
     queryKey: ['application', applicationId],
     queryFn: async () => {
-      if (!applicationId) return null;
+      if (!applicationId || !user) return null;
       const { data, error } = await supabase
         .from('applications')
         .select('title, company')
         .eq('id', applicationId)
+        .eq('user_id', user.id)
         .single();
       if (error) throw new Error(error.message);
       return data;
     },
-    enabled: !!applicationId,
+    enabled: !!applicationId && !!user,
   });
 
 
@@ -61,12 +62,12 @@ const ResumeTailorPage = () => {
     if (!selectedResumeId && resumes && resumes.length > 0) {
       const firstResumeId = resumes[0].id.toString();
       setSelectedResumeId(firstResumeId);
-      setResumeText(resumes[0].resume_text || '');
+      setResumeText(resumes[0].content || '');
     } else {
       // Update resume text when selection changes
       const selectedResume = resumes?.find(r => r.id.toString() === selectedResumeId);
       if (selectedResume) {
-        setResumeText(selectedResume.resume_text || '');
+        setResumeText(selectedResume.content || '');
       }
     }
   }, [selectedResumeId, resumes]);
@@ -81,22 +82,20 @@ const ResumeTailorPage = () => {
   // Mutation for scraping job description from URL
   const { mutate: scrapeJobDescription, isPending: isScraping, isError: isScrapeError, error: scrapeError } = useMutation<string, Error, string>({
     mutationFn: async (url: string) => {
-      const token = (await supabase.auth.getSession()).data.session?.access_token;
-      const response = await fetch('http://localhost:54321/functions/v1/scrape-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ url })
+      const { data, error } = await supabase.functions.invoke<{ content?: string }>('scrape-url', {
+        body: { url },
       });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to scrape URL');
+
+      if (error) {
+        throw new Error(error.message || 'Failed to scrape URL');
       }
-      const { article } = await response.json();
-      setJobDescription(article.textContent);
-      return article.textContent;
+
+      if (!data?.content) {
+        throw new Error('No job description content was returned.');
+      }
+
+      setJobDescription(data.content);
+      return data.content;
     },
   });
 
@@ -156,7 +155,7 @@ const ResumeTailorPage = () => {
               </SelectTrigger>
               <SelectContent>
                 {resumes?.map(resume => (
-                  <SelectItem key={resume.id} value={resume.id.toString()}>{resume.resume_name}</SelectItem>
+                  <SelectItem key={resume.id} value={resume.id.toString()}>{resume.filename}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

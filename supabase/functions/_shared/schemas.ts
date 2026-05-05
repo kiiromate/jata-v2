@@ -11,7 +11,7 @@ export const ApplicationStatus = z.enum([
 export type ApplicationStatus = z.infer<typeof ApplicationStatus>;
 
 export const ApplicationSchema = z.object({
-  id: z.number(),
+  id: z.string().uuid(),
   title: z.string().min(1, "Title is required"),
   company: z.string().min(1, "Company name is required"),
   status: ApplicationStatus.default("Applied"),
@@ -19,7 +19,7 @@ export const ApplicationSchema = z.object({
   url: z.string().url().or(z.literal("")).optional().nullable(),
   source: z.string().optional().nullable(),
   industry: z.string().optional().nullable(),
-  user_id: z.number(),
+  user_id: z.string().uuid(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });
@@ -32,9 +32,6 @@ export const CreateApplicationSchema = z.object({
   url: z.string().url().or(z.literal("")).optional(),
   source: z.string().optional(),
   industry: z.string().optional(),
-  job_role: z.string().optional(),
-  company_name: z.string().optional(),
-  company_profile: z.string().optional(),
 });
 
 export const UpdateApplicationSchema = CreateApplicationSchema.partial();

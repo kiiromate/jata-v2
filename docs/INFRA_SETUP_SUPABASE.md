@@ -124,12 +124,13 @@ Optional or currently not used directly by the web app:
 - `applications-delete`
 - `save-application-analysis`
 
-Known function issues to fix before relying on them:
+Known function issues status:
 
-- `_shared/db.ts` parses Supabase UUID user IDs as integers. This can make functions return unauthorized or write invalid `user_id` values.
-- `scrape-url` returns `{ content }`, but `ResumeTailorPage` expects `article.textContent`.
-- `ProfilePage` and `ResumeTailorPage` hardcode `http://localhost:54321/functions/v1/...`.
-- `resumes-create` body schema expects `resume_name` and `resume_text`, while `fileUploadService.uploadResume()` sends `file_name` and `content`.
+- Fixed in `fix/p0-launch-core-flow`: `_shared/db.ts` keeps Supabase UUID user IDs as strings.
+- Fixed in `fix/p0-launch-core-flow`: `ResumeTailorPage` reads `scrape-url` responses as `{ content }`.
+- Fixed in `fix/p0-launch-core-flow`: `ProfilePage` and `ResumeTailorPage` no longer hardcode `http://localhost:54321/functions/v1/...`.
+- Fixed in `fix/p0-launch-core-flow`: `resumes-create`, `upload-resume`, and web resume usage align on `filename` and `content`.
+- Still required before production reliance: deploy the affected Edge Functions and test them against a disposable Supabase project.
 
 ## Required Local Env Vars
 
@@ -138,6 +139,9 @@ Root `.env.example` currently includes:
 ```env
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
+VITE_SENTRY_DSN=
+VITE_PUBLIC_POSTHOG_KEY=
+VITE_PUBLIC_POSTHOG_HOST=
 JATA_AI_PROVIDER=mock
 JATA_AI_MODEL_DEFAULT=cheap-model-name-here
 OPENROUTER_API_KEY=
@@ -146,14 +150,6 @@ JATA_AI_DAILY_LIMIT=20
 JATA_AI_MONTHLY_LIMIT=300
 JATA_AI_MAX_JD_CHARS=12000
 JATA_AI_MAX_CV_CHARS=12000
-```
-
-Missing but referenced by the web app:
-
-```env
-VITE_SENTRY_DSN=
-VITE_PUBLIC_POSTHOG_KEY=
-VITE_PUBLIC_POSTHOG_HOST=
 ```
 
 Do not add real values to `.env.example`.
@@ -198,13 +194,13 @@ Use provider keys only in Supabase secrets, not in frontend hosting env unless t
 
 ## Frontend/Migration Mismatches
 
-P0 mismatches:
+P0 mismatch status:
 
-- Application create form uses `job_title`, `company_name`, `job_url`, and lowercase status values.
-- Current migrations converge toward `title`, `company`, `url`, `date_applied`, and Title Case statuses.
-- Analytics frontend calls `get_user_analytics_v2` without required argument and expects top-level totals, but the migration returns a nested `funnel` object.
-- Resume table shape changes across migrations from `resume_name`/`resume_text` to `filename`/`content`, while pages still use `resume_name`/`resume_text`.
-- Web Supabase client imports an empty generated type file.
+- Fixed in `fix/p0-launch-core-flow`: application create/list/dashboard uses `title`, `company`, `url`, `date_applied`, `source`, `industry`, and Title Case statuses.
+- Fixed in `fix/p0-launch-core-flow`: resume UI/functions use `filename` and `content`.
+- Fixed in `fix/p0-launch-core-flow`: web Supabase client imports the shared `@jata/common` database type source.
+- Made launch-safe in `fix/p0-launch-core-flow`: analytics navigation is hidden and direct `/analytics` shows an unavailable state until the RPC contract is repaired.
+- Remaining P1: repair analytics RPCs and chart shapes, then re-enable analytics navigation.
 
 ## Safe Human Commands For Later
 

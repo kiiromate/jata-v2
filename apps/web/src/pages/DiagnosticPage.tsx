@@ -23,16 +23,16 @@ const DiagnosticPage = () => {
 
       // Test database queries
       try {
-        const { data, error } = await supabase.from('applications').select('count');
+        const { error } = await supabase.from('applications').select('count');
         diagnostics.database.applications = error 
           ? `✗ Error: ${error.message}` 
-          : `✓ Success (${data?.length || 0} rows)`;
+          : `✓ Success`;
       } catch (e: any) {
         diagnostics.database.applications = `✗ Exception: ${e.message}`;
       }
 
       try {
-        const { data, error } = await supabase.from('profiles').select('*').eq('id', user?.id).single();
+        const { error } = await supabase.from('profiles').select('*').eq('id', user?.id as string).single();
         diagnostics.database.profile = error 
           ? `✗ Error: ${error.message}` 
           : `✓ Success`;

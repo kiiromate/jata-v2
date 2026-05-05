@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import type { Database } from '../../../../packages/common/types/database';
+import type { Database } from '@jata/common';
 import { StatusBadge } from './StatusBadge.tsx';
 
 type Application = Database['public']['Tables']['applications']['Row'];
@@ -10,6 +10,15 @@ interface ApplicationCardProps {
 }
 
 export const ApplicationCard: React.FC<ApplicationCardProps> = ({ application }) => {
+  const appliedDate = new Date(application.date_applied);
+  const formattedAppliedDate = Number.isNaN(appliedDate.getTime())
+    ? application.date_applied
+    : appliedDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+
   return (
     <div className="bg-card rounded-lg border border-border p-4 flex flex-col justify-between h-full transition-all duration-200 hover:shadow-lg hover:border-primary/50 hover:-translate-y-0.5 group">
       <div>
@@ -23,11 +32,7 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({ application })
       </div>
       <div className="flex justify-between items-center mt-4 pt-3 border-t border-border">
         <time className="text-xs text-muted-foreground" dateTime={application.date_applied}>
-          {new Date(application.date_applied).toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric', 
-            year: 'numeric' 
-          })}
+          {formattedAppliedDate}
         </time>
         <Link 
           to={`/resume-tailor/${application.id}`} 

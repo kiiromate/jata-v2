@@ -11,7 +11,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '../../../../packages/common/src/database.types';
+import type { Database } from '@jata/common';
 
 /**
  * The Supabase project URL, retrieved from environment variables.
@@ -31,6 +31,14 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
  * `VITE_SUPABASE_ANON_KEY`.
  */
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export function getSupabaseFunctionUrl(functionName: string): string {
+  if (!supabaseUrl) {
+    throw new Error('VITE_SUPABASE_URL is not configured.');
+  }
+
+  return `${supabaseUrl.replace(/\/$/, '')}/functions/v1/${functionName}`;
+}
 
 /**
  * The singleton Supabase client instance.

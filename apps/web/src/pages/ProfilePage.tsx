@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabaseClient';
+import { getSupabaseFunctionUrl, supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,10 +35,15 @@ const ProfilePage: React.FC = () => {
 
   const uploadResumeMutation = useMutation<Response, Error, FormData>({
     mutationFn: async (formData: FormData) => {
-      const response = await fetch('http://localhost:54321/functions/v1/upload-resume', {
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+
+      const response = await fetch(getSupabaseFunctionUrl('upload-resume'), {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}`,
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
@@ -200,7 +205,7 @@ const ProfilePage: React.FC = () => {
             <ul className="space-y-2">
               {resumes.map((resume) => (
                 <li key={resume.id} className="p-2 border rounded-md">
-                  {resume.resume_name}
+                  {resume.filename}
                 </li>
               ))}
             </ul>

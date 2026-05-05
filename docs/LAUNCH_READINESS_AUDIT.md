@@ -11,6 +11,30 @@ JATA v2 can install, test, and build from the rescued monorepo baseline, but it 
 
 The fastest launch path is a small P0 fixes branch focused on making auth, manual application creation, dashboard listing, resume upload or local upload fallback, and basic AI generation work against one Supabase Free project and one Vercel preview.
 
+## P0 Fix Branch Update
+
+Branch: `fix/p0-launch-core-flow`
+Status: P0 code/config fixes implemented for review.
+
+Fixed in this branch:
+
+- Manual application creation now writes `title`, `company`, `url`, `source`, `industry`, `date_applied`, `status`, `id`, and `user_id` only.
+- Dashboard application queries are scoped to the signed-in user and dashboard stats use Title Case statuses: `Applied`, `Interview`, `Offer`, and `Rejected`.
+- Sidebar navigation no longer exposes `/applications`, `/resume-vault`, or `/analytics` during the first preview.
+- Direct `/analytics` renders a safe unavailable state instead of calling mismatched analytics RPCs.
+- `ProfilePage` no longer hardcodes the local resume upload function URL, and `ResumeTailorPage` calls `scrape-url` through `supabase.functions.invoke`.
+- Resume table usage is aligned to `filename` and `content` for the launch schema.
+- Shared Supabase function auth now keeps Supabase UUID user IDs as strings instead of parsing them as integers.
+- The web Supabase client imports the shared `@jata/common` database type source instead of the empty generated type file.
+- `vercel.json` now uses a Vite SPA rewrite to `/index.html`.
+
+Remaining P1 follow-up:
+
+- Analytics RPC/chart contract repair and re-enabling analytics navigation.
+- Full lint/typecheck baseline cleanup.
+- Supabase migration review and project wiring, including destructive migration review, RLS verification, buckets, Auth redirect URLs, and Edge Function deployment.
+- Extension packaging/download readiness.
+
 ## Workspace Hygiene Result
 
 - Active branch: `chore/launch-readiness-audit`.
@@ -92,6 +116,8 @@ These links are visible inside `DashboardLayout`, so authenticated users can cli
 | Diagnostic | Yes | `applications`, `profiles`, `get_recent_activity` | None | Internal-only route, should not be user-facing |
 
 ## P0 Launch Blockers
+
+Historical audit findings from `chore/launch-readiness-audit`. Items marked above in "P0 Fix Branch Update" are addressed in `fix/p0-launch-core-flow`; keep this section as evidence of the original blocker list.
 
 1. Manual application creation does not match the database schema.
    - `CreateApplicationModal` inserts `job_title`, `company_name`, `job_url`, `location`, `salary_range`, and lowercase statuses such as `saved`.
@@ -200,12 +226,14 @@ Postpone until after P0:
 
 ## Recommended Next Branches
 
-- `fix/p0-launch-core-flow`: schema/frontend alignment, route cleanup, local URL removal, Vercel config cleanup.
-- `fix/supabase-free-launch-wiring`: migrations, RLS verification, Edge Function deployment checklist execution.
+- `fix/p0-launch-core-flow`: schema/frontend alignment, route cleanup, local URL removal, Vercel config cleanup. Implemented for review.
+- `fix/supabase-free-launch-wiring`: recommended next branch for migrations, RLS verification, Auth redirect setup, buckets, secrets, and Edge Function deployment checklist execution.
 - `fix/analytics-runtime-contract`: analytics RPC and chart data contract repair.
 - `chore/lint-and-typecheck-baseline`: typecheck/lint tooling normalization after launch blockers are fixed.
 
-## Exact Next Codex Prompt For P0 Fixes
+## Historical Exact Next Codex Prompt For P0 Fixes
+
+This prompt is preserved as audit evidence. It is superseded by the implemented `fix/p0-launch-core-flow` branch; the next recommended implementation branch is `fix/supabase-free-launch-wiring`.
 
 ```text
 You are Codex working in C:\Users\PC\Documents\My journey\Build Projects\Gemini-cli\jata_build\jata_v2.

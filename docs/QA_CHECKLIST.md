@@ -52,13 +52,15 @@ Scope: Manual launch-readiness checks after P0 fixes. Do not use this checklist 
 - [ ] Application card shows title, company, status, and date correctly.
 - [ ] Dashboard stats match the created records.
 - [ ] `get_recent_activity` either works or fails gracefully without breaking the dashboard.
+- [ ] Created application rows use `title`, `company`, `url`, `source`, `industry`, `date_applied`, `status`, `id`, and `user_id` only.
 
 ## Navigation
 
 - [ ] Every sidebar item goes to a real route or is hidden.
 - [ ] `/applications` is not exposed unless implemented.
 - [ ] `/resume-vault` is not exposed unless implemented.
-- [ ] `/analytics` is either working or hidden until fixed.
+- [ ] `/analytics` is hidden from sidebar navigation until the RPC/chart contract is fixed.
+- [ ] Direct `/analytics` renders a safe unavailable state and does not crash.
 - [ ] Browser back/forward works on protected routes.
 - [ ] Direct refresh on `/dashboard`, `/cover-letter`, `/profile`, and `/settings` serves the SPA fallback.
 
@@ -69,7 +71,8 @@ Scope: Manual launch-readiness checks after P0 fixes. Do not use this checklist 
 - [ ] Uploaded TXT file extracts text.
 - [ ] Uploaded PDF or DOCX extracts text or shows a clear error.
 - [ ] Existing resume selection works if resume storage is enabled.
-- [ ] URL scraping works only after `scrape-url` is deployed and response shape is fixed.
+- [ ] Existing resume rows display `filename` and load `content`.
+- [ ] URL scraping works after `scrape-url` is deployed and returns `{ content }`.
 - [ ] AI analysis works with Supabase `ai-generate`.
 - [ ] If AI function is unavailable, local fallback appears with human-review messaging.
 
@@ -95,13 +98,10 @@ Scope: Manual launch-readiness checks after P0 fixes. Do not use this checklist 
 
 ## Analytics
 
-- [ ] Analytics route is hidden until fixed, or all analytics RPCs work.
-- [ ] Empty analytics state renders for zero applications.
-- [ ] Charts render for sample applications.
-- [ ] Time-series data shape matches `{ date, applications, interviews, offers }`.
-- [ ] Funnel data shape matches `{ total_applications, interviews, offers }`.
-- [ ] Source and industry charts handle missing/null source and industry.
-- [ ] RPC failures show a user-facing error without breaking the whole app shell.
+- [ ] Analytics route is hidden from navigation until fixed.
+- [ ] Direct `/analytics` renders the temporary unavailable state.
+- [ ] No analytics RPC calls run in the first preview.
+- [ ] P1 follow-up verifies charts for sample applications after RPC repair.
 
 ## Extension
 

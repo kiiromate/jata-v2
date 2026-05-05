@@ -34,11 +34,10 @@ Official references checked:
 - `wrangler.toml` does not exist.
 - `.github/workflows` does not exist.
 
-Current `vercel.json` risk:
+Current `vercel.json` status:
 
-- Uses legacy `builds` with `@vercel/static-build`.
-- Routes all traffic to `/apps/web/$1`, which is not the normal fallback shape for a Vite SPA.
-- Does not clearly provide a fallback rewrite to `/index.html` for client-side routes such as `/dashboard`.
+- Fixed in `fix/p0-launch-core-flow`: legacy `builds` and `/apps/web/$1` routing were removed.
+- Current config provides a Vite SPA fallback rewrite to `/index.html` for client-side routes such as `/dashboard`.
 
 ## Vercel Preview Settings
 
@@ -51,7 +50,7 @@ Recommended dashboard settings for first preview:
 - Output directory: `apps/web/dist`
 - Node version: 20 or newer.
 
-Recommended `vercel.json` follow-up:
+Current `vercel.json`:
 
 ```json
 {
@@ -64,7 +63,7 @@ Recommended `vercel.json` follow-up:
 }
 ```
 
-Only make that change in the P0 fixes branch after verifying how Vercel project settings are configured.
+Keep Vercel project settings aligned with this file: repository root, `pnpm --filter @jata/web build`, and `apps/web/dist` as output.
 
 ## Cloudflare Pages Follow-Up Settings
 
@@ -138,15 +137,16 @@ Do not delete historical docs in this audit branch. Clean documentation referenc
 
 Do not deploy until these are fixed:
 
-- Application creation schema mismatch.
-- Sidebar links to missing routes.
-- Hardcoded localhost Edge Function URLs.
-- Supabase Auth redirect URLs and env vars not configured.
-- Vercel SPA fallback config not confirmed.
+- Fixed in `fix/p0-launch-core-flow`: application creation schema mismatch.
+- Fixed in `fix/p0-launch-core-flow`: sidebar links to missing routes.
+- Fixed in `fix/p0-launch-core-flow`: hardcoded localhost Edge Function URLs.
+- Fixed in `fix/p0-launch-core-flow`: Vercel SPA fallback config.
+- Still required by a human before deploy: Supabase Auth redirect URLs and hosting env vars.
+- Still required by a human before deploy: Supabase migration/RLS/bucket/function setup and disposable-account QA.
 
 ## Human Deployment Checklist
 
-1. Fix P0 launch blockers in `fix/p0-launch-core-flow`.
+1. Review and merge `fix/p0-launch-core-flow` after validation passes.
 2. Run:
 
 ```powershell
