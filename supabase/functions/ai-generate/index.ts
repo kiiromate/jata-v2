@@ -13,7 +13,7 @@ import {
   type AiTaskType,
 } from '../_shared/ai/index.ts';
 
-const ProviderSchema = z.enum(['mock', 'huggingface', 'openrouter']);
+const ProviderSchema = z.enum(['none', 'mock', 'huggingface', 'openrouter']);
 
 const BaseInputSchema = z.object({
   cvText: z.string().optional(),
@@ -91,6 +91,7 @@ function readAiEnv(): AiEnv {
     JATA_AI_MONTHLY_LIMIT: Deno.env.get('JATA_AI_MONTHLY_LIMIT'),
     JATA_AI_MAX_JD_CHARS: Deno.env.get('JATA_AI_MAX_JD_CHARS'),
     JATA_AI_MAX_CV_CHARS: Deno.env.get('JATA_AI_MAX_CV_CHARS'),
+    JATA_AI_MAX_PROFILE_CHARS: Deno.env.get('JATA_AI_MAX_PROFILE_CHARS'),
   };
 }
 

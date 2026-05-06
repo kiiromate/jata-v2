@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 
-export type AiProviderMode = 'mock' | 'huggingface' | 'openrouter';
+export type AiProviderMode = 'none' | 'mock' | 'huggingface' | 'openrouter';
 
 export type AiTaskType =
   | 'analyzeCvMatch'

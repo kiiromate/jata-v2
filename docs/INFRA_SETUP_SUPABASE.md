@@ -143,6 +143,7 @@ VITE_SUPABASE_ANON_KEY=
 VITE_SENTRY_DSN=
 VITE_PUBLIC_POSTHOG_KEY=
 VITE_PUBLIC_POSTHOG_HOST=
+# Allowed: none, mock, huggingface, openrouter
 JATA_AI_PROVIDER=mock
 JATA_AI_MODEL_DEFAULT=cheap-model-name-here
 OPENROUTER_API_KEY=
@@ -151,6 +152,7 @@ JATA_AI_DAILY_LIMIT=20
 JATA_AI_MONTHLY_LIMIT=300
 JATA_AI_MAX_JD_CHARS=12000
 JATA_AI_MAX_CV_CHARS=12000
+JATA_AI_MAX_PROFILE_CHARS=12000
 ```
 
 Do not add real values to `.env.example`.
@@ -181,6 +183,7 @@ For Supabase Edge Functions:
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+# Allowed: none, mock, huggingface, openrouter
 JATA_AI_PROVIDER=mock
 JATA_AI_MODEL_DEFAULT=cheap-model-name-here
 OPENROUTER_API_KEY=
@@ -189,6 +192,7 @@ JATA_AI_DAILY_LIMIT=20
 JATA_AI_MONTHLY_LIMIT=300
 JATA_AI_MAX_JD_CHARS=12000
 JATA_AI_MAX_CV_CHARS=12000
+JATA_AI_MAX_PROFILE_CHARS=12000
 ```
 
 Use provider keys only in Supabase secrets, not in frontend hosting env unless the variable is intentionally public and starts with `VITE_`.
@@ -241,7 +245,7 @@ pnpm exec supabase functions deploy delete-user
 Set non-secret AI defaults:
 
 ```powershell
-pnpm exec supabase secrets set JATA_AI_PROVIDER=mock JATA_AI_MODEL_DEFAULT=mock-local JATA_AI_DAILY_LIMIT=20 JATA_AI_MONTHLY_LIMIT=300 JATA_AI_MAX_JD_CHARS=12000 JATA_AI_MAX_CV_CHARS=12000
+pnpm exec supabase secrets set JATA_AI_PROVIDER=mock JATA_AI_MODEL_DEFAULT=mock-local JATA_AI_DAILY_LIMIT=20 JATA_AI_MONTHLY_LIMIT=300 JATA_AI_MAX_JD_CHARS=12000 JATA_AI_MAX_CV_CHARS=12000 JATA_AI_MAX_PROFILE_CHARS=12000
 ```
 
 Set provider keys only from a private shell or dashboard secret UI:

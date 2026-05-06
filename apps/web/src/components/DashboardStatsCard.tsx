@@ -1,6 +1,5 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Briefcase, Calendar, CheckCircle, Clock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface DashboardStatsCardProps {
   totalApplications: number;
@@ -9,66 +8,66 @@ interface DashboardStatsCardProps {
   thisWeek: number;
 }
 
-/**
- * Renders dashboard summary cards with semantic JATA accent color mappings.
- */
+interface StatCell {
+  label: string;
+  value: number;
+  valueColor: string;
+  accentColor: string;
+}
+
 const DashboardStatsCard: React.FC<DashboardStatsCardProps> = ({
   totalApplications,
   activeApplications,
   interviews,
   thisWeek,
 }) => {
-  const stats = [
+  const cells: StatCell[] = [
     {
-      label: 'Total Applications',
+      label: 'Total',
       value: totalApplications,
-      icon: Briefcase,
-      color: 'text-[color:var(--jata-accent-blue)]',
-      bgColor: 'bg-[color:var(--jata-accent-blue)]/10',
+      valueColor: 'text-jata-accent-blue',
+      accentColor: 'border-l-jata-accent-blue',
     },
     {
       label: 'Active',
       value: activeApplications,
-      icon: Clock,
-      color: 'text-[color:var(--jata-accent-lime)]',
-      bgColor: 'bg-[color:var(--jata-accent-lime)]/10',
+      valueColor: 'text-jata-status-active',
+      accentColor: 'border-l-jata-status-active',
     },
     {
       label: 'Interviews',
       value: interviews,
-      icon: CheckCircle,
-      color: 'text-[color:var(--jata-accent-orange)]',
-      bgColor: 'bg-[color:var(--jata-accent-orange)]/10',
+      valueColor: 'text-jata-status-interview',
+      accentColor: 'border-l-jata-status-interview',
     },
     {
       label: 'This Week',
       value: thisWeek,
-      icon: Calendar,
-      color: 'text-[color:var(--jata-accent-rust)]',
-      bgColor: 'bg-[color:var(--jata-accent-rust)]/10',
+      valueColor: 'text-jata-accent-lime',
+      accentColor: 'border-l-jata-accent-lime',
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-sm mb-md">
-      {stats.map((stat) => {
-        const Icon = stat.icon;
-        return (
-          <Card key={stat.label}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.label}
-              </CardTitle>
-              <div className={`${stat.bgColor} p-2 rounded-md`}>
-                <Icon className={`h-4 w-4 ${stat.color}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-            </CardContent>
-          </Card>
-        );
-      })}
+    <div className="grid grid-cols-2 md:grid-cols-4 mb-md border border-jata-graphite-mist rounded-lg overflow-hidden">
+      {cells.map((cell, i) => (
+        <div
+          key={cell.label}
+          className={cn(
+            'flex flex-col gap-1 px-4 py-3 border-l-2 bg-jata-iron-charcoal',
+            cell.accentColor,
+            i > 0 && 'border-r-0',
+            i < cells.length - 1 && 'border-r border-r-jata-graphite-mist'
+          )}
+        >
+          <span className="font-mono text-[10px] uppercase tracking-widest text-jata-text-muted">
+            {cell.label}
+          </span>
+          <span className={cn('font-data text-2xl font-semibold leading-none', cell.valueColor)}>
+            {cell.value}
+          </span>
+        </div>
+      ))}
     </div>
   );
 };

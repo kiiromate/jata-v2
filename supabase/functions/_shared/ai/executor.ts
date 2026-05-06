@@ -31,6 +31,7 @@ interface UsageLimits {
   monthlyLimit: number;
   maxJdChars: number;
   maxCvChars: number;
+  maxProfileChars: number;
   maxPromptChars: number;
   failureCooldownMinutes: number;
   failureCooldownCount: number;
@@ -46,13 +47,15 @@ function readLimit(value: string | undefined, fallback: number): number {
 function getUsageLimits(env: AiEnv): UsageLimits {
   const maxJdChars = readLimit(env.JATA_AI_MAX_JD_CHARS, 12000);
   const maxCvChars = readLimit(env.JATA_AI_MAX_CV_CHARS, 12000);
+  const maxProfileChars = readLimit(env.JATA_AI_MAX_PROFILE_CHARS, maxCvChars);
 
   return {
     dailyLimit: readLimit(env.JATA_AI_DAILY_LIMIT, 20),
     monthlyLimit: readLimit(env.JATA_AI_MONTHLY_LIMIT, 300),
     maxJdChars,
     maxCvChars,
-    maxPromptChars: maxJdChars + maxCvChars + 4000,
+    maxProfileChars,
+    maxPromptChars: maxJdChars + maxCvChars + maxProfileChars + 4000,
     failureCooldownMinutes: 15,
     failureCooldownCount: 3,
   };
@@ -77,6 +80,7 @@ function startOfUtcMonth(now: Date): string {
 function validateSizeLimits(input: AiTaskInput, prompt: string, limits: UsageLimits): string | null {
   const jobDescription = input.jobDescription || '';
   const cvText = input.cvText || '';
+  const userProfile = input.userProfile || '';
 
   if (jobDescription.length > limits.maxJdChars) {
     return `Job description is too long. Limit is ${limits.maxJdChars} characters.`;
@@ -84,6 +88,10 @@ function validateSizeLimits(input: AiTaskInput, prompt: string, limits: UsageLim
 
   if (cvText.length > limits.maxCvChars) {
     return `CV is too long. Limit is ${limits.maxCvChars} characters.`;
+  }
+
+  if (userProfile.length > limits.maxProfileChars) {
+    return `Profile is too long. Limit is ${limits.maxProfileChars} characters.`;
   }
 
   if (prompt.length > limits.maxPromptChars) {

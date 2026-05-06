@@ -22,6 +22,27 @@ export type Database = {
           url: string | null
           source: string | null
           industry: string | null
+          job_description: string | null
+          jata_score: number | null
+          final_resume_text: string | null
+          selected_resume_id: string | null
+          capture_source: string | null
+          capture_method: string | null
+          capture_status: string | null
+          parse_status: string | null
+          score_status: string | null
+          duplicate_status: string | null
+          duplicate_of_application_id: string | null
+          capture_raw_input: Json
+          capture_parsed_payload: Json
+          capture_score_result: Json | null
+          capture_dedupe_result: Json | null
+          capture_action_log: Json
+          archived_at: string | null
+          promoted_at: string | null
+          pack_requested_at: string | null
+          parsed_at: string | null
+          scored_at: string | null
           created_at: string
           updated_at: string
         }
@@ -35,6 +56,27 @@ export type Database = {
           url?: string | null
           source?: string | null
           industry?: string | null
+          job_description?: string | null
+          jata_score?: number | null
+          final_resume_text?: string | null
+          selected_resume_id?: string | null
+          capture_source?: string | null
+          capture_method?: string | null
+          capture_status?: string | null
+          parse_status?: string | null
+          score_status?: string | null
+          duplicate_status?: string | null
+          duplicate_of_application_id?: string | null
+          capture_raw_input?: Json
+          capture_parsed_payload?: Json
+          capture_score_result?: Json | null
+          capture_dedupe_result?: Json | null
+          capture_action_log?: Json
+          archived_at?: string | null
+          promoted_at?: string | null
+          pack_requested_at?: string | null
+          parsed_at?: string | null
+          scored_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -48,6 +90,27 @@ export type Database = {
           url?: string | null
           source?: string | null
           industry?: string | null
+          job_description?: string | null
+          jata_score?: number | null
+          final_resume_text?: string | null
+          selected_resume_id?: string | null
+          capture_source?: string | null
+          capture_method?: string | null
+          capture_status?: string | null
+          parse_status?: string | null
+          score_status?: string | null
+          duplicate_status?: string | null
+          duplicate_of_application_id?: string | null
+          capture_raw_input?: Json
+          capture_parsed_payload?: Json
+          capture_score_result?: Json | null
+          capture_dedupe_result?: Json | null
+          capture_action_log?: Json
+          archived_at?: string | null
+          promoted_at?: string | null
+          pack_requested_at?: string | null
+          parsed_at?: string | null
+          scored_at?: string | null
           created_at?: string
           updated_at?: string
         }

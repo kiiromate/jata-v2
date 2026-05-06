@@ -44,11 +44,38 @@ function cleanText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+/** Removes contact details that are not needed for provider prompts. */
+export function sanitizePromptText(value: unknown, maxChars = 4000): string {
+  const cleaned = cleanText(value)
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[redacted email]')
+    .replace(/https?:\/\/[^\s]+|www\.[^\s]+/gi, '[redacted url]')
+    .replace(/\+?\d[\d\s().-]{7,}\d/g, '[redacted phone]')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return cleaned.length > maxChars ? `${cleaned.slice(0, maxChars)}...` : cleaned;
+}
+
 /** Converts an optional string array into clean entries. */
 function cleanList(value: unknown): string[] {
   return Array.isArray(value)
     ? value.map((item) => cleanText(item)).filter(Boolean)
     : [];
+}
+
+/** Formats one sanitized prompt field with an explicit missing-evidence fallback. */
+function promptLine(label: string, value: unknown, fallback: string, maxChars?: number): string {
+  const sanitized = sanitizePromptText(value, maxChars);
+  return `${label}: ${sanitized || fallback}`;
+}
+
+/** Formats sanitized highlights without carrying unrelated input fields. */
+function promptList(label: string, value: unknown, fallback: string): string {
+  const items = cleanList(value)
+    .map((item) => sanitizePromptText(item, 600))
+    .filter(Boolean);
+
+  return `${label}: ${items.length ? items.join('; ') : fallback}`;
 }
 
 /** Extracts known skills from text with deterministic matching. */
@@ -107,9 +134,9 @@ export function buildSafetySections(input: AiBaseInput, taskType: AiTaskType): A
 
 /** Formats safety sections as visible text appended to generated content. */
 export function formatSafetySections(safety: AiSafetySections): string {
-  const claims = safety.claimsToVerifyBeforeSending.map((item) => `- ${item}`).join('\n');
-  const evidence = safety.evidenceMissing.map((item) => `- ${item}`).join('\n');
-  const edits = safety.suggestedEdits.map((item) => `- ${item}`).join('\n');
+  const claims = safety.claimsToVerifyBeforeSending.map((item: string) => `- ${item}`).join('\n');
+  const evidence = safety.evidenceMissing.map((item: string) => `- ${item}`).join('\n');
+  const edits = safety.suggestedEdits.map((item: string) => `- ${item}`).join('\n');
 
   return [
     HUMAN_REVIEW_REQUIRED,
@@ -224,6 +251,29 @@ export function createDeterministicTextOutput(
   return ensureTextOutputSafety({ content, safety }, input, taskType);
 }
 
+/** Creates a local manual fallback when AI generation is explicitly disabled. */
+export function createNoAiTextOutput(
+  input: AiBaseInput,
+  taskType: AiTaskType,
+  title: string,
+): AiTextOutput {
+  const safety = buildSafetySections(input, taskType);
+  const companyName = cleanText((input as { companyName?: string }).companyName) || 'the company';
+  const jobTitle = cleanText((input as { jobTitle?: string }).jobTitle) || 'the role';
+  const highlights = cleanList((input as { highlights?: string[] }).highlights);
+  const evidenceLine = highlights[0] || extractKnownSkills(cleanText(input.cvText))[0] || 'Evidence needed: source fact.';
+  const content = [
+    title,
+    '',
+    'AI generation is disabled. Use this manual fallback as a review checklist only.',
+    `Role context: ${jobTitle} at ${companyName}.`,
+    `Evidence to verify: ${evidenceLine}.`,
+    'Next action: draft manually from the verified CV, profile, job description, and notes.',
+  ].join('\n');
+
+  return ensureTextOutputSafety({ content, safety }, input, taskType);
+}
+
 /** Builds the provider prompt while excluding secrets and raw persistence details. */
 export function buildPrompt<T extends AiTaskType>(taskType: T, input: AiTaskInput<T>): string {
   const baseInstructions = [
@@ -242,11 +292,28 @@ export function buildPrompt<T extends AiTaskType>(taskType: T, input: AiTaskInpu
     baseInstructions,
     '',
     `Task: ${taskType}`,
-    `CV facts: ${cleanText(input.cvText) || 'Evidence needed: uploaded CV facts.'}`,
-    `User profile facts: ${cleanText(input.userProfile) || 'Evidence needed: user profile facts.'}`,
-    `Job description facts: ${cleanText(input.jobDescription) || 'Evidence needed: job description facts.'}`,
-    `User notes: ${cleanText(input.notes) || 'Evidence needed: user notes if customization is required.'}`,
-    `Structured input: ${JSON.stringify(input)}`,
+    promptLine('Role title', (input as { jobTitle?: string }).jobTitle, 'Evidence needed: role title.', 200),
+    promptLine('Company', (input as { companyName?: string }).companyName, 'Evidence needed: company name.', 200),
+    promptLine('Applicant name', (input as { userName?: string }).userName, 'Use neutral applicant wording.', 200),
+    promptLine(
+      'Recipient name',
+      (input as { recruiterName?: string; contactName?: string }).recruiterName ||
+        (input as { recruiterName?: string; contactName?: string }).contactName,
+      'Use a neutral salutation.',
+      200,
+    ),
+    promptLine('Tone', (input as { tone?: string }).tone, 'professional', 80),
+    promptList('Verified highlights', (input as { highlights?: string[] }).highlights, 'Evidence needed: verified highlights.'),
+    promptLine('CV facts', input.cvText, 'Evidence needed: uploaded CV facts.', 4000),
+    promptLine('User profile facts', input.userProfile, 'Evidence needed: user profile facts.', 2000),
+    promptLine('Job description facts', input.jobDescription, 'Evidence needed: job description facts.', 4000),
+    promptLine('User notes', input.notes, 'Evidence needed: user notes if customization is required.', 1200),
+    promptLine(
+      'Previous interaction',
+      (input as { previousInteraction?: string }).previousInteraction,
+      'Evidence needed: previous interaction context if follow-up is required.',
+      1200,
+    ),
   ].join('\n');
 }
 

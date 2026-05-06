@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 
 interface ActivityCardProps {
   data: {
@@ -10,38 +9,72 @@ interface ActivityCardProps {
 }
 
 export const ActivityCard: React.FC<ActivityCardProps> = ({ data }) => {
-  const interviewRate = data.applications_submitted > 0 
-    ? ((data.interviews_landed / data.applications_submitted) * 100).toFixed(1)
-    : '0.0';
+  const interviewRate =
+    data.applications_submitted > 0
+      ? ((data.interviews_landed / data.applications_submitted) * 100).toFixed(1)
+      : '0.0';
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-lg">Your 30-Day Activity</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex justify-between items-center py-2 border-b border-border">
-          <span className="text-sm text-muted-foreground">Applications Submitted</span>
-          <span className="text-xl font-bold text-primary">{data.applications_submitted}</span>
-        </div>
-        <div className="flex justify-between items-center py-2 border-b border-border">
-          <span className="text-sm text-muted-foreground">Interviews Landed</span>
-          <div className="text-right">
-            <span className="text-xl font-bold text-green-600 dark:text-green-400">{data.interviews_landed}</span>
-            {data.applications_submitted > 0 && (
-              <span className="ml-2 text-xs text-muted-foreground">({interviewRate}%)</span>
-            )}
-          </div>
-        </div>
-        <div className="flex justify-between items-center py-2">
-          <span className="text-sm text-muted-foreground">Avg. Response Time</span>
-          <span className="text-xl font-bold">
-            {data.average_response_time_days !== null
-              ? `${data.average_response_time_days} days`
-              : <span className="text-muted-foreground text-base">N/A</span>}
-          </span>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="w-full border border-jata-graphite-mist rounded-lg bg-jata-iron-charcoal mb-md overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-jata-graphite-mist">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-jata-text-muted">
+          30-Day Activity
+        </span>
+      </div>
+      <div className="grid grid-cols-3 divide-x divide-jata-graphite-mist">
+        <MetricRow
+          label="Submitted"
+          value={String(data.applications_submitted)}
+          valueColor="text-jata-accent-blue"
+        />
+        <MetricRow
+          label="Interviews"
+          value={String(data.interviews_landed)}
+          sub={data.applications_submitted > 0 ? `${interviewRate}%` : undefined}
+          valueColor="text-jata-status-offer"
+        />
+        <MetricRow
+          label="Avg Response"
+          value={
+            data.average_response_time_days !== null
+              ? `${data.average_response_time_days}d`
+              : '—'
+          }
+          valueColor={
+            data.average_response_time_days !== null
+              ? 'text-jata-text-primary'
+              : 'text-jata-text-muted'
+          }
+        />
+      </div>
+    </div>
   );
 };
+
+function MetricRow({
+  label,
+  value,
+  sub,
+  valueColor,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  valueColor: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1 px-4 py-3">
+      <span className="font-mono text-[10px] uppercase tracking-widest text-jata-text-muted">
+        {label}
+      </span>
+      <div className="flex items-baseline gap-2">
+        <span className={`font-data text-xl font-semibold leading-none ${valueColor}`}>
+          {value}
+        </span>
+        {sub && (
+          <span className="font-mono text-[10px] text-jata-text-muted">{sub}</span>
+        )}
+      </div>
+    </div>
+  );
+}

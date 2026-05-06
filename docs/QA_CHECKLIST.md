@@ -79,7 +79,7 @@ Scope: Manual launch-readiness checks after P0 fixes. Do not use this checklist 
 ## Cover Letter
 
 - [ ] Required fields validate.
-- [ ] Cover letter generation works with the mock/default provider.
+- [ ] Cover letter generation works with the mock/default provider and with `JATA_AI_PROVIDER=none`.
 - [ ] Output includes provider/model/timestamp/cache metadata when returned by the Edge Function.
 - [ ] Human-review warning remains visible.
 - [ ] Copy works.
@@ -124,6 +124,7 @@ Scope: Manual launch-readiness checks after P0 fixes. Do not use this checklist 
 
 - [ ] No service role key appears in browser code, Vite env vars, or built assets.
 - [ ] No raw prompts are stored outside the metadata-only AI logging design.
+- [ ] Provider prompts redact contact details and exclude unrelated structured fields.
 - [ ] AI output remains marked for human review.
 - [ ] RLS prevents viewing another user's applications, resumes, profiles, feedback, and AI outputs.
 - [ ] Contact form does not expose submissions to anonymous users.

@@ -1,14 +1,17 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { usePostHog } from 'posthog-js/react';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { getAuthErrorMessage } from "../lib/authMessages";
+import { cn } from "@/lib/utils";
+
+type AuthTab = 'signIn' | 'signUp';
 
 const SigninPage = () => {
   const posthog = usePostHog();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('signIn'); // 'signIn' or 'signUp'
+  const [activeTab, setActiveTab] = useState<AuthTab>('signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -17,19 +20,20 @@ const SigninPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const switchTab = (tab: AuthTab) => {
+    setActiveTab(tab);
+    setError('');
+    setMessage('');
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
-
     setError('');
     setMessage('');
     setIsSubmitting(true);
-
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setError(getAuthErrorMessage(error.message));
       } else {
@@ -44,7 +48,6 @@ const SigninPage = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
-
     setError('');
     setMessage('');
     if (password !== confirmPassword) {
@@ -52,19 +55,16 @@ const SigninPage = () => {
       return;
     }
     setIsSubmitting(true);
-
     try {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       });
       if (error) {
         setError(getAuthErrorMessage(error.message));
       } else {
-        setMessage('Success! Please check your email to confirm your sign up.');
+        setMessage('Check your email to confirm your account.');
       }
     } finally {
       setIsSubmitting(false);
@@ -74,133 +74,227 @@ const SigninPage = () => {
   const handlePasswordReset = async () => {
     setError('');
     setMessage('');
-    const email = prompt("Please enter your email address to reset your password:");
-    if (email) {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const resetEmail = prompt("Enter your email to receive a reset link:");
+    if (resetEmail) {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo: `${window.location.origin}/update-password`,
       });
-      if (error) {
-        setError(error.message);
-      } else {
-        setMessage("Password reset link has been sent to your email.");
-      }
+      if (error) setError(error.message);
+      else setMessage("Reset link sent — check your inbox.");
     }
   };
 
-  
-
   return (
-    <div className="flex items-center justify-center min-h-screen bg-light-gray">
-      <div className="relative w-full max-w-md p-8 space-y-6 bg-pure-white rounded-lg shadow-md">
-        
-        <div className="text-center pt-8">
-          <h1 className="text-3xl font-bold text-jet-black">JATA</h1>
-          <p className="text-charcoal-gray">Your AI-Powered Job Application Tracker</p>
+    <div className="min-h-screen bg-jata-deep-carbon flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        {/* Wordmark */}
+        <div className="mb-8 text-center">
+          <span className="font-mono text-xl font-medium tracking-[0.25em] text-jata-text-primary uppercase select-none">
+            jata
+          </span>
+          <p className="mt-1.5 font-mono text-[10px] tracking-widest text-jata-text-muted uppercase">
+            Job Application Tracker
+          </p>
         </div>
 
-        <div className="flex border-b border-cool-gray">
-          <button
-            onClick={() => setActiveTab('signIn')}
-            className={`flex-1 py-2 text-sm font-semibold text-center transition-colors duration-300 ${activeTab === 'signIn' ? 'text-jet-black border-b-2 border-soft-olive' : 'text-charcoal-gray'}`}>
-            Sign In
-          </button>
-          <button
-            onClick={() => setActiveTab('signUp')}
-            className={`flex-1 py-2 text-sm font-semibold text-center transition-colors duration-300 ${activeTab === 'signUp' ? 'text-jet-black border-b-2 border-soft-olive' : 'text-charcoal-gray'}`}>
-            Sign Up
-          </button>
+        {/* Card */}
+        <div className="bg-jata-iron-charcoal border border-jata-graphite-mist rounded-lg overflow-hidden">
+          {/* Tab rail */}
+          <div className="flex border-b border-jata-graphite-mist">
+            {(['signIn', 'signUp'] as AuthTab[]).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => switchTab(tab)}
+                className={cn(
+                  "flex-1 py-3 font-mono text-[10px] tracking-widest uppercase transition-colors",
+                  activeTab === tab
+                    ? "text-jata-accent-lime border-b-2 border-jata-accent-lime -mb-px"
+                    : "text-jata-text-muted hover:text-jata-text-secondary"
+                )}
+              >
+                {tab === 'signIn' ? 'Sign In' : 'Sign Up'}
+              </button>
+            ))}
+          </div>
+
+          {/* Form area */}
+          <div className="p-6 space-y-4">
+            {error && (
+              <p role="alert" className="font-mono text-[10px] text-jata-status-rejected border border-jata-status-rejected/20 bg-jata-status-rejected/5 rounded px-3 py-2">
+                {error}
+              </p>
+            )}
+            {message && (
+              <p className="font-mono text-[10px] text-jata-accent-lime border border-jata-accent-lime/20 bg-jata-accent-lime/5 rounded px-3 py-2">
+                {message}
+              </p>
+            )}
+
+            {activeTab === 'signIn' ? (
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <AuthField label="Email">
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-jata-text-muted pointer-events-none">
+                      <Mail className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      placeholder="you@example.com"
+                      className="input-field pl-9"
+                    />
+                  </div>
+                </AuthField>
+
+                <AuthField
+                  label="Password"
+                  action={
+                    <button
+                      type="button"
+                      onClick={handlePasswordReset}
+                      className="font-mono text-[10px] text-jata-text-muted hover:text-jata-accent-lime transition-colors"
+                    >
+                      Forgot?
+                    </button>
+                  }
+                >
+                  <PasswordInput
+                    value={password}
+                    onChange={setPassword}
+                    show={showPassword}
+                    onToggle={() => setShowPassword(!showPassword)}
+                  />
+                </AuthField>
+
+                <AuthSubmit loading={isSubmitting} label="Sign In" />
+              </form>
+            ) : (
+              <form onSubmit={handleSignUp} className="space-y-4">
+                <AuthField label="Email">
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-jata-text-muted pointer-events-none">
+                      <Mail className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      placeholder="you@example.com"
+                      className="input-field pl-9"
+                    />
+                  </div>
+                </AuthField>
+
+                <AuthField label="Password">
+                  <PasswordInput
+                    value={password}
+                    onChange={setPassword}
+                    show={showPassword}
+                    onToggle={() => setShowPassword(!showPassword)}
+                  />
+                </AuthField>
+
+                <AuthField label="Confirm Password">
+                  <PasswordInput
+                    value={confirmPassword}
+                    onChange={setConfirmPassword}
+                    show={showPassword}
+                    onToggle={() => setShowPassword(!showPassword)}
+                    placeholder="Repeat password"
+                  />
+                </AuthField>
+
+                <AuthSubmit loading={isSubmitting} label="Create Account" />
+
+                <p className="font-mono text-[10px] text-center text-jata-text-muted leading-relaxed">
+                  By signing up you agree to our{' '}
+                  <a href="/terms" className="text-jata-text-secondary hover:text-jata-accent-lime transition-colors">
+                    Terms
+                  </a>
+                  {' '}&amp;{' '}
+                  <a href="/privacy" className="text-jata-text-secondary hover:text-jata-accent-lime transition-colors">
+                    Privacy Policy
+                  </a>
+                </p>
+              </form>
+            )}
+          </div>
         </div>
-
-        {error && (
-          <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-center text-sm font-medium leading-relaxed text-red-700">
-            {error}
-          </p>
-        )}
-        {message && (
-          <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-center text-sm font-medium leading-relaxed text-green-700">
-            {message}
-          </p>
-        )}
-
-        {activeTab === 'signIn' ? (
-          <form onSubmit={handleSignIn} className="space-y-6">
-            <div>
-              <label className="text-sm font-medium text-charcoal-gray">Email address</label>
-              <div className="relative mt-1">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                  <Mail className="w-5 h-5 text-gray-400" />
-                </span>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="input-field pl-10" placeholder="you@example.com" />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between items-center">
-                <label className="text-sm font-medium text-charcoal-gray">Password</label>
-                <button type="button" onClick={handlePasswordReset} className="text-xs text-soft-olive hover:underline">Forgot password?</button>
-              </div>
-              <div className="relative mt-1">
-                 <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                  <Lock className="w-5 h-5 text-gray-400" />
-                </span>
-                <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required className="input-field pl-10 pr-10" placeholder="••••••••" />
-                <span className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
-                  {showPassword ? <EyeOff className="w-5 h-5 text-gray-400" /> : <Eye className="w-5 h-5 text-gray-400" />}
-                </span>
-              </div>
-            </div>
-            <button type="submit" className="btn disabled:cursor-not-allowed disabled:opacity-60" disabled={isSubmitting}>
-              {isSubmitting ? 'Signing In...' : 'Sign In'}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleSignUp} className="space-y-6">
-            <div>
-              <label className="text-sm font-medium text-charcoal-gray">Email address</label>
-              <div className="relative mt-1">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                  <Mail className="w-5 h-5 text-gray-400" />
-                </span>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="input-field pl-10" placeholder="you@example.com" />
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-charcoal-gray">Password</label>
-               <div className="relative mt-1">
-                 <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                  <Lock className="w-5 h-5 text-gray-400" />
-                </span>
-                <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required className="input-field pl-10 pr-10" placeholder="••••••••" />
-                <span className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
-                  {showPassword ? <EyeOff className="w-5 h-5 text-gray-400" /> : <Eye className="w-5 h-5 text-gray-400" />}
-                </span>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-charcoal-gray">Confirm Password</label>
-              <div className="relative mt-1">
-                 <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                  <Lock className="w-5 h-5 text-gray-400" />
-                </span>
-                <input type={showPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="input-field pl-10 pr-10" placeholder="••••••••" />
-                <span className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
-                  {showPassword ? <EyeOff className="w-5 h-5 text-gray-400" /> : <Eye className="w-5 h-5 text-gray-400" />}
-                </span>
-              </div>
-            </div>
-            <button type="submit" className="btn disabled:cursor-not-allowed disabled:opacity-60" disabled={isSubmitting}>
-              {isSubmitting ? 'Signing Up...' : 'Sign Up'}
-            </button>
-            <p className="text-xs text-center text-charcoal-gray mt-4">
-              By signing up, you agree to our{' '}
-              <a href="/privacy" className="text-soft-olive hover:underline">Privacy Policy</a>
-            </p>
-          </form>
-        )}
       </div>
-
-      
     </div>
   );
 };
+
+function AuthField({
+  label,
+  action,
+  children,
+}: {
+  label: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-jata-text-muted">
+          {label}
+        </span>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function PasswordInput({
+  value,
+  onChange,
+  show,
+  onToggle,
+  placeholder = '••••••••',
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  show: boolean;
+  onToggle: () => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="relative">
+      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-jata-text-muted pointer-events-none">
+        <Lock className="w-4 h-4" />
+      </span>
+      <input
+        type={show ? 'text' : 'password'}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required
+        placeholder={placeholder}
+        className="input-field pl-9 pr-9"
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        className="absolute inset-y-0 right-0 flex items-center pr-3 text-jata-text-muted hover:text-jata-text-secondary transition-colors"
+        aria-label={show ? 'Hide password' : 'Show password'}
+      >
+        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
+  );
+}
+
+function AuthSubmit({ loading, label }: { loading: boolean; label: string }) {
+  return (
+    <button type="submit" disabled={loading} className="btn mt-2">
+      {loading ? 'Please wait...' : label}
+    </button>
+  );
+}
 
 export default SigninPage;

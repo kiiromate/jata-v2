@@ -1,4 +1,4 @@
-export type AiProviderMode = 'mock' | 'huggingface' | 'openrouter';
+export type AiProviderMode = 'none' | 'mock' | 'huggingface' | 'openrouter';
 
 export type AiTaskType =
   | 'analyzeCvMatch'
@@ -15,7 +15,15 @@ export interface AiSafetySections {
   suggestedEdits: string[];
 }
 
-export interface AiBaseInput {
+export interface AiCacheKeyParts {
+  opportunityHash?: string;
+  resumeProfileVersion?: string;
+  resumeVersion?: string;
+  profileVersion?: string;
+  generationType?: string;
+}
+
+export interface AiBaseInput extends AiCacheKeyParts {
   cvText?: string;
   jobDescription?: string;
   userProfile?: string;

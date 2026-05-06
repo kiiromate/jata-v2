@@ -35,6 +35,13 @@ export default {
           'text-primary': '#E8E8E8',
           'text-secondary': '#B7B7B7',
           'text-muted': '#7F8A8E',
+
+          // Functional state colors
+          'status-active':    '#22D3EE',  // cyan-400   — Applied / In Progress
+          'status-interview': '#FBBF24',  // amber-400  — Interview / Pending
+          'status-offer':     '#4ADE80',  // green-400  — Offer / Success
+          'status-rejected':  '#F87171',  // red-400    — Rejected / Error
+          'status-saved':     '#71717A',  // zinc-500   — Saved / Neutral
         },
   			// Custom brand colors (Keeping for backward compatibility during migration)
   			'pure-white': '#ffffff',
@@ -92,6 +99,7 @@ export default {
   				'sans-serif'
   			],
   			mono: [
+				'IBM Plex Mono',
   				'Martian Mono',
   				'monospace'
   			]

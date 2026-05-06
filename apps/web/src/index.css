@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
 @import './styles/components.css';
 @tailwind base;
 @tailwind components;
@@ -42,7 +42,14 @@
     --jata-accent-orange: #FF8736;
     --jata-accent-blue: #2271FF;
     --jata-accent-rust: #B45A3D;
-    
+
+    /* Functional state colors */
+    --jata-status-active: #22D3EE;      /* cyan-400  — Applied / In Progress */
+    --jata-status-interview: #FBBF24;   /* amber-400 — Interview / Pending */
+    --jata-status-offer: #4ADE80;       /* green-400 — Offer / Success */
+    --jata-status-rejected: #F87171;    /* red-400   — Rejected / Error */
+    --jata-status-saved: #71717A;       /* zinc-500  — Saved / Neutral */
+
     /* Spacing */
     --jata-space-xs: 8px;
     --jata-space-sm: 16px;
@@ -137,15 +144,25 @@
 
 @layer components {
   .input-field {
-    @apply w-full px-4 py-2 mt-2 border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring;
+    @apply w-full px-4 py-2 mt-0 border border-jata-graphite-mist rounded-md bg-jata-deep-carbon text-jata-text-primary placeholder:text-jata-text-muted focus:outline-none focus:ring-1 focus:ring-jata-lumen-lime focus:border-jata-lumen-lime transition-colors text-sm;
   }
 
   .btn {
-    @apply w-full px-6 py-3 text-sm font-medium tracking-wide text-primary-foreground capitalize transition-colors duration-300 transform bg-primary rounded-md hover:bg-primary/90 focus:outline-none focus:ring focus:ring-ring focus:ring-opacity-50;
+    @apply w-full px-6 py-2.5 font-mono text-[11px] font-medium tracking-widest uppercase text-jata-deep-carbon bg-jata-lumen-lime rounded-md hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-jata-lumen-lime disabled:opacity-50 disabled:cursor-not-allowed transition-opacity;
   }
 
   .btn-secondary {
-     @apply w-full px-6 py-3 text-sm font-medium tracking-wide text-secondary-foreground capitalize transition-colors duration-300 transform bg-secondary rounded-md hover:bg-secondary/80 focus:outline-none focus:ring focus:ring-ring focus:ring-opacity-80;
+    @apply w-full px-6 py-2.5 font-mono text-[11px] font-medium tracking-widest uppercase text-jata-text-primary bg-jata-graphite-mist rounded-md hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-jata-graphite-mist transition-colors;
+  }
+
+  /* Mono label utility — 10px uppercase tracked */
+  .label-mono {
+    @apply font-mono text-[10px] uppercase tracking-widest text-jata-text-muted;
+  }
+
+  /* Metric value utility — Space Grotesk bold */
+  .metric-value {
+    @apply font-data font-semibold text-jata-text-primary;
   }
 }
 

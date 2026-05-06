@@ -23,7 +23,7 @@ export interface UserSettings {
     googleDriveConnectedAt?: string;
   };
   ai?: {
-    provider?: 'mock' | 'huggingface' | 'openrouter';
+    provider?: 'none' | 'mock' | 'huggingface' | 'openrouter';
   };
 }
 
@@ -210,8 +210,8 @@ class SettingsManager {
     }
 
     // Validate optional AI provider preference.
-    if (settings.ai?.provider && !['mock', 'huggingface', 'openrouter'].includes(settings.ai.provider)) {
-      errors['ai.provider'] = 'AI provider must be one of: mock, huggingface, openrouter';
+    if (settings.ai?.provider && !['none', 'mock', 'huggingface', 'openrouter'].includes(settings.ai.provider)) {
+      errors['ai.provider'] = 'AI provider must be one of: none, mock, huggingface, openrouter';
     }
 
     return {

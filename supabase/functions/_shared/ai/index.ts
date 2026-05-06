@@ -1,5 +1,6 @@
 export { createAiRouter, normalizeProviderMode } from './router.ts';
 export { executeAiTask } from './executor.ts';
+export { buildPrompt, sanitizePromptText } from './content.ts';
 export {
   createNoopCreditsStore,
   createSupabaseCreditsStore,

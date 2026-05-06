@@ -1,64 +1,65 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
 import { Plus, Puzzle, FileText, BarChart2 } from 'lucide-react';
 import { useDashboardStore } from '../store/dashboardStore';
+import { cn } from '@/lib/utils';
+
+const ACTIONS = [
+  {
+    label: 'Add Application',
+    icon: Plus,
+    type: 'button' as const,
+  },
+  {
+    label: 'Extension',
+    icon: Puzzle,
+    type: 'link' as const,
+    href: '/install-extension',
+  },
+  {
+    label: 'Cover Letter',
+    icon: FileText,
+    type: 'link' as const,
+    href: '/cover-letter',
+  },
+  {
+    label: 'Analytics',
+    icon: BarChart2,
+    type: 'link' as const,
+    href: '/analytics',
+  },
+] as const;
+
+const actionBase =
+  'flex items-center gap-2 px-3 py-1.5 rounded border border-jata-graphite-mist bg-transparent text-jata-text-secondary font-mono text-[10px] uppercase tracking-widest hover:border-jata-accent-lime/40 hover:text-jata-text-primary transition-colors';
 
 const DashboardWelcomeCard: React.FC = () => {
   const { openModal } = useDashboardStore();
 
   return (
-    <Card className="mb-md">
-      <CardHeader>
-        <CardTitle className="text-xl">Welcome back!</CardTitle>
-        <CardDescription>
-          Quick actions to help you manage your job search
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-sm">
-          <Button
-            variant="outline"
-            className="flex flex-col items-center justify-center h-24 gap-2"
-            onClick={openModal}
-          >
-            <Plus className="h-5 w-5" />
-            <span className="text-sm">Add Application</span>
-          </Button>
-          
-          <Link to="/install-extension">
-            <Button
-              variant="outline"
-              className="flex flex-col items-center justify-center h-24 gap-2 w-full"
+    <div className="flex flex-wrap gap-2 mb-md">
+      {ACTIONS.map((action) => {
+        const Icon = action.icon;
+        if (action.type === 'button') {
+          return (
+            <button
+              key={action.label}
+              onClick={openModal}
+              className={cn(actionBase, 'cursor-pointer')}
             >
-              <Puzzle className="h-5 w-5" />
-              <span className="text-sm">Install Extension</span>
-            </Button>
+              <Icon className="w-3.5 h-3.5" />
+              {action.label}
+            </button>
+          );
+        }
+        return (
+          <Link key={action.label} to={action.href} className={actionBase}>
+            <Icon className="w-3.5 h-3.5" />
+            {action.label}
           </Link>
-          
-          <Link to="/cover-letter">
-            <Button
-              variant="outline"
-              className="flex flex-col items-center justify-center h-24 gap-2 w-full"
-            >
-              <FileText className="h-5 w-5" />
-              <span className="text-sm">Generate Cover Letter</span>
-            </Button>
-          </Link>
-          
-          <Link to="/analytics">
-            <Button
-              variant="outline"
-              className="flex flex-col items-center justify-center h-24 gap-2 w-full"
-            >
-              <BarChart2 className="h-5 w-5" />
-              <span className="text-sm">View Analytics</span>
-            </Button>
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
+        );
+      })}
+    </div>
   );
 };
 

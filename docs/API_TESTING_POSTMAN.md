@@ -20,7 +20,7 @@ This guide explains how to test the JATA v2 Supabase backend and Edge Functions 
 
 ### 3. Edge Functions (AI & Scraper)
 - **Scrape URL**: `POST {{SUPABASE_URL}}/functions/v1/scrape-url`
-- **AI Generate**: `POST {{SUPABASE_URL}}/functions/v1/ai-generate` (uses mock provider by default)
+- **AI Generate**: `POST {{SUPABASE_URL}}/functions/v1/ai-generate` (uses mock provider by default; set `JATA_AI_PROVIDER=none` for no-AI fallback mode)
 
 ## Security
 - Never commit real JWTs to the repo.

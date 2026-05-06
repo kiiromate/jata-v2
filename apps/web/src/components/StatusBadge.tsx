@@ -1,44 +1,55 @@
 import React from 'react';
+import { cn } from '@/lib/utils';
 
 interface StatusBadgeProps {
   status: string | null;
 }
 
+const STATUS_MAP: Record<string, { label: string; className: string }> = {
+  applied: {
+    label: 'Applied',
+    className: 'text-jata-status-active border-jata-status-active/20 bg-jata-status-active/10',
+  },
+  interview: {
+    label: 'Interview',
+    className: 'text-jata-status-interview border-jata-status-interview/20 bg-jata-status-interview/10',
+  },
+  interviewing: {
+    label: 'Interview',
+    className: 'text-jata-status-interview border-jata-status-interview/20 bg-jata-status-interview/10',
+  },
+  offer: {
+    label: 'Offer',
+    className: 'text-jata-status-offer border-jata-status-offer/20 bg-jata-status-offer/10',
+  },
+  rejected: {
+    label: 'Rejected',
+    className: 'text-jata-status-rejected border-jata-status-rejected/20 bg-jata-status-rejected/10',
+  },
+  saved: {
+    label: 'Saved',
+    className: 'text-jata-status-saved border-jata-status-saved/20 bg-jata-status-saved/10',
+  },
+};
+
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
-  const getStatusStyles = () => {
-    const normalizedStatus = status?.toLowerCase();
-    switch (normalizedStatus) {
-      case 'interview':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800';
-      case 'offer':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-800';
-      case 'rejected':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800';
-      case 'applied':
-        return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800';
-      case 'saved':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-300 border-gray-200 dark:border-gray-700';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-300 border-gray-200 dark:border-gray-700';
-    }
+  const key = status?.toLowerCase() ?? '';
+  const config = STATUS_MAP[key] ?? {
+    label: status ?? 'Unknown',
+    className: 'text-jata-status-saved border-jata-status-saved/20 bg-jata-status-saved/10',
   };
 
-  const normalizedStatus = status?.toLowerCase();
-  const displayStatus =
-    normalizedStatus === 'interviewing' ? 'Interview' :
-    normalizedStatus === 'applied' ? 'Applied' :
-    normalizedStatus === 'interview' ? 'Interview' :
-    normalizedStatus === 'offer' ? 'Offer' :
-    normalizedStatus === 'rejected' ? 'Rejected' :
-    status || 'Unknown';
-
   return (
-    <span 
-      className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-medium rounded-full border ${getStatusStyles()}`}
+    <span
       role="status"
-      aria-label={`Application status: ${displayStatus}`}
+      aria-label={`Application status: ${config.label}`}
+      className={cn(
+        'inline-flex items-center px-2 py-0.5 rounded-sm border',
+        'font-mono text-[10px] uppercase tracking-widest whitespace-nowrap',
+        config.className
+      )}
     >
-      {displayStatus}
+      {config.label}
     </span>
   );
 };
