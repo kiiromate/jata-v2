@@ -4,6 +4,10 @@ import * as pdfjsLib from 'pdfjs-dist'
 import { corsHeaders } from '../_shared/cors.ts'
 import { createSupabaseClient, getUserId } from '../_shared/db.ts'
 
+function readPdfTextItem(item: { str?: string }): string {
+  return typeof item.str === 'string' ? item.str : ''
+}
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -53,7 +57,7 @@ serve(async (req: Request): Promise<Response> => {
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i)
         const content = await page.getTextContent()
-        text += content.items.map((item: any) => item.str).join(' ') + '\n'
+        text += content.items.map(readPdfTextItem).join(' ') + '\n'
       }
       resumeContent = text
     } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {

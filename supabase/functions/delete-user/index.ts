@@ -6,6 +6,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function readUserId(body: unknown): string | null {
+  if (!body || typeof body !== 'object' || !('user_id' in body)) {
+    return null
+  }
+
+  const userId = (body as { user_id?: unknown }).user_id
+  return typeof userId === 'string' ? userId : null
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -52,7 +61,17 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { user_id } = await req.json()
+    const user_id = readUserId(await req.json())
+
+    if (!user_id) {
+      return new Response(
+        JSON.stringify({ error: 'Missing user_id' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
 
     // Verify that the authenticated user is trying to delete their own account
     if (user.id !== user_id) {

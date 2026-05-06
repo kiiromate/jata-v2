@@ -1,10 +1,7 @@
 import { serve } from 'std/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 import { createSupabaseClient, getUserId } from '../_shared/db.ts'
-import { z } from 'zod'
 import { UpdateApplicationSchema } from '../_shared/schemas.ts'
-
-type Application = z.infer<typeof UpdateApplicationSchema>
 
 serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
@@ -33,7 +30,7 @@ serve(async (req: Request): Promise<Response> => {
         })
     }
 
-    const body: Application = await req.json();
+    const body: unknown = await req.json();
     const result = UpdateApplicationSchema.safeParse(body);
 
     if (!result.success) {

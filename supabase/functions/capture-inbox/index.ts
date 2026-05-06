@@ -7,6 +7,7 @@ import {
   CaptureSources,
   CaptureStatuses,
   DuplicateStatuses,
+  type Json,
   ParseStatuses,
   ScoreStatuses,
 } from '../../../packages/common/src/captureInbox.ts';
@@ -23,7 +24,17 @@ const ScoreStatusSchema = z.enum(ScoreStatuses);
 const DuplicateStatusSchema = z.enum(DuplicateStatuses);
 const RouteActions = ['archive', 'score', 'promote_to_shortlist', 'request_pack', 'generate_pack_later'] as const;
 
-const MetadataSchema = z.record(z.unknown()).optional();
+const JsonValueSchema: z.ZodType<Json> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number().finite(),
+    z.boolean(),
+    z.null(),
+    z.array(JsonValueSchema),
+    z.record(JsonValueSchema),
+  ]),
+);
+const MetadataSchema = z.record(JsonValueSchema).optional();
 const ParsedPayloadSchema = z.object({
   title: z.string().optional().nullable(),
   company: z.string().optional().nullable(),
@@ -82,11 +93,34 @@ const IdActionSchema = z.object({
   captureId: z.string().uuid().optional(),
 });
 
+const BodyActionSchema = z.object({
+  action: z.string().optional(),
+}).passthrough();
+
+class InvalidJsonBodyError extends Error {
+  constructor() {
+    super('Invalid JSON request body');
+  }
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     status,
   });
+}
+
+async function readJsonBody(req: Request): Promise<unknown> {
+  try {
+    return await req.json();
+  } catch {
+    throw new InvalidJsonBodyError();
+  }
+}
+
+function readAction(body: unknown): string {
+  const parsed = BodyActionSchema.safeParse(body);
+  return parsed.success ? parsed.data.action || 'create' : 'create';
 }
 
 function readCaptureId(url: URL, bodyCaptureId?: string): string | null {
@@ -121,14 +155,12 @@ serve(async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
 
     if (req.method === 'GET') {
+      const status = CaptureStatusSchema.safeParse(url.searchParams.get('status'));
+      const source = SourceSchema.safeParse(url.searchParams.get('source'));
       const result = await service.listCaptures({
         userId,
-        status: CaptureStatusSchema.safeParse(url.searchParams.get('status')).success
-          ? (url.searchParams.get('status') as never)
-          : undefined,
-        source: SourceSchema.safeParse(url.searchParams.get('source')).success
-          ? (url.searchParams.get('source') as never)
-          : undefined,
+        status: status.success ? status.data : undefined,
+        source: source.success ? source.data : undefined,
         includeArchived: url.searchParams.get('includeArchived') === 'true',
         limit: Number.parseInt(url.searchParams.get('limit') || '50', 10),
         offset: Number.parseInt(url.searchParams.get('offset') || '0', 10),
@@ -138,7 +170,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     if (req.method === 'PATCH') {
-      const body = await req.json();
+      const body = await readJsonBody(req);
       const parsed = UpdateCaptureSchema.safeParse(body);
       if (!parsed.success) {
         return jsonResponse({ error: 'Invalid request body', details: parsed.error.flatten() }, 400);
@@ -160,8 +192,8 @@ serve(async (req: Request): Promise<Response> => {
       return jsonResponse({ error: 'Method not allowed' }, 405);
     }
 
-    const body = await req.json();
-    const action = typeof body.action === 'string' ? body.action : 'create';
+    const body = await readJsonBody(req);
+    const action = readAction(body);
 
     if (action === 'create') {
       const parsed = CreateCaptureSchema.safeParse(body);
@@ -208,6 +240,10 @@ serve(async (req: Request): Promise<Response> => {
 
     return jsonResponse(await service.requestPackGeneration({ userId, captureId }));
   } catch (error) {
+    if (error instanceof InvalidJsonBodyError) {
+      return jsonResponse({ error: error.message }, 400);
+    }
+
     const message = error instanceof Error ? error.message : 'Internal server error';
     console.error('Capture Inbox error:', message);
     return jsonResponse({ error: message }, 500);
