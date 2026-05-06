@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
+  Inbox,
   Mail,
   Puzzle,
   Settings,
@@ -33,6 +34,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+  { id: 'capture-inbox', label: 'Capture Inbox', icon: Inbox, path: '/capture-inbox' },
   { id: 'cover-letters', label: 'Cover Letters', icon: Mail, path: '/cover-letter' },
   { id: 'extension', label: 'Extension', icon: Puzzle, path: '/install-extension', badge: 'New' },
 ];

@@ -28,6 +28,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import ErrorPage from '@/pages/ErrorPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import DiagnosticPage from '@/pages/DiagnosticPage';
+import CaptureInboxPage from '@/pages/CaptureInboxPage';
 import { Toaster } from '@/components/ui/toaster';
 
 const queryClient = new QueryClient();
@@ -101,6 +102,13 @@ function App() {
                       <ProtectedRoute>
                         <DashboardLayout>
                           <CoverLetterPage />
+                        </DashboardLayout>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/capture-inbox" element={
+                      <ProtectedRoute>
+                        <DashboardLayout>
+                          <CaptureInboxPage />
                         </DashboardLayout>
                       </ProtectedRoute>
                     } />
