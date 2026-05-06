@@ -46,7 +46,7 @@ const AuthCallbackPage = () => {
         const hash = window.location.hash;
         const hashParams = new URLSearchParams(hash.substring(1));
         const queryParams = new URLSearchParams(window.location.search);
-        
+
         const accessToken = hashParams.get('access_token') || queryParams.get('access_token') || searchParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token') || searchParams.get('refresh_token');
         const tokenType = hashParams.get('token_type') || queryParams.get('token_type') || searchParams.get('token_type');
@@ -71,7 +71,7 @@ const AuthCallbackPage = () => {
             AUTH_CALLBACK_TIMEOUT_MS,
             'Authentication link verification timed out.',
           );
-          
+
           if (error) {
             console.error('Error exchanging auth code:', error.message);
             setStatus('error');
@@ -92,7 +92,7 @@ const AuthCallbackPage = () => {
             AUTH_CALLBACK_TIMEOUT_MS,
             'Authentication session setup timed out.',
           );
-          
+
           if (error) {
             console.error('Error setting session:', error.message);
             setStatus('error');
