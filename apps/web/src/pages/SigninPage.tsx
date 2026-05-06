@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { usePostHog } from 'posthog-js/react';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { getAuthErrorMessage } from "../lib/authMessages";
 
 const SigninPage = () => {
   const posthog = usePostHog();
@@ -14,39 +15,59 @@ const SigninPage = () => {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     setError('');
     setMessage('');
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      setError(error.message);
-    } else {
-      posthog.capture('user_signed_in');
-      navigate('/dashboard');
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) {
+        setError(getAuthErrorMessage(error.message));
+      } else {
+        posthog.capture('user_signed_in');
+        navigate('/dashboard');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     setError('');
     setMessage('');
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    if (error) {
-      setError(error.message);
-    } else {
-      setMessage('Success! Please check your email to confirm your sign up.');
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) {
+        setError(getAuthErrorMessage(error.message));
+      } else {
+        setMessage('Success! Please check your email to confirm your sign up.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -90,8 +111,16 @@ const SigninPage = () => {
           </button>
         </div>
 
-        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-        {message && <p className="text-green-500 text-sm text-center">{message}</p>}
+        {error && (
+          <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-center text-sm font-medium leading-relaxed text-red-700">
+            {error}
+          </p>
+        )}
+        {message && (
+          <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-center text-sm font-medium leading-relaxed text-green-700">
+            {message}
+          </p>
+        )}
 
         {activeTab === 'signIn' ? (
           <form onSubmit={handleSignIn} className="space-y-6">
@@ -119,7 +148,9 @@ const SigninPage = () => {
                 </span>
               </div>
             </div>
-            <button type="submit" className="btn">Sign In</button>
+            <button type="submit" className="btn disabled:cursor-not-allowed disabled:opacity-60" disabled={isSubmitting}>
+              {isSubmitting ? 'Signing In...' : 'Sign In'}
+            </button>
           </form>
         ) : (
           <form onSubmit={handleSignUp} className="space-y-6">
@@ -156,7 +187,9 @@ const SigninPage = () => {
                 </span>
               </div>
             </div>
-            <button type="submit" className="btn">Sign Up</button>
+            <button type="submit" className="btn disabled:cursor-not-allowed disabled:opacity-60" disabled={isSubmitting}>
+              {isSubmitting ? 'Signing Up...' : 'Sign Up'}
+            </button>
             <p className="text-xs text-center text-charcoal-gray mt-4">
               By signing up, you agree to our{' '}
               <a href="/privacy" className="text-soft-olive hover:underline">Privacy Policy</a>

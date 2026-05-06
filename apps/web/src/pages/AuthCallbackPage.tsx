@@ -20,12 +20,10 @@ const AuthCallbackPage = () => {
         const refreshToken = params.get('refresh_token') || searchParams.get('refresh_token');
         const tokenType = params.get('token_type') || searchParams.get('token_type');
         const type = params.get('type') || searchParams.get('type');
-        
-        console.log('Auth callback params:', { accessToken, refreshToken, tokenType, type });
-        
+
         if (accessToken && refreshToken && tokenType) {
           // Set the session with the tokens
-          const { data, error } = await supabase.auth.setSession({
+          const { error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
           });
@@ -36,9 +34,7 @@ const AuthCallbackPage = () => {
             setMessage(error.message || 'Failed to set session');
             return;
           }
-          
-          console.log('Session set successfully:', data);
-          
+
           if (type === 'signup' || type === 'email_change' || type === 'email_confirmation') {
             // Email verification successful
             setStatus('success');

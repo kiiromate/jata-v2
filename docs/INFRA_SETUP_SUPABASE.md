@@ -105,6 +105,7 @@ For Supabase Free first launch:
   - Production domain when available
 - Add `/auth/callback`, `/auth/confirm`, and `/update-password` redirect variants as needed by Supabase Auth.
 - Enable Google provider only if Drive integration is part of the launch scope.
+- Supabase's built-in Auth email sender is for testing and is currently limited to 2 emails per hour project-wide. To keep signup testing unblocked, either confirm test users manually in Supabase Auth, temporarily disable email confirmations only in a non-production test project, or configure custom SMTP before wider testing.
 
 ## Required Edge Functions
 
