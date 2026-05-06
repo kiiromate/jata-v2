@@ -18,6 +18,11 @@ apps/extension/.env.*
 # MCP configuration (contains secrets)
 .mcp.json
 
+# Local agent scratch/worktree state
+.claude/
+.windsurf/
+.vscode/
+
 # Build output and local generated artifacts
 apps/web/dist/
 apps/extension/dist/
@@ -30,6 +35,18 @@ apps/web/tsc_output_utf8.txt
 
 # Local migration concatenation artifact
 supabase/migrations_combined.sql
+
+# Local exports, backups, generated packs, and private resume files
+exports/
+backups/
+local-backups/
+generated-packs/
+packs/
+resumes/
+*.backup.json
+*.backup.csv
+*.export.json
+*.export.csv
 
 # Turborepo cache
 **/.turbo

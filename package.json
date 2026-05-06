@@ -7,6 +7,9 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "test": "turbo test",
+    "test:data-durability": "node --test scripts/data-durability.test.mjs",
+    "data:export": "node scripts/export-data.mjs",
+    "data:check": "node scripts/data-integrity-check.mjs",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
