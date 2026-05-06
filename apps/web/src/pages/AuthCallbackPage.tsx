@@ -2,6 +2,25 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 
+const AUTH_CALLBACK_TIMEOUT_MS = 10000;
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+};
+
 const AuthCallbackPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -9,91 +28,119 @@ const AuthCallbackPage = () => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
+    let isMounted = true;
+    let redirectTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const finishWithRedirect = (nextMessage: string, path: string, delayMs: number) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setStatus('success');
+      setMessage(nextMessage);
+      redirectTimer = setTimeout(() => navigate(path, { replace: true }), delayMs);
+    };
+
     const handleAuthCallback = async () => {
       try {
-        // Get the URL hash and search parameters
         const hash = window.location.hash;
-        const params = new URLSearchParams(hash.substring(1) || window.location.search);
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const queryParams = new URLSearchParams(window.location.search);
         
-        // Get the access token from either hash or query params
-        const accessToken = params.get('access_token') || searchParams.get('access_token');
-        const refreshToken = params.get('refresh_token') || searchParams.get('refresh_token');
-        const tokenType = params.get('token_type') || searchParams.get('token_type');
-        const type = params.get('type') || searchParams.get('type');
+        const accessToken = hashParams.get('access_token') || queryParams.get('access_token') || searchParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token') || searchParams.get('refresh_token');
+        const tokenType = hashParams.get('token_type') || queryParams.get('token_type') || searchParams.get('token_type');
+        const code = queryParams.get('code') || searchParams.get('code');
+        const type = hashParams.get('type') || queryParams.get('type') || searchParams.get('type');
+        const authError = hashParams.get('error_description') || queryParams.get('error_description') || hashParams.get('error') || queryParams.get('error');
+
+        if (authError) {
+          setStatus('error');
+          setMessage('This authentication link could not be verified. Please request a new link.');
+          return;
+        }
+
+        const redirectPath = type === 'recovery' ? '/update-password' : '/dashboard';
+        const redirectMessage = type === 'recovery'
+          ? 'Redirecting to update password...'
+          : 'Authentication successful. Redirecting...';
+
+        if (code) {
+          const { error } = await withTimeout(
+            supabase.auth.exchangeCodeForSession(code),
+            AUTH_CALLBACK_TIMEOUT_MS,
+            'Authentication link verification timed out.',
+          );
+          
+          if (error) {
+            console.error('Error exchanging auth code:', error.message);
+            setStatus('error');
+            setMessage('This authentication link could not be verified. Please request a new link.');
+            return;
+          }
+
+          finishWithRedirect(redirectMessage, redirectPath, 500);
+          return;
+        }
 
         if (accessToken && refreshToken && tokenType) {
-          // Set the session with the tokens
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
+          const { error } = await withTimeout(
+            supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            }),
+            AUTH_CALLBACK_TIMEOUT_MS,
+            'Authentication session setup timed out.',
+          );
           
           if (error) {
-            console.error('Error setting session:', error);
+            console.error('Error setting session:', error.message);
             setStatus('error');
-            setMessage(error.message || 'Failed to set session');
+            setMessage('This authentication link could not be verified. Please request a new link.');
             return;
           }
 
-          if (type === 'signup' || type === 'email_change' || type === 'email_confirmation') {
-            // Email verification successful
-            setStatus('success');
-            setMessage('Email verified successfully! Redirecting to dashboard...');
-            
-            // Redirect to dashboard after a brief delay
-            setTimeout(() => {
-              navigate('/dashboard');
-            }, 2000);
-          } else if (type === 'recovery') {
-            // Password reset flow
-            setStatus('success');
-            setMessage('Redirecting to update password...');
-            
-            setTimeout(() => {
-              navigate('/update-password');
-            }, 1000);
-          } else {
-            // General auth success
-            setStatus('success');
-            setMessage('Authentication successful! Redirecting...');
-            
-            setTimeout(() => {
-              navigate('/dashboard');
-            }, 1500);
-          }
-        } else {
-          // Check if we already have a session
-          const { data: { session }, error } = await supabase.auth.getSession();
-          
-          if (error) {
-            console.error('Error getting session:', error);
-            setStatus('error');
-            setMessage(error.message || 'Authentication failed');
-            return;
-          }
-          
-          if (session) {
-            // We already have a valid session
-            setStatus('success');
-            setMessage('Authentication successful! Redirecting...');
-            
-            setTimeout(() => {
-              navigate('/dashboard');
-            }, 1500);
-          } else {
-            // No valid auth data found
-            setStatus('error');
-            setMessage('Invalid authentication link. Please try again.');
-          }
+          finishWithRedirect(redirectMessage, redirectPath, 500);
+          return;
         }
+
+        const { data: { session }, error } = await withTimeout(
+          supabase.auth.getSession(),
+          AUTH_CALLBACK_TIMEOUT_MS,
+          'Authentication session check timed out.',
+        );
+
+        if (error) {
+          console.error('Error getting session:', error.message);
+          setStatus('error');
+          setMessage('Authentication failed. Please sign in again.');
+          return;
+        }
+
+        if (session) {
+          finishWithRedirect(redirectMessage, redirectPath, 500);
+          return;
+        }
+
+        setStatus('error');
+        setMessage('Invalid or expired authentication link. Please sign in again.');
       } catch (err) {
         console.error('Unexpected error in auth callback:', err);
         setStatus('error');
-        setMessage('An unexpected error occurred. Please try again.');
+        setMessage(err instanceof Error && err.message.includes('timed out')
+          ? 'Authentication is taking too long. Please sign in again.'
+          : 'An unexpected error occurred. Please try again.');
       }
     };
 
     handleAuthCallback();
+
+    return () => {
+      isMounted = false;
+      if (redirectTimer) {
+        clearTimeout(redirectTimer);
+      }
+    };
   }, [navigate, searchParams]);
 
   return (

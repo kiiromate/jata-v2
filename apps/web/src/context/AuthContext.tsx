@@ -19,6 +19,48 @@ import type { Database } from '@jata/common';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
+const PROFILE_FETCH_TIMEOUT_MS = 8000;
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+};
+
+const fetchProfile = async (userId: string, source: string): Promise<Profile | null> => {
+  try {
+    const { data, error } = await withTimeout(
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle(),
+      PROFILE_FETCH_TIMEOUT_MS,
+      `Profile fetch timed out during ${source}`,
+    );
+
+    if (error && error.code !== 'PGRST116') {
+      console.warn(`Error fetching profile during ${source}:`, error.message);
+    }
+
+    return data || null;
+  } catch {
+    console.warn(`Could not fetch profile during ${source}, continuing without it`);
+    return null;
+  }
+};
+
 export interface AuthContextType {
   session: Session | null;
   user: User | null;
@@ -54,31 +96,22 @@ export const AuthProvider = ({ children }: AuthProviderProps): JSX.Element => {
           throw error;
         }
 
-        if (isMounted) {
-          setSession(session);
-          const currentUser = session?.user ?? null;
-          setUser(currentUser);
+        if (!isMounted) {
+          return;
+        }
 
-          if (currentUser) {
-            try {
-              const { data: profileData, error: profileError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', currentUser.id)
-                .maybeSingle();
+        setSession(session);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        setLoading(false);
 
-              if (profileError && profileError.code !== 'PGRST116') {
-                // Only log if it's not a "no rows returned" error
-                console.warn('Error fetching profile:', profileError.message);
-              }
-              setProfile(profileData || null);
-            } catch (err) {
-              console.warn('Could not fetch profile, continuing without it');
-              setProfile(null);
-            }
-          } else {
-            setProfile(null);
+        if (currentUser) {
+          const profileData = await fetchProfile(currentUser.id, 'initial session');
+          if (isMounted) {
+            setProfile(profileData);
           }
+        } else {
+          setProfile(null);
         }
       } catch (error) {
         console.error('Error in auth session fetch:', error);
@@ -97,35 +130,27 @@ export const AuthProvider = ({ children }: AuthProviderProps): JSX.Element => {
     fetchSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (isMounted) {
-          setSession(session);
-          const currentUser = session?.user ?? null;
-          setUser(currentUser);
-
-          if (currentUser) {
-            try {
-              const { data: profileData, error: profileError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', currentUser.id)
-                .maybeSingle();
-              
-              if (profileError && profileError.code !== 'PGRST116') {
-                // Only log if it's not a "no rows returned" error
-                console.warn('Error fetching profile on auth change:', profileError.message);
-              }
-              setProfile(profileData || null);
-            } catch (err) {
-              console.warn('Could not fetch profile on auth change, continuing without it');
-              setProfile(null);
-            }
-          } else {
-            setProfile(null);
-          }
-          // Ensure loading is false after the listener acts, especially for sign-in/out events
-          setLoading(false); 
+      (_event, session) => {
+        if (!isMounted) {
+          return;
         }
+
+        setSession(session);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        setLoading(false);
+
+        if (!currentUser) {
+          setProfile(null);
+          return;
+        }
+
+        window.setTimeout(async () => {
+          const profileData = await fetchProfile(currentUser.id, 'auth state change');
+          if (isMounted) {
+            setProfile(profileData);
+          }
+        }, 0);
       }
     );
 
