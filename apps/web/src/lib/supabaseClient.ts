@@ -32,6 +32,16 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
  */
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+if (!supabaseUrl || !supabaseAnonKey) {
+  const missingVars = [];
+  if (!supabaseUrl) missingVars.push('VITE_SUPABASE_URL');
+  if (!supabaseAnonKey) missingVars.push('VITE_SUPABASE_ANON_KEY');
+  console.error(
+    `[Supabase] Missing required environment variables: ${missingVars.join(', ')}. ` +
+    'Check your Vercel environment settings.'
+  );
+}
+
 export function getSupabaseFunctionUrl(functionName: string): string {
   if (!supabaseUrl) {
     throw new Error('VITE_SUPABASE_URL is not configured.');
