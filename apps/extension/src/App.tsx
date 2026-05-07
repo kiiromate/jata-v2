@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import { supabase, getCurrentUser, isAuthenticated } from './lib/supabaseClient';
+import { getCurrentUser, isAuthenticated } from './lib/supabaseClient';
 import { detectIndustry } from './lib/jobBoardDetector';
 import { addToQueue, getQueueSize, processQueue, isOnline } from './lib/offlineQueue';
+import { captureJobToInbox } from './lib/captureInboxClient';
+import { openJataPath } from './lib/webAppOrigin';
 
 /**
  * @type ApplicationData
@@ -32,6 +34,17 @@ interface Message {
 
 type SendResponse = (response?: { status: string }) => void;
 
+const EMPTY_APPLICATION_DATA: ApplicationData = {
+  jobTitle: '',
+  companyName: '',
+  jobUrl: '',
+  jobDescription: '',
+  source: '',
+  industry: '',
+};
+
+const POPUP_DRAFT_KEY = 'jata-popup-capture-draft';
+
 /**
  * Main application component for the JATA Chrome Extension popup.
  * This component manages the UI for scraping job application data, sending scraping
@@ -39,20 +52,14 @@ type SendResponse = (response?: { status: string }) => void;
  * @returns {JSX.Element}
  */
 const App: React.FC = () => {
-  const [data, setData] = useState<ApplicationData>({
-    jobTitle: '',
-    companyName: '',
-    jobUrl: '',
-    jobDescription: '',
-    source: '',
-    industry: '',
-  });
+  const [data, setData] = useState<ApplicationData>(EMPTY_APPLICATION_DATA);
   const [isScraping, setIsScraping] = useState<ScrapingField>(null);
   const [statusMessage, setStatusMessage] = useState('');
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [queueSize, setQueueSize] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDraftLoaded, setIsDraftLoaded] = useState(false);
 
   /**
    * Check authentication status on mount
@@ -77,6 +84,31 @@ const App: React.FC = () => {
     checkAuth();
   }, []);
 
+  useEffect(() => {
+    if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+      setIsDraftLoaded(true);
+      return;
+    }
+
+    chrome.storage.local.get([POPUP_DRAFT_KEY], (result) => {
+      const draft = result[POPUP_DRAFT_KEY] as Partial<ApplicationData> | undefined;
+      if (draft && typeof draft === 'object') {
+        setData((prev) => ({
+          ...prev,
+          ...draft,
+        }));
+      }
+      setIsDraftLoaded(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isDraftLoaded) return;
+    if (typeof chrome === 'undefined' || !chrome.storage?.local) return;
+
+    chrome.storage.local.set({ [POPUP_DRAFT_KEY]: data });
+  }, [data, isDraftLoaded]);
+
   /**
    * Auto-extract job details on mount
    */
@@ -93,7 +125,9 @@ const App: React.FC = () => {
               if (response && response.data) {
                 setData((prevData) => ({
                   ...prevData,
-                  ...response.data,
+                  ...Object.fromEntries(
+                    Object.entries(response.data).filter(([, value]) => Boolean(value)),
+                  ),
                 }));
               }
             }
@@ -172,23 +206,8 @@ const App: React.FC = () => {
         const user = await getCurrentUser();
         if (!user) return false;
 
-        // Detect industry if not set
-        const industry = queuedApp.industry ||
-          detectIndustry(queuedApp.jobTitle, queuedApp.jobDescription);
-
-        const { error } = await supabase.from('applications').insert({
-          user_id: user.id,
-          title: queuedApp.jobTitle,
-          company: queuedApp.companyName,
-          url: queuedApp.jobUrl,
-          description: queuedApp.jobDescription,
-          source: queuedApp.source || 'Extension',
-          industry,
-          status: 'Applied',
-          date_applied: new Date().toISOString().split('T')[0],
-        });
-
-        return !error;
+        const result = await captureJobToInbox(queuedApp, { captureSurface: 'popup_queue' });
+        return result.state !== 'error';
       } catch {
         return false;
       }
@@ -235,53 +254,33 @@ const App: React.FC = () => {
         const newSize = await getQueueSize();
         setQueueSize(newSize);
         setStatusMessage('Saved to queue (offline). Will sync when online.');
-        setData({
-          jobTitle: '',
-          companyName: '',
-          jobUrl: '',
-          jobDescription: '',
-          source: '',
-          industry: '',
-        });
         setIsLoading(false);
         return;
       }
 
-      // Save to Supabase
-      const { error } = await supabase.from('applications').insert({
-        user_id: user.id,
-        title: data.jobTitle,
-        company: data.companyName,
-        url: data.jobUrl || window.location.href,
-        description: data.jobDescription,
-        source: data.source || 'Extension',
-        industry,
-        status: 'Applied',
-        date_applied: new Date().toISOString().split('T')[0],
-      });
+      const result = await captureJobToInbox(
+        {
+          ...data,
+          industry,
+        },
+        { pageTitle: data.jobTitle, captureSurface: 'popup' },
+      );
 
-      if (error) {
-        console.error('Supabase error:', error);
-
-        // If save failed, add to queue
+      if (result.state === 'error') {
         await addToQueue({
           ...data,
           industry,
         });
         const newSize = await getQueueSize();
         setQueueSize(newSize);
-        setStatusMessage('Saved to queue. Will retry later.');
+        setStatusMessage(`${result.message} Saved to queue for retry.`);
       } else {
-        setStatusMessage('Application saved successfully!');
+        setStatusMessage(result.message);
         // Reset form after successful save
-        setData({
-          jobTitle: '',
-          companyName: '',
-          jobUrl: '',
-          jobDescription: '',
-          source: '',
-          industry: '',
-        });
+        setData(EMPTY_APPLICATION_DATA);
+        if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+          chrome.storage.local.remove(POPUP_DRAFT_KEY);
+        }
       }
     } catch (error) {
       console.error('Failed to save application:', error);
@@ -300,9 +299,7 @@ const App: React.FC = () => {
    * Open dashboard in new tab
    */
   const openDashboard = () => {
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('../../web/dist/index.html#/dashboard')
-    });
+    void openJataPath('/capture-inbox');
   };
 
   /**
@@ -320,7 +317,9 @@ const App: React.FC = () => {
             if (response && response.data) {
               setData((prevData) => ({
                 ...prevData,
-                ...response.data,
+                ...Object.fromEntries(
+                  Object.entries(response.data).filter(([, value]) => Boolean(value)),
+                ),
               }));
               setStatusMessage('Auto-filled from page!');
             } else {
@@ -351,7 +350,7 @@ const App: React.FC = () => {
         <div className="text-center py-8">
           <p className="text-gray-300 text-sm mb-4">Sign in to track applications</p>
           <button
-            onClick={() => chrome.tabs.create({ url: 'https://jata.app/signin' })}
+            onClick={() => void openJataPath('/signin')}
             className="bg-indigo-600 text-white rounded-md px-6 py-2.5 text-sm font-medium hover:bg-indigo-700 transition-colors duration-200"
           >
             Sign In
@@ -390,7 +389,7 @@ const App: React.FC = () => {
           onClick={openDashboard}
           className="text-sm text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
         >
-          Dashboard
+          Open in JATA
         </button>
       </div>
 
@@ -458,7 +457,7 @@ const App: React.FC = () => {
         disabled={!!isScraping || isLoading}
         className="w-full mt-6 bg-gray-800 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-700 disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
       >
-        {isLoading ? 'Saving' : 'Save to Dashboard'}
+        {isLoading ? 'Capturing' : 'Capture to JATA'}
       </button>
 
       <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-500">

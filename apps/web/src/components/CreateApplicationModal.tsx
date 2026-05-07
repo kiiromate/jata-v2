@@ -38,6 +38,50 @@ type ApplicationInsert = Database['public']['Tables']['applications']['Insert'];
 
 const getToday = () => new Date().toISOString().split('T')[0];
 
+const STATUS_OPTIONS: Array<{ value: ApplicationStatus; label: string }> = [
+  { value: 'Saved', label: 'Early Application' },
+  { value: 'Applying', label: 'Starting Application' },
+  { value: 'Applied', label: 'Applied' },
+  { value: 'Interview', label: 'Interview' },
+  { value: 'Offer', label: 'Offer' },
+  { value: 'Rejected', label: 'Rejected' },
+];
+
+const SOURCE_OPTIONS = [
+  { value: 'manual', label: 'Manual Entry' },
+  { value: 'capture_inbox', label: 'Capture Inbox' },
+  { value: 'browser_extension', label: 'Browser Extension' },
+  { value: 'pwa_share', label: 'PWA Share' },
+  { value: 'linkedin', label: 'LinkedIn' },
+  { value: 'indeed', label: 'Indeed' },
+  { value: 'greenhouse', label: 'Greenhouse' },
+  { value: 'lever', label: 'Lever' },
+  { value: 'workday', label: 'Workday' },
+  { value: 'wellfound', label: 'Wellfound' },
+  { value: 'company_website', label: 'Company Website' },
+  { value: 'referral', label: 'Referral' },
+  { value: 'email', label: 'Email' },
+  { value: 'other', label: 'Other' },
+];
+
+const INDUSTRY_OPTIONS = [
+  'Technology',
+  'Software / SaaS',
+  'AI / Data',
+  'Fintech',
+  'Health / Life Sciences',
+  'Climate / Sustainability',
+  'Agriculture / Food',
+  'Education',
+  'Consulting',
+  'Nonprofit / NGO',
+  'Government / Public Sector',
+  'Media / Communications',
+  'E-commerce / Retail',
+  'Manufacturing',
+  'Logistics / Supply Chain',
+];
+
 const CreateApplicationModal: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -49,7 +93,7 @@ const CreateApplicationModal: React.FC = () => {
     company: '',
     url: '',
     industry: '',
-    status: 'Applied',
+    status: 'Saved',
     source: 'manual',
   });
 
@@ -102,7 +146,7 @@ const CreateApplicationModal: React.FC = () => {
       company: '',
       url: '',
       industry: '',
-      status: 'Applied',
+      status: 'Saved',
       source: 'manual',
     });
     closeModal();
@@ -188,10 +232,11 @@ const CreateApplicationModal: React.FC = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Applied">Applied</SelectItem>
-                  <SelectItem value="Interview">Interview</SelectItem>
-                  <SelectItem value="Offer">Offer</SelectItem>
-                  <SelectItem value="Rejected">Rejected</SelectItem>
+                  {STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -206,12 +251,11 @@ const CreateApplicationModal: React.FC = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="manual">Manual Entry</SelectItem>
-                  <SelectItem value="linkedin">LinkedIn</SelectItem>
-                  <SelectItem value="indeed">Indeed</SelectItem>
-                  <SelectItem value="company_website">Company Website</SelectItem>
-                  <SelectItem value="referral">Referral</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  {SOURCE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -221,10 +265,16 @@ const CreateApplicationModal: React.FC = () => {
             <Label htmlFor="industry">Industry</Label>
             <Input
               id="industry"
+              list="application-industry-options"
               value={formData.industry}
               onChange={(e) => handleChange('industry', e.target.value)}
               placeholder="Technology"
             />
+            <datalist id="application-industry-options">
+              {INDUSTRY_OPTIONS.map((industry) => (
+                <option key={industry} value={industry} />
+              ))}
+            </datalist>
           </div>
 
           <DialogFooter>

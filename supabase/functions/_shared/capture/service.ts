@@ -19,7 +19,7 @@ import type {
   UpdateCaptureInput,
 } from '../../../../packages/common/src/captureInbox.ts';
 
-type ApplicationStatus = 'Applied' | 'Interview' | 'Offer' | 'Rejected';
+type ApplicationStatus = 'Saved' | 'Applying' | 'Applied' | 'Interview' | 'Offer' | 'Rejected';
 
 export interface CaptureInboxApplicationRecord {
   id: string;
@@ -342,7 +342,7 @@ export function createCaptureInboxService(options: CaptureInboxServiceOptions) {
         user_id: input.userId,
         title,
         company,
-        status: 'Applied',
+        status: 'Saved',
         date_applied: dateOnly(now()),
         url,
         source: input.source,

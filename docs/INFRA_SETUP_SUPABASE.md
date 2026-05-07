@@ -119,6 +119,7 @@ Required for first launch if the corresponding UI stays enabled:
 
 Optional or currently not used directly by the web app:
 
+- `telegram-intake`, optional Wave 5 bridge for Telegram-forwarded opportunities
 - `applications-create`
 - `applications-read`
 - `applications-update`
@@ -153,6 +154,12 @@ JATA_AI_MONTHLY_LIMIT=300
 JATA_AI_MAX_JD_CHARS=12000
 JATA_AI_MAX_CV_CHARS=12000
 JATA_AI_MAX_PROFILE_CHARS=12000
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_SECRET=
+TELEGRAM_CAPTURE_USER_ID=
+TELEGRAM_DEV_MODE=false
+JATA_WEB_APP_URL=
+SITE_URL=
 ```
 
 Do not add real values to `.env.example`.
@@ -193,9 +200,16 @@ JATA_AI_MONTHLY_LIMIT=300
 JATA_AI_MAX_JD_CHARS=12000
 JATA_AI_MAX_CV_CHARS=12000
 JATA_AI_MAX_PROFILE_CHARS=12000
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_SECRET=
+TELEGRAM_CAPTURE_USER_ID=
+TELEGRAM_DEV_MODE=false
+JATA_WEB_APP_URL=
+SITE_URL=
 ```
 
 Use provider keys only in Supabase secrets, not in frontend hosting env unless the variable is intentionally public and starts with `VITE_`.
+Telegram values are optional Supabase Edge Function secrets. Do not configure them in frontend hosting env.
 
 ## Frontend/Migration Mismatches
 

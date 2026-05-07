@@ -144,7 +144,7 @@ describe('Capture Inbox service', () => {
     expect(records.get('capture-1')).toMatchObject({
       title: 'Product Manager',
       company: 'Acme',
-      status: 'Applied',
+      status: 'Saved',
       capture_source: 'browser_extension',
       capture_method: 'url',
       capture_status: 'inbox',

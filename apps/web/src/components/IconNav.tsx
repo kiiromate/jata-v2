@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BarChart2, FileText, Puzzle, LucideIcon } from 'lucide-react';
+import { LayoutDashboard, BarChart2, FileText, Inbox, Puzzle, LucideIcon } from 'lucide-react';
 import Tooltip from './Tooltip';
 import UserDropdown from './UserDropdown';
 import FeedbackButton from './FeedbackButton';
@@ -36,6 +36,14 @@ const IconNav = () => {
       icon: BarChart2,
       path: '/analytics',
       tooltip: 'Track your success metrics',
+      showLabel: true
+    },
+    {
+      id: 'capture-inbox',
+      label: 'Capture Inbox',
+      icon: Inbox,
+      path: '/capture-inbox',
+      tooltip: 'Review captured opportunities',
       showLabel: true
     },
     {

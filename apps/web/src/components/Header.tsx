@@ -8,6 +8,7 @@ import { ThemeToggle } from './ThemeToggle';
 const MOBILE_NAV_ITEMS = [
   { label: 'Dashboard', to: '/dashboard' },
   { label: 'Analytics', to: '/analytics' },
+  { label: 'Capture Inbox', to: '/capture-inbox' },
   { label: 'Cover Letters', to: '/cover-letter' },
   { label: 'Extension', to: '/install-extension' },
 ];

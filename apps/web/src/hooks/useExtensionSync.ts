@@ -20,6 +20,7 @@ export const useExtensionSync = () => {
             access_token: session.access_token,
             refresh_token: session.refresh_token,
             user: session.user,
+            expires_at: session.expires_at,
             expires_in: session.expires_in,
             token_type: session.token_type
           }

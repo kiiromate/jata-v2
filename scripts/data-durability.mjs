@@ -1,7 +1,39 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-export const APPLICATION_STATUSES = ['Applied', 'Interview', 'Offer', 'Rejected'];
+export const APPLICATION_STATUSES = [
+  'captured',
+  'scored',
+  'shortlisted',
+  'pack_ready',
+  'applied',
+  'follow_up_due',
+  'interviewing',
+  'rejected',
+  'closed',
+  'archived',
+];
+
+const LEGACY_STATUS_MAP = {
+  Saved: 'captured',
+  Applying: 'shortlisted',
+  Applied: 'applied',
+  Interview: 'interviewing',
+  Offer: 'closed',
+  Rejected: 'rejected',
+  saved: 'captured',
+  applying: 'shortlisted',
+  applied: 'applied',
+  interview: 'interviewing',
+  interviewing: 'interviewing',
+  offer: 'closed',
+  rejected: 'rejected',
+  inbox: 'captured',
+  ready: 'pack_ready',
+  shortlisted: 'shortlisted',
+  pack_pending: 'pack_ready',
+  archived: 'archived',
+};
 
 export const CAPTURE_STATUSES = ['inbox', 'processing', 'ready', 'shortlisted', 'pack_pending', 'archived'];
 
@@ -37,6 +69,68 @@ function csvValue(value) {
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
+function readObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function readString(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function dateOnly(value) {
+  if (!isPresent(value)) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+  return date.toISOString().slice(0, 10);
+}
+
+function weekStart(value) {
+  const date = new Date(value);
+  date.setUTCHours(0, 0, 0, 0);
+  const day = date.getUTCDay();
+  date.setUTCDate(date.getUTCDate() - (day === 0 ? 6 : day - 1));
+  return date;
+}
+
+function isResponseStatus(status) {
+  return ['interviewing', 'rejected', 'closed'].includes(status);
+}
+
+function sortMetricRows(rows) {
+  return rows.sort((a, b) => b.applications - a.applications || a.key.localeCompare(b.key));
+}
+
+function sortScoreBandRows(rows) {
+  const rank = new Map([
+    ['high', 0],
+    ['medium', 1],
+    ['low', 2],
+    ['unknown', 3],
+  ]);
+
+  return rows.sort((a, b) => (rank.get(a.key) ?? 99) - (rank.get(b.key) ?? 99) || a.key.localeCompare(b.key));
+}
+
+function metricRows(applications, keyFor) {
+  const groups = new Map();
+
+  for (const application of applications) {
+    const key = keyFor(application);
+    if (!isPresent(key)) continue;
+    const existing = groups.get(String(key)) ?? { key: String(key), applications: 0, responses: 0, response_rate: 0 };
+    existing.applications += 1;
+    if (isResponseStatus(normalizePipelineStatus(application.status, application.capture_status))) existing.responses += 1;
+    groups.set(existing.key, existing);
+  }
+
+  return sortMetricRows(
+    Array.from(groups.values()).map((row) => ({
+      ...row,
+      response_rate: row.applications === 0 ? 0 : Number((row.responses / row.applications).toFixed(2)),
+    })),
+  );
+}
+
 export function createCsv(rows, headers) {
   const content = [
     headers.join(','),
@@ -50,6 +144,90 @@ export function calculateScoreBand(score) {
   if (score >= 80) return 'high';
   if (score >= 60) return 'medium';
   return 'low';
+}
+
+export function normalizePipelineStatus(status, captureStatus) {
+  const rawStatus = isPresent(status) ? String(status).trim() : '';
+  const normalizedStatus = rawStatus.toLowerCase();
+  const rawCaptureStatus = isPresent(captureStatus) ? String(captureStatus).trim().toLowerCase() : '';
+  const captureMapped = LEGACY_STATUS_MAP[rawCaptureStatus];
+
+  if (captureMapped && (!rawStatus || normalizedStatus === 'saved' || normalizedStatus === 'applying')) {
+    return captureMapped;
+  }
+
+  if (APPLICATION_STATUSES.includes(normalizedStatus)) return normalizedStatus;
+  if (LEGACY_STATUS_MAP[rawStatus]) return LEGACY_STATUS_MAP[rawStatus];
+  if (LEGACY_STATUS_MAP[normalizedStatus]) return LEGACY_STATUS_MAP[normalizedStatus];
+
+  if (captureMapped) return captureMapped;
+
+  return 'captured';
+}
+
+export function getApplicationFollowUpDate(application) {
+  const direct = dateOnly(application.follow_up_date);
+  if (direct) return direct;
+
+  const parsedPayload = readObject(application.capture_parsed_payload);
+  return dateOnly(
+    readString(parsedPayload.followUpDate) ||
+      readString(parsedPayload.follow_up_date) ||
+      readString(parsedPayload.nextFollowUpDate),
+  );
+}
+
+export function buildPipelineQueues(applications, now = new Date().toISOString()) {
+  const today = dateOnly(now);
+  const startOfWeek = weekStart(now);
+  const rows = applications.map((application) => {
+    const status = normalizePipelineStatus(application.status, application.capture_status);
+    const followUpDate = getApplicationFollowUpDate(application);
+    const parsedPayload = readObject(application.capture_parsed_payload);
+    const appliedDate = readString(parsedPayload.appliedAt) || application.applied_at || application.date_applied || null;
+
+    return {
+      application_id: application.id,
+      title: application.title,
+      company: application.company,
+      status,
+      next_action: followUpDate ? 'Follow up' : null,
+      follow_up_date: followUpDate,
+      applied_at: application.applied_at ?? readString(parsedPayload.appliedAt),
+      date_applied: application.date_applied ?? null,
+      source: application.source ?? application.capture_source ?? null,
+      score_band: calculateScoreBand(application.jata_score),
+      jata_score: application.jata_score ?? null,
+      updated_at: application.updated_at ?? null,
+      is_overdue: Boolean(followUpDate && today && followUpDate < today),
+      is_due_today: Boolean(followUpDate && today && followUpDate === today),
+      applied_week_date: appliedDate,
+    };
+  });
+
+  return {
+    dueToday: rows.filter((row) => row.is_due_today),
+    overdue: rows.filter((row) => row.is_overdue),
+    appliedThisWeek: rows.filter((row) => {
+      if (!isPresent(row.applied_week_date)) return false;
+      const applied = new Date(row.applied_week_date);
+      return !Number.isNaN(applied.getTime()) && applied >= startOfWeek;
+    }),
+    highScoreWaiting: rows.filter(
+      (row) =>
+        row.score_band === 'high' &&
+        ['scored', 'shortlisted', 'pack_ready', 'applied', 'follow_up_due'].includes(row.status),
+    ),
+    packsReady: rows.filter((row) => row.status === 'pack_ready'),
+  };
+}
+
+export function buildPipelineAnalytics(applications) {
+  return {
+    bySource: metricRows(applications, (application) => application.source ?? application.capture_source ?? 'unknown'),
+    byBand: sortScoreBandRows(metricRows(applications, (application) => calculateScoreBand(application.jata_score))),
+    byIndustry: metricRows(applications, (application) => application.industry ?? null),
+  };
 }
 
 export function sanitizeResume(resume) {
@@ -104,9 +282,11 @@ export function buildPipelineRows(applications) {
     application_id: application.id,
     title: application.title,
     company: application.company,
-    status: application.status,
+    status: normalizePipelineStatus(application.status, application.capture_status),
     capture_status: application.capture_status ?? null,
+    follow_up_date: getApplicationFollowUpDate(application),
     date_applied: application.date_applied ?? null,
+    applied_at: application.applied_at ?? readString(readObject(application.capture_parsed_payload).appliedAt),
     promoted_at: application.promoted_at ?? null,
     pack_requested_at: application.pack_requested_at ?? null,
     archived_at: application.archived_at ?? null,
@@ -151,18 +331,22 @@ export function buildActionLogs(applications) {
 export function buildFollowUpRows(applications) {
   return applications
     .filter((application) =>
-      ['Interview', 'Offer'].includes(application.status) ||
+      isPresent(getApplicationFollowUpDate(application)) ||
+      ['follow_up_due', 'interviewing'].includes(normalizePipelineStatus(application.status, application.capture_status)) ||
       ['ready', 'shortlisted', 'pack_pending'].includes(application.capture_status),
     )
     .map((application) => ({
       application_id: application.id,
       title: application.title,
       company: application.company,
-      status: application.status,
+      status: normalizePipelineStatus(application.status, application.capture_status),
       capture_status: application.capture_status ?? null,
+      follow_up_date: getApplicationFollowUpDate(application),
       url: application.url ?? null,
-      reason: application.status === 'Interview' || application.status === 'Offer'
-        ? `Pipeline status: ${application.status}`
+      reason: isPresent(getApplicationFollowUpDate(application))
+        ? `Follow-up date: ${getApplicationFollowUpDate(application)}`
+        : ['follow_up_due', 'interviewing'].includes(normalizePipelineStatus(application.status, application.capture_status))
+        ? `Pipeline status: ${normalizePipelineStatus(application.status, application.capture_status)}`
         : `Capture status: ${application.capture_status}`,
       updated_at: application.updated_at ?? null,
     }));
@@ -194,6 +378,8 @@ export function buildExportBundle({
   const captureInbox = buildCaptureInboxRows(safeApplications);
   const scoresAndBands = buildScoresAndBands(safeApplications);
   const pipeline = buildPipelineRows(safeApplications);
+  const pipelineQueues = buildPipelineQueues(safeApplications, exportedAt);
+  const pipelineAnalytics = buildPipelineAnalytics(safeApplications);
   const actionLogs = buildActionLogs(safeApplications);
   const followUps = buildFollowUpRows(safeApplications);
   const resumeMetadata = resumes.map(sanitizeResume);
@@ -222,6 +408,8 @@ export function buildExportBundle({
     captureInbox,
     scoresAndBands,
     pipeline,
+    pipelineQueues,
+    pipelineAnalytics,
     actionLogs,
     followUps,
     resumeMetadata,
@@ -247,7 +435,11 @@ export function findIntegrityIssues({ applications, generatedPackMetadata = [] }
       issues.push({ code: 'missing_title_or_company', table: 'applications', id: application.id });
     }
 
-    if (!APPLICATION_STATUSES.includes(application.status)) {
+    const normalizedStatus = normalizePipelineStatus(application.status, application.capture_status);
+    const rawStatus = isPresent(application.status) ? String(application.status).trim() : '';
+    const isKnownLegacyStatus = Boolean(LEGACY_STATUS_MAP[rawStatus] || LEGACY_STATUS_MAP[rawStatus.toLowerCase()]);
+
+    if (!APPLICATION_STATUSES.includes(normalizedStatus) || (!APPLICATION_STATUSES.includes(rawStatus) && !isKnownLegacyStatus)) {
       issues.push({
         code: 'invalid_status',
         table: 'applications',
@@ -265,6 +457,20 @@ export function findIntegrityIssues({ applications, generatedPackMetadata = [] }
 
     if (hasCaptureMetadata && !isPresent(application.capture_status)) {
       issues.push({ code: 'capture_without_capture_status', table: 'applications', id: application.id });
+    }
+
+    const followUpDate = getApplicationFollowUpDate(application);
+    if (normalizedStatus === 'follow_up_due' && !isPresent(followUpDate)) {
+      issues.push({ code: 'follow_up_due_without_date', table: 'applications', id: application.id });
+    }
+
+    if (isPresent(followUpDate) && Number.isNaN(new Date(followUpDate).getTime())) {
+      issues.push({
+        code: 'invalid_follow_up_date',
+        table: 'applications',
+        id: application.id,
+        value: followUpDate,
+      });
     }
 
   }
@@ -371,6 +577,8 @@ export async function writeExportFiles(exportDir, bundle) {
       'company',
       'status',
       'date_applied',
+      'applied_at',
+      'follow_up_date',
       'url',
       'source',
       'industry',
@@ -399,7 +607,9 @@ export async function writeExportFiles(exportDir, bundle) {
       'company',
       'status',
       'capture_status',
+      'follow_up_date',
       'date_applied',
+      'applied_at',
       'promoted_at',
       'pack_requested_at',
       'archived_at',
@@ -411,6 +621,7 @@ export async function writeExportFiles(exportDir, bundle) {
       'company',
       'status',
       'capture_status',
+      'follow_up_date',
       'url',
       'reason',
       'updated_at',

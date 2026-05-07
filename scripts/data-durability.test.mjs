@@ -3,9 +3,11 @@ import { describe, it } from 'node:test';
 
 import {
   buildExportBundle,
+  buildPipelineQueues,
   calculateScoreBand,
   createCsv,
   findIntegrityIssues,
+  normalizePipelineStatus,
   sanitizeAiOutput,
   sanitizeResume,
 } from './data-durability.mjs';
@@ -90,9 +92,16 @@ describe('data durability helpers', () => {
   it('reports integrity issues for missing required fields and duplicate source URLs', () => {
     const issues = findIntegrityIssues({
       applications: [
-        { id: 'app-1', user_id: '', title: 'Role', company: 'Acme', status: 'Applied', url: 'https://example.com/a' },
+        { id: 'app-1', user_id: '', title: 'Role', company: 'Acme', status: 'applied', url: 'https://example.com/a' },
         { id: 'app-2', user_id: 'user-1', title: '', company: 'Acme', status: 'Bad', url: 'https://example.com/a' },
         { id: 'app-3', user_id: 'user-1', title: 'Capture', company: 'Acme', status: 'Applied', capture_source: 'web' },
+        {
+          id: 'app-4',
+          user_id: 'user-1',
+          title: 'Follow',
+          company: 'Acme',
+          status: 'follow_up_due',
+        },
       ],
       generatedPackMetadata: [{ application_id: null, has_final_resume_text: true }],
     });
@@ -104,10 +113,46 @@ describe('data durability helpers', () => {
         'missing_title_or_company',
         'invalid_status',
         'capture_without_capture_status',
+        'follow_up_due_without_date',
         'duplicate_source_url',
         'pack_without_application_reference',
       ],
     );
+  });
+
+  it('normalizes legacy and canonical statuses for pipeline queues', () => {
+    assert.equal(normalizePipelineStatus('Saved'), 'captured');
+    assert.equal(normalizePipelineStatus('Applying'), 'shortlisted');
+    assert.equal(normalizePipelineStatus('pack_ready'), 'pack_ready');
+    assert.equal(normalizePipelineStatus('Offer'), 'closed');
+
+    const queues = buildPipelineQueues(
+      [
+        {
+          id: 'app-1',
+          title: 'Role',
+          company: 'Acme',
+          status: 'Applied',
+          date_applied: '2026-05-06',
+          capture_parsed_payload: { followUpDate: '2026-05-07' },
+          jata_score: 91,
+        },
+        {
+          id: 'app-2',
+          title: 'Pack',
+          company: 'Example',
+          status: 'Applying',
+          capture_status: 'pack_pending',
+          jata_score: 88,
+        },
+      ],
+      '2026-05-07T12:00:00Z',
+    );
+
+    assert.equal(queues.dueToday.length, 1);
+    assert.equal(queues.appliedThisWeek.length, 1);
+    assert.equal(queues.highScoreWaiting.length, 2);
+    assert.equal(queues.packsReady.length, 1);
   });
 
   it('classifies scores into durable bands', () => {

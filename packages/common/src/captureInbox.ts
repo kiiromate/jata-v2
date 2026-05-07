@@ -5,6 +5,7 @@ export type { Json } from '../types/database.ts';
 export const CaptureSources = [
   'web',
   'browser_extension',
+  'pwa_share',
   'mobile_share',
   'telegram',
   'manual',

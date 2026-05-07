@@ -14,8 +14,8 @@ const EmptyState: React.FC = () => (
       No captures yet
     </p>
     <p className="text-sm text-jata-text-secondary text-center max-w-sm">
-      Paste a job description above to capture manually. Browser extension, mobile share, and
-      Telegram bot capture are coming soon.
+      Paste a job description above or capture from the browser extension. PWA share and
+      optional Telegram intake use this same inbox.
     </p>
   </div>
 );
@@ -38,13 +38,18 @@ const CaptureInboxPage: React.FC = () => {
   const isEmpty = !isLoading && !isError && (!captures || captures.length === 0);
 
   return (
-    <div className="p-sm sm:p-md lg:p-lg space-y-6">
+    <div className="p-sm sm:p-md lg:p-lg space-y-6 min-w-0">
       <div>
         <h1 className="text-2xl font-headline font-semibold text-jata-text-primary">
           Capture Inbox
         </h1>
         <p className="font-mono text-[10px] uppercase tracking-widest text-jata-text-muted mt-1">
           Jobs captured for review and triage
+        </p>
+        <p className="mt-2 max-w-2xl text-sm text-jata-text-secondary">
+          Captures from manual entry, the browser extension, and future share flows land here first
+          as Saved opportunities. They also appear on the Dashboard, but stay in this queue until you
+          shortlist, request a pack, or archive them.
         </p>
       </div>
 

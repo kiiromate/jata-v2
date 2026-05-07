@@ -1,4 +1,3 @@
-"use strict";
 /**
  * @file JATA - Chrome Extension Background Script
  * @description This script handles message routing between different parts of the extension
@@ -12,6 +11,10 @@
  *
  * @param {chrome.runtime.InstalledDetails} details - Object containing details about the installation.
  */
+import { captureJobToInbox } from './lib/captureInboxClient';
+import { addToQueue } from './lib/offlineQueue';
+import { syncSessionFromWebApp } from './lib/supabaseClient';
+import { buildJataWebUrl, rememberJataWebOrigin } from './lib/webAppOrigin';
 chrome.runtime.onInstalled.addListener((details) => {
     console.log('JATA Extension installed:', details);
     // This is a good place to set up initial state in chrome.storage if needed.
@@ -33,6 +36,58 @@ chrome.runtime.onInstalled.addListener((details) => {
  * @returns {boolean} - Returns true to indicate that the response will be sent asynchronously.
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // Handle Auth Sync from Content Script
+    if (message.action === 'SYNC_SESSION' && message.session) {
+        console.log('Background: Received session sync');
+        Promise.all([
+            syncSessionFromWebApp(message.session),
+            rememberJataWebOrigin(message.webAppOrigin),
+        ])
+            .then(([synced]) => {
+            console.log('Background: Session sync complete:', synced);
+            sendResponse({ status: synced ? 'success' : 'error' });
+        })
+            .catch((error) => {
+            const messageText = error instanceof Error ? error.message : 'Session sync failed.';
+            console.error('Background: Session sync failed:', messageText);
+            sendResponse({ status: 'error', error: messageText });
+        });
+        return true; // Async response
+    }
+    if (message.action === 'CAPTURE_JOB_PAGE' && sender.tab) {
+        const details = message.data;
+        captureJobToInbox(details, {
+            pageTitle: message.pageTitle,
+            captureSurface: message.captureSurface || 'content_pill',
+        })
+            .then(async (result) => {
+            if (result.state === 'error' && !/sign in/i.test(result.message)) {
+                await addToQueue(details);
+                sendResponse({
+                    state: 'queued',
+                    message: `${result.message} Saved locally and will retry from the extension popup.`,
+                    openUrl: result.openUrl,
+                });
+                return;
+            }
+            sendResponse(result);
+        })
+            .catch((error) => {
+            const messageText = error instanceof Error ? error.message : 'Capture failed.';
+            Promise.all([buildJataWebUrl('/capture-inbox'), addToQueue(details)])
+                .then(([openUrl]) => sendResponse({
+                state: 'queued',
+                message: `${messageText} Saved locally and will retry from the extension popup.`,
+                openUrl,
+            }))
+                .catch(() => buildJataWebUrl('/capture-inbox').then((openUrl) => sendResponse({
+                state: 'error',
+                message: messageText,
+                openUrl,
+            })));
+        });
+        return true;
+    }
     // We only forward messages from other parts of the extension (like the popup),
     // not from content scripts, to avoid potential message loops.
     if (sender.tab) {

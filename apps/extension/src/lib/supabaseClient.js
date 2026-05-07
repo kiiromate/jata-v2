@@ -10,6 +10,13 @@ console.log('Supabase Client Initializing...');
 // These will be set during build time or loaded from chrome.storage
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+export const getSupabaseFunctionUrl = (functionName) => {
+    if (!SUPABASE_URL) {
+        throw new Error('VITE_SUPABASE_URL is not configured.');
+    }
+    return `${SUPABASE_URL.replace(/\/$/, '')}/functions/v1/${functionName}`;
+};
+export const getSupabaseAnonKey = () => SUPABASE_ANON_KEY;
 /**
  * The singleton Supabase client instance for the extension.
  *
@@ -19,6 +26,7 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
  */
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
+        storageKey: 'jata-session',
         // Use storage adapter for extension
         storage: {
             getItem: async (key) => {
@@ -66,6 +74,25 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         detectSessionInUrl: false,
     },
 });
+/**
+ * Hydrate the extension Supabase client from the web app session.
+ * Supabase owns the persisted storage format, so avoid writing raw session JSON
+ * directly to chrome.storage under the auth storage key.
+ */
+export const syncSessionFromWebApp = async (session) => {
+    if (!session.access_token || !session.refresh_token) {
+        return false;
+    }
+    const { data, error } = await supabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+    });
+    if (error) {
+        console.error('Error syncing web session to extension:', error);
+        return false;
+    }
+    return Boolean(data.session?.user);
+};
 /**
  * Get the current authenticated user
  */

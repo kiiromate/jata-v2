@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type ApplicationStatus = 'Applied' | 'Interview' | 'Offer' | 'Rejected'
+export type ApplicationStatus = 'Saved' | 'Applying' | 'Applied' | 'Interview' | 'Offer' | 'Rejected'
 
 export type Database = {
   public: {

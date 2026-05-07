@@ -11,6 +11,7 @@
   body {
     @apply bg-jata-deep-carbon text-jata-text-primary font-body;
     line-height: 1.5;
+    overflow-x: hidden;
   }
   
   p, li, td {

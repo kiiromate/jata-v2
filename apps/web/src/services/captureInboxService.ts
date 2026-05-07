@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { CaptureInboxItem, CaptureSource, CaptureStatus } from '@jata/common';
+import type { CaptureInboxItem, CaptureMethod, CaptureSource, CaptureStatus } from '@jata/common';
 import { getSupabaseFunctionUrl } from '@/lib/supabaseClient';
 
 export interface ListCapturesParams {
@@ -12,10 +12,14 @@ export interface ListCapturesParams {
 
 export interface CreateCaptureInput {
   userId: string;
+  source?: CaptureSource;
+  method?: CaptureMethod;
   title?: string | null;
   company?: string | null;
   url?: string | null;
   rawText?: string | null;
+  industry?: string | null;
+  sourceLabel?: string | null;
   metadata?: Record<string, string | undefined>;
 }
 
@@ -56,13 +60,26 @@ export async function createCapture(
   const { data, error } = await supabase.functions.invoke('capture-inbox', {
     body: {
       action: 'create',
-      source: 'manual',
-      method: 'manual',
+      source: input.source ?? 'manual',
+      method: input.method ?? 'manual',
       title: input.title ?? undefined,
       company: input.company ?? undefined,
       url: input.url ?? undefined,
       rawText: input.rawText ?? undefined,
+      industry: input.industry ?? undefined,
       metadata: input.metadata,
+      parsed: {
+        title: input.title ?? undefined,
+        company: input.company ?? undefined,
+        jobDescription: input.rawText ?? undefined,
+        industry: input.industry ?? undefined,
+        url: input.url ?? undefined,
+        metadata: {
+          ...input.metadata,
+          sourceLabel: input.sourceLabel ?? undefined,
+        },
+      },
+      parseStatus: input.rawText || input.title || input.company ? 'completed' : 'not_started',
     },
   });
   if (error) throw new Error(error.message);

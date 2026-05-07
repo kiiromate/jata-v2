@@ -1,12 +1,40 @@
 // @ts-nocheck
 import { z } from "zod";
 
-export const ApplicationStatus = z.enum([
+const DatabaseApplicationStatus = z.enum([
+  "Saved",
+  "Applying",
   "Applied",
   "Interview",
   "Offer",
   "Rejected",
 ]);
+
+const StatusToDatabase: Record<string, z.infer<typeof DatabaseApplicationStatus>> = {
+  saved: "Saved",
+  captured: "Saved",
+  scored: "Saved",
+  applying: "Applying",
+  shortlisted: "Applying",
+  pack_ready: "Applying",
+  applied: "Applied",
+  follow_up_due: "Applied",
+  interview: "Interview",
+  interviewing: "Interview",
+  offer: "Offer",
+  closed: "Offer",
+  rejected: "Rejected",
+  archived: "Rejected",
+};
+
+function normalizeStatusInput(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  const direct = DatabaseApplicationStatus.safeParse(value);
+  if (direct.success) return direct.data;
+  return StatusToDatabase[value.trim().toLowerCase()] ?? value;
+}
+
+export const ApplicationStatus = z.preprocess(normalizeStatusInput, DatabaseApplicationStatus);
 
 export type ApplicationStatus = z.infer<typeof ApplicationStatus>;
 
@@ -14,7 +42,7 @@ export const ApplicationSchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1, "Title is required"),
   company: z.string().min(1, "Company name is required"),
-  status: ApplicationStatus.default("Applied"),
+  status: ApplicationStatus.default("Saved"),
   date_applied: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
   url: z.string().url().or(z.literal("")).optional().nullable(),
   source: z.string().optional().nullable(),
