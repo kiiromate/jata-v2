@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -18,10 +18,8 @@ import {
 } from '@/components/ui/tooltip';
 
 interface SidebarProps {
-  isCollapsed: boolean;
+  isExpanded: boolean;
   onToggle: () => void;
-  mode: 'collapsed' | 'expanded' | 'hover';
-  onModeChange: (mode: 'collapsed' | 'expanded' | 'hover') => void;
 }
 
 interface NavItem {
@@ -43,34 +41,15 @@ const bottomNavItems: NavItem[] = [
   { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ 
-  isCollapsed, 
-  onToggle, 
-  mode, 
-  onModeChange 
+export const Sidebar: React.FC<SidebarProps> = ({
+  isExpanded,
+  onToggle
 }) => {
   const location = useLocation();
-  const [isHovered, setIsHovered] = useState(false);
-
-  // Determine effective state (collapsed or expanded) based on mode and hover
-  const isExpanded = mode === 'expanded' || (mode === 'hover' && isHovered);
-
-  // Handle mouse enter/leave for hover mode
-  const handleMouseEnter = () => {
-    if (mode === 'hover') {
-      setIsHovered(true);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (mode === 'hover') {
-      setIsHovered(false);
-    }
-  };
 
   const NavItemComponent = ({ item }: { item: NavItem }) => {
     const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
-    
+
     return (
       <TooltipProvider delayDuration={0}>
         <Tooltip>
@@ -78,20 +57,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <NavLink
               to={item.path}
               className={({ isActive }) => cn(
-                "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group relative",
-                isActive 
-                  ? "bg-jata-accent-lime/10 text-jata-accent-lime" 
-                  : "text-jata-text-secondary hover:bg-jata-graphite-mist hover:text-jata-text-primary"
+                "relative flex items-center gap-3 rounded-md border px-3 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-jata-accent-lime/70",
+                isActive
+                  ? "border-jata-accent-lime/60 bg-jata-accent-lime/15 text-jata-accent-lime shadow-[inset_3px_0_0_var(--jata-accent-lime)]"
+                  : "border-transparent text-jata-text-secondary hover:bg-jata-graphite-mist hover:text-jata-text-primary"
               )}
+              aria-label={item.label}
+              title={item.label}
             >
               <item.icon className={cn(
                 "w-5 h-5 min-w-[20px]",
-                isActive ? "text-jata-accent-lime" : "text-jata-text-secondary group-hover:text-jata-text-primary"
+                isActive ? "text-jata-accent-lime" : "text-current"
               )} />
-              
+
               <span className={cn(
-                "whitespace-nowrap overflow-hidden transition-all duration-200 font-medium",
-                isExpanded ? "opacity-100 w-auto translate-x-0" : "opacity-0 w-0 -translate-x-2 hidden"
+                "whitespace-nowrap overflow-hidden font-medium",
+                isExpanded ? "inline" : "sr-only"
               )}>
                 {item.label}
               </span>
@@ -103,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               )}
               
               {item.badge && !isExpanded && (
-                 <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-jata-accent-blue block" />
+                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-jata-accent-blue block" />
               )}
             </NavLink>
           </TooltipTrigger>
@@ -120,21 +101,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside
       className={cn(
-        "flex flex-col h-screen bg-jata-bg-surface border-r border-jata-border transition-all duration-200 z-30",
+        "flex flex-col h-screen bg-jata-bg-surface border-r border-jata-border z-30",
         isExpanded ? "w-[240px]" : "w-[60px]"
       )}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
     >
-      {/* Sidebar Toggle (Only visible in expanded or manually collapsed mode, not hover mode interaction) */}
       <div className={cn(
         "h-[48px] flex items-center border-b border-jata-border",
         isExpanded ? "justify-end px-4" : "justify-center"
       )}>
         <button
           onClick={onToggle}
-          className="p-1.5 rounded-md hover:bg-jata-graphite-mist text-jata-text-secondary transition-colors"
-          aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+          className="p-1.5 rounded-md text-jata-text-secondary hover:bg-jata-graphite-mist hover:text-jata-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-jata-accent-lime/70"
+          aria-label={isExpanded ? "Collapse navigation" : "Expand navigation"}
+          aria-expanded={isExpanded}
         >
           {isExpanded ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
         </button>
@@ -150,19 +129,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {bottomNavItems.map((item) => (
           <NavItemComponent key={item.id} item={item} />
         ))}
-        
-        {/* Mode Toggle (Hidden in collapsed state for simplicity, or could be an icon) */}
-        {isExpanded && (
-           <div className="mt-2 px-3 py-2 text-xs text-jata-text-muted flex items-center justify-between">
-              <span>Sidebar Mode</span>
-              <button 
-                onClick={() => onModeChange(mode === 'hover' ? 'collapsed' : 'hover')}
-                className="text-jata-accent-blue hover:underline"
-              >
-                {mode === 'hover' ? 'Hover' : 'Manual'}
-              </button>
-           </div>
-        )}
       </div>
     </aside>
   );

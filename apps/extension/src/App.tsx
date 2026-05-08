@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import { getCurrentUser, isAuthenticated } from './lib/supabaseClient';
 import { detectIndustry } from './lib/jobBoardDetector';
@@ -45,6 +45,27 @@ const EMPTY_APPLICATION_DATA: ApplicationData = {
 
 const POPUP_DRAFT_KEY = 'jata-popup-capture-draft';
 
+type AutoExtractResponse = {
+  data?: Partial<ApplicationData> | null;
+  error?: string;
+};
+
+const createEmptyApplicationData = (): ApplicationData => ({
+  ...EMPTY_APPLICATION_DATA,
+});
+
+const normalizeExtractedData = (extracted?: Partial<ApplicationData> | null): ApplicationData => ({
+  jobTitle: extracted?.jobTitle?.trim() || '',
+  companyName: extracted?.companyName?.trim() || '',
+  jobUrl: extracted?.jobUrl?.trim() || '',
+  jobDescription: extracted?.jobDescription?.trim() || '',
+  source: extracted?.source?.trim() || '',
+  industry: extracted?.industry?.trim() || '',
+});
+
+const hasCapturedContent = (nextData: ApplicationData): boolean =>
+  Boolean(nextData.jobTitle || nextData.companyName || nextData.jobUrl || nextData.jobDescription);
+
 /**
  * Main application component for the JATA Chrome Extension popup.
  * This component manages the UI for scraping job application data, sending scraping
@@ -52,14 +73,68 @@ const POPUP_DRAFT_KEY = 'jata-popup-capture-draft';
  * @returns {JSX.Element}
  */
 const App: React.FC = () => {
-  const [data, setData] = useState<ApplicationData>(EMPTY_APPLICATION_DATA);
+  const [data, setData] = useState<ApplicationData>(createEmptyApplicationData);
   const [isScraping, setIsScraping] = useState<ScrapingField>(null);
   const [statusMessage, setStatusMessage] = useState('');
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [queueSize, setQueueSize] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDraftLoaded, setIsDraftLoaded] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
+
+  const clearStoredDraft = useCallback(() => {
+    if (typeof chrome === 'undefined' || !chrome.storage?.local) return;
+    chrome.storage.local.remove(POPUP_DRAFT_KEY);
+  }, []);
+
+  const refreshFromCurrentPage = useCallback((showStatus = true) => {
+    setData(createEmptyApplicationData());
+    clearStoredDraft();
+
+    if (showStatus) {
+      setStatusMessage('Refreshing from current page...');
+    }
+
+    if (typeof chrome === 'undefined' || !chrome.tabs) {
+      setStatusMessage('Page refresh is only available inside the browser extension.');
+      return;
+    }
+
+    setIsExtracting(true);
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const activeTab = tabs[0];
+
+      if (!activeTab?.id) {
+        setIsExtracting(false);
+        setStatusMessage('No active page found.');
+        return;
+      }
+
+      chrome.tabs.sendMessage(
+        activeTab.id,
+        { action: 'autoExtract' },
+        (response: AutoExtractResponse | undefined) => {
+          setIsExtracting(false);
+
+          if (chrome.runtime.lastError) {
+            setStatusMessage('Could not read this page. Refresh the tab and try again.');
+            return;
+          }
+
+          const nextData = normalizeExtractedData(response?.data);
+          setData(nextData);
+
+          if (!hasCapturedContent(nextData)) {
+            setStatusMessage('No job content detected on this page. Pick fields manually if needed.');
+          } else if (nextData.jobTitle && nextData.jobDescription) {
+            setStatusMessage('Refreshed from current page.');
+          } else {
+            setStatusMessage('Refreshed partial data. Pick any missing fields before capture.');
+          }
+        },
+      );
+    });
+  }, [clearStoredDraft]);
 
   /**
    * Check authentication status on mount
@@ -85,57 +160,17 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (typeof chrome === 'undefined' || !chrome.storage?.local) {
-      setIsDraftLoaded(true);
-      return;
-    }
-
-    chrome.storage.local.get([POPUP_DRAFT_KEY], (result) => {
-      const draft = result[POPUP_DRAFT_KEY] as Partial<ApplicationData> | undefined;
-      if (draft && typeof draft === 'object') {
-        setData((prev) => ({
-          ...prev,
-          ...draft,
-        }));
-      }
-      setIsDraftLoaded(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!isDraftLoaded) return;
-    if (typeof chrome === 'undefined' || !chrome.storage?.local) return;
-
-    chrome.storage.local.set({ [POPUP_DRAFT_KEY]: data });
-  }, [data, isDraftLoaded]);
+    clearStoredDraft();
+  }, [clearStoredDraft]);
 
   /**
    * Auto-extract job details on mount
    */
   useEffect(() => {
     if (isLoggedIn && typeof chrome !== 'undefined' && chrome.tabs) {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        const activeTab = tabs[0];
-        if (activeTab && activeTab.id) {
-          // Send message to content script to extract data
-          chrome.tabs.sendMessage(
-            activeTab.id,
-            { action: 'autoExtract' },
-            (response) => {
-              if (response && response.data) {
-                setData((prevData) => ({
-                  ...prevData,
-                  ...Object.fromEntries(
-                    Object.entries(response.data).filter(([, value]) => Boolean(value)),
-                  ),
-                }));
-              }
-            }
-          );
-        }
-      });
+      refreshFromCurrentPage(false);
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, refreshFromCurrentPage]);
 
   /**
    * Handles incoming messages from the content script, specifically for when
@@ -279,7 +314,7 @@ const App: React.FC = () => {
         // Reset form after successful save
         setData(EMPTY_APPLICATION_DATA);
         if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-          chrome.storage.local.remove(POPUP_DRAFT_KEY);
+          clearStoredDraft();
         }
       }
     } catch (error) {
@@ -303,32 +338,10 @@ const App: React.FC = () => {
   };
 
   /**
-   * Auto-fill with detected data
+   * Refresh with detected data from the active page.
    */
   const handleAutoFill = async () => {
-    setStatusMessage('Auto-detecting job details...');
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const activeTab = tabs[0];
-      if (activeTab && activeTab.id) {
-        chrome.tabs.sendMessage(
-          activeTab.id,
-          { action: 'autoExtract' },
-          (response) => {
-            if (response && response.data) {
-              setData((prevData) => ({
-                ...prevData,
-                ...Object.fromEntries(
-                  Object.entries(response.data).filter(([, value]) => Boolean(value)),
-                ),
-              }));
-              setStatusMessage('Auto-filled from page!');
-            } else {
-              setStatusMessage('Could not auto-detect. Try manual selection.');
-            }
-          }
-        );
-      }
-    });
+    refreshFromCurrentPage(true);
   };
 
   // Show loading state while checking auth
@@ -375,10 +388,10 @@ const App: React.FC = () => {
   };
 
   const fieldPlaceholders: Record<string, string> = {
-    jobTitle: 'Software Engineer',
-    companyName: 'Company name',
-    jobUrl: 'https://...',
-    jobDescription: 'Job description text',
+    jobTitle: '',
+    companyName: '',
+    jobUrl: '',
+    jobDescription: '',
   };
 
   return (
@@ -406,10 +419,10 @@ const App: React.FC = () => {
 
       <button
         onClick={handleAutoFill}
-        disabled={isLoading || !!isScraping}
+        disabled={isLoading || isExtracting || !!isScraping}
         className="w-full mb-4 bg-indigo-600 text-white rounded-md py-2 text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors duration-200"
       >
-        Extract from Page
+        {isExtracting ? 'Refreshing...' : 'Refresh from Page'}
       </button>
 
       <div className="space-y-3">
@@ -442,7 +455,7 @@ const App: React.FC = () => {
               )}
               <button
                 onClick={() => handleSelect(key)}
-                disabled={!!isScraping || isLoading}
+                disabled={!!isScraping || isLoading || isExtracting}
                 className="px-3 py-2 bg-gray-700 text-white rounded-md text-xs font-medium hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors duration-200 whitespace-nowrap"
               >
                 Pick
@@ -454,7 +467,7 @@ const App: React.FC = () => {
 
       <button
         onClick={handleSave}
-        disabled={!!isScraping || isLoading}
+        disabled={!!isScraping || isLoading || isExtracting}
         className="w-full mt-6 bg-gray-800 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-700 disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
       >
         {isLoading ? 'Capturing' : 'Capture to JATA'}
