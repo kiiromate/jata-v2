@@ -20,11 +20,22 @@ function normalizeOrigin(value: string | undefined): string | null {
   }
 }
 
+export function isTrustedVercelPreviewOrigin(origin: string): boolean {
+  try {
+    const parsed = new URL(origin);
+    return parsed.protocol === 'https:' &&
+      parsed.hostname.endsWith('.vercel.app') &&
+      parsed.hostname.startsWith('jata-');
+  } catch {
+    return false;
+  }
+}
+
 export function isTrustedJataWebOrigin(origin: string | undefined): boolean {
   const normalized = normalizeOrigin(origin);
   if (!normalized) return false;
 
-  return TRUSTED_STATIC_ORIGINS.has(normalized) || normalized.endsWith('.vercel.app');
+  return TRUSTED_STATIC_ORIGINS.has(normalized) || isTrustedVercelPreviewOrigin(normalized);
 }
 
 function getConfiguredOrigin(): string | null {

@@ -41,8 +41,8 @@ serve(async (req: Request): Promise<Response> => {
       .single()
 
     if (error) {
-      console.error(error)
-      return new Response(JSON.stringify({ error: error.message }), {
+      console.error('Resume create database error:', error.message)
+      return new Response(JSON.stringify({ error: 'Failed to save resume data' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       })
@@ -54,8 +54,8 @@ serve(async (req: Request): Promise<Response> => {
     })
   } catch (e) {
     const error = e as Error;
-    console.error(error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('Resume create unhandled error:', error.message);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })

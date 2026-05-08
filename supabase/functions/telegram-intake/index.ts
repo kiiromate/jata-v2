@@ -126,7 +126,12 @@ serve(async (req: Request): Promise<Response> => {
     return jsonResponse({ ok: true, status, captureId: item.id, reply }, 201);
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'Unknown capture failure';
-    const reply = mapCaptureResultToTelegramReply({ status: 'failed', reason, inboxUrl });
+    console.error('Telegram capture error:', reason);
+    const reply = mapCaptureResultToTelegramReply({
+      status: 'failed',
+      reason: 'Capture failed. Check server logs.',
+      inboxUrl,
+    });
     await sendTelegramReply(parsed.payload.chatId, reply);
     return jsonResponse({ ok: false, status: 'failed', reply }, 500);
   }

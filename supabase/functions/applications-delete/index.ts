@@ -36,8 +36,8 @@ serve(async (req: Request): Promise<Response> => {
       .eq('user_id', userId)
 
     if (error) {
-      console.error('Database error:', error)
-      return new Response(JSON.stringify({ error: 'Failed to delete application', details: error.message }), {
+      console.error('Database error:', error.message)
+      return new Response(JSON.stringify({ error: 'Failed to delete application' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       })
@@ -49,9 +49,8 @@ serve(async (req: Request): Promise<Response> => {
     })
   } catch (e) {
     const error = e as Error;
-    const errorMessage = error.message || 'An unknown error occurred';
-    console.error('Unexpected error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error', details: errorMessage }), {
+    console.error('Unexpected error:', error.message);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })

@@ -4,10 +4,10 @@ import { createSupabaseClient, getUserId } from '../_shared/db.ts'
 import { z } from 'zod'
 
 const SaveAnalysisSchema = z.object({
-  applicationId: z.string(),
+  applicationId: z.string().uuid(),
   jataScore: z.number(),
   finalResumeText: z.string(),
-  selectedResumeId: z.string(),
+  selectedResumeId: z.string().uuid(),
 })
 
 serve(async (req: Request): Promise<Response> => {
@@ -46,12 +46,13 @@ serve(async (req: Request): Promise<Response> => {
     const { data: existingApplication, error: fetchError } =
       await supabaseClient
         .from('applications')
-        .select('user_id')
+        .select('id,user_id')
         .eq('id', applicationId)
-        .single()
+        .eq('user_id', userId)
+        .maybeSingle()
 
     if (fetchError) {
-      console.error('Error fetching application:', fetchError)
+      console.error('Error fetching application:', fetchError.message)
       return new Response(
         JSON.stringify({ error: 'Error fetching application' }),
         {
@@ -68,10 +69,29 @@ serve(async (req: Request): Promise<Response> => {
       })
     }
 
-    if (existingApplication.user_id !== userId) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+    const { data: selectedResume, error: resumeFetchError } =
+      await supabaseClient
+        .from('resumes')
+        .select('id')
+        .eq('id', selectedResumeId)
+        .eq('user_id', userId)
+        .maybeSingle()
+
+    if (resumeFetchError) {
+      console.error('Error fetching resume:', resumeFetchError.message)
+      return new Response(
+        JSON.stringify({ error: 'Error fetching resume' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      )
+    }
+
+    if (!selectedResume) {
+      return new Response(JSON.stringify({ error: 'Resume not found' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 403,
+        status: 404,
       })
     }
 
@@ -85,11 +105,12 @@ serve(async (req: Request): Promise<Response> => {
           selected_resume_id: selectedResumeId,
         })
         .eq('id', applicationId)
+        .eq('user_id', userId)
         .select()
         .single()
 
     if (updateError) {
-      console.error('Error updating application:', updateError)
+      console.error('Error updating application:', updateError.message)
       return new Response(
         JSON.stringify({ error: 'Error updating application' }),
         {
@@ -105,8 +126,8 @@ serve(async (req: Request): Promise<Response> => {
     })
   } catch (e) {
     const error = e as Error
-    console.error('Unhandled error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('Unhandled error:', error.message)
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })

@@ -18,11 +18,22 @@ function normalizeOrigin(value) {
         return null;
     }
 }
+export function isTrustedVercelPreviewOrigin(origin) {
+    try {
+        const parsed = new URL(origin);
+        return parsed.protocol === 'https:' &&
+            parsed.hostname.endsWith('.vercel.app') &&
+            parsed.hostname.startsWith('jata-');
+    }
+    catch {
+        return false;
+    }
+}
 export function isTrustedJataWebOrigin(origin) {
     const normalized = normalizeOrigin(origin);
     if (!normalized)
         return false;
-    return TRUSTED_STATIC_ORIGINS.has(normalized) || normalized.endsWith('.vercel.app');
+    return TRUSTED_STATIC_ORIGINS.has(normalized) || isTrustedVercelPreviewOrigin(normalized);
 }
 function getConfiguredOrigin() {
     const configured = normalizeOrigin(import.meta.env.VITE_JATA_WEB_URL);

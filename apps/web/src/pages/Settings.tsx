@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { getSupabaseFunctionUrl, supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 import { GoogleDriveService } from '../services/googleDriveService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -217,17 +217,14 @@ const Settings = () => {
     if (confirmText !== 'DELETE') return;
     try {
       setDeleting(true);
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-      const functionUrl = `${supabaseUrl}/functions/v1/delete-user`;
-
-      // Call an Edge Function with service role to delete the user securely
-      const res = await fetch(functionUrl, {
+      // The Edge Function derives the deletion target from the verified JWT.
+      const res = await fetch(getSupabaseFunctionUrl('delete-user'), {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ user_id: session.user.id }),
+        body: JSON.stringify({}),
       });
       if (!res.ok) {
         const txt = await res.text();

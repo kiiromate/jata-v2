@@ -147,7 +147,7 @@ describe('Application Create Handler', () => {
     await handler(req as Request, res, next);
 
     expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Database error', details: dbError.message });
+    expect(res.json).toHaveBeenCalledWith({ error: 'Failed to create application' });
   });
 
   it('should handle CORS preflight requests', async () => {

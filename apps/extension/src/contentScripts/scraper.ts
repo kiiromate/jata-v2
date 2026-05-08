@@ -607,23 +607,32 @@ chrome.runtime.onMessage.addListener((message: ScraperMessage, _sender, sendResp
   return true; // Keep message channel open for async response
 });
 
-/**
- * Listen for messages from the web app (Auth Sync)
- * The web app posts a message to window, we pick it up and forward to background
- */
-window.addEventListener('message', (event) => {
-  // Only accept messages from trusted origins (localhost or prod)
-  const trustedOrigins = [
+const trustedOrigins = new Set([
     'http://localhost:5173',
     'http://localhost:4173',
     'http://127.0.0.1:5173',
     'http://127.0.0.1:4173',
     'https://jata-app.vercel.app',
     'https://jata.app'
-  ];
-  
-  // Also check if origin matches a Vercel deployment pattern if needed
-  const isTrusted = trustedOrigins.includes(event.origin) || event.origin.endsWith('.vercel.app');
+]);
+
+function isTrustedVercelPreviewOrigin(origin: string): boolean {
+  try {
+    const parsed = new URL(origin);
+    return parsed.protocol === 'https:' &&
+      parsed.hostname.endsWith('.vercel.app') &&
+      parsed.hostname.startsWith('jata-');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Listen for messages from the web app (Auth Sync)
+ * The web app posts a message to window, we pick it up and forward to background
+ */
+window.addEventListener('message', (event) => {
+  const isTrusted = trustedOrigins.has(event.origin) || isTrustedVercelPreviewOrigin(event.origin);
 
   if (!isTrusted) return;
 

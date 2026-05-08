@@ -2,7 +2,7 @@
   "imports": {
     "std/": "https://deno.land/std@0.224.0/",
     "@mozilla/readability": "npm:@mozilla/readability@0.5.0",
-    "jsdom": "npm:jsdom@22.1.0",
+    "deno-dom": "https://deno.land/x/deno_dom@v0.1.47/deno-dom-wasm.ts",
     "jsonwebtoken": "https://esm.sh/jsonwebtoken@9.0.2",
     "mammoth": "npm:mammoth@1.6.0",
     "pdfjs-dist": "https://esm.sh/pdfjs-dist@3.4.120",

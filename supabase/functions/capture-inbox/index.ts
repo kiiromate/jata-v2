@@ -246,6 +246,9 @@ serve(async (req: Request): Promise<Response> => {
 
     const message = error instanceof Error ? error.message : 'Internal server error';
     console.error('Capture Inbox error:', message);
-    return jsonResponse({ error: message }, 500);
+    if (message === 'Capture not found') {
+      return jsonResponse({ error: message }, 404);
+    }
+    return jsonResponse({ error: 'Capture Inbox request failed' }, 500);
   }
 });

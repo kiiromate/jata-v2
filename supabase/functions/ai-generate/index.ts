@@ -110,6 +110,13 @@ function statusForError(error: Error): number {
   return 500;
 }
 
+function publicMessageForStatus(status: number): string {
+  if (status === 429) return 'AI usage limit reached.';
+  if (status === 402) return 'AI credits unavailable.';
+  if (status === 413) return 'AI input is too long.';
+  return 'AI generation failed.';
+}
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -164,10 +171,11 @@ serve(async (req: Request): Promise<Response> => {
     });
   } catch (e) {
     const error = e instanceof Error ? e : new Error('Internal server error');
+    const status = statusForError(error);
     console.error('AI generation error:', error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: publicMessageForStatus(status) }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: statusForError(error),
+      status,
     });
   }
 });

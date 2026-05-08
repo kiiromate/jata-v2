@@ -6,19 +6,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-function readUserId(body: unknown): string | null {
-  if (!body || typeof body !== 'object' || !('user_id' in body)) {
-    return null
-  }
-
-  const userId = (body as { user_id?: unknown }).user_id
-  return typeof userId === 'string' ? userId : null
-}
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      {
+        status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    )
   }
 
   try {
@@ -60,36 +61,14 @@ serve(async (req) => {
       )
     }
 
-    // Parse request body
-    const user_id = readUserId(await req.json())
-
-    if (!user_id) {
-      return new Response(
-        JSON.stringify({ error: 'Missing user_id' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    // Verify that the authenticated user is trying to delete their own account
-    if (user.id !== user_id) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized: Cannot delete another user\'s account' }),
-        { 
-          status: 403, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
+    const targetUserId = user.id
 
     // Start a transaction to delete all user data
     // Delete user's applications first (due to foreign key constraints)
     const { error: appsError } = await supabaseAdmin
       .from('applications')
       .delete()
-      .eq('user_id', user_id)
+      .eq('user_id', targetUserId)
 
     if (appsError) {
       console.error('Error deleting applications:', appsError)
@@ -106,7 +85,7 @@ serve(async (req) => {
     const { error: resumesError } = await supabaseAdmin
       .from('resumes')
       .delete()
-      .eq('user_id', user_id)
+      .eq('user_id', targetUserId)
 
     if (resumesError) {
       console.error('Error deleting resumes:', resumesError)
@@ -123,7 +102,7 @@ serve(async (req) => {
     const { error: profileError } = await supabaseAdmin
       .from('users')
       .delete()
-      .eq('id', user_id)
+      .eq('id', targetUserId)
 
     if (profileError) {
       console.error('Error deleting user profile:', profileError)
@@ -137,7 +116,7 @@ serve(async (req) => {
     }
 
     // Delete the user from auth.users (this cascades to auth.identities)
-    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id)
+    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(targetUserId)
 
     if (authDeleteError) {
       console.error('Error deleting auth user:', authDeleteError)
@@ -152,16 +131,27 @@ serve(async (req) => {
 
     // Delete user's avatar from storage if it exists
     try {
-      const { error: storageError } = await supabaseAdmin.storage
+      const { data: avatarFiles, error: listError } = await supabaseAdmin.storage
         .from('avatars')
-        .remove([`${user_id}.jpg`, `${user_id}.png`, `${user_id}.jpeg`, `${user_id}.webp`])
+        .list(targetUserId)
+
+      if (listError) {
+        console.warn('Error listing avatar files:', listError.message)
+      }
+
+      const avatarPaths = (avatarFiles ?? []).map((file) => `${targetUserId}/${file.name}`)
+      const { error: storageError } = avatarPaths.length
+        ? await supabaseAdmin.storage
+        .from('avatars')
+            .remove(avatarPaths)
+        : { error: null }
       
       // Storage errors are not critical, log but don't fail the request
       if (storageError) {
-        console.warn('Error deleting avatar files:', storageError)
+        console.warn('Error deleting avatar files:', storageError.message)
       }
     } catch (storageErr) {
-      console.warn('Storage cleanup error:', storageErr)
+      console.warn('Storage cleanup error:', storageErr instanceof Error ? storageErr.message : 'Unknown storage error')
     }
 
     return new Response(
