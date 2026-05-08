@@ -285,6 +285,10 @@ const getSourceFromUrl = (url) => {
         return 'Lever';
     if (/myworkdayjobs\.com/i.test(url))
         return 'Workday';
+    if (/smartrecruiters\.com/i.test(url))
+        return 'SmartRecruiters';
+    if (/ashbyhq\.com|jobs\.ashby\.io/i.test(url))
+        return 'Ashby';
     if (/ziprecruiter\.com/i.test(url))
         return 'ZipRecruiter';
     if (/wellfound\.com/i.test(url))
@@ -441,10 +445,18 @@ function isLikelyOpportunityPage() {
 }
 function isJataAppPage() {
     const { hostname } = window.location;
-    return (hostname === 'localhost' ||
+    if (hostname === 'localhost' ||
         hostname === '127.0.0.1' ||
         hostname === 'jata.app' ||
-        hostname === 'jata-app.vercel.app');
+        hostname === 'jata-app.vercel.app')
+        return true;
+    // Block capture pill on any JATA Vercel preview deploy (jata-*.vercel.app)
+    try {
+        return hostname.endsWith('.vercel.app') && hostname.startsWith('jata-');
+    }
+    catch {
+        return false;
+    }
 }
 function setPillState(pill, state, message) {
     const labels = {

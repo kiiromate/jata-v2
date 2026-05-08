@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabaseClient';
 import { listCaptures } from '@/services/captureInboxService';
 import { QuickCaptureForm } from '@/components/capture/QuickCaptureForm';
+import { BulkLinkCapture } from '@/components/capture/BulkLinkCapture';
 import { CaptureQueueTable } from '@/components/capture/CaptureQueueTable';
 
 const EmptyState: React.FC = () => (
@@ -54,6 +55,8 @@ const CaptureInboxPage: React.FC = () => {
       </div>
 
       <QuickCaptureForm userId={userId} />
+
+      <BulkLinkCapture userId={userId} />
 
       <div className="flex items-center justify-between">
         <span className="font-mono text-[10px] uppercase tracking-widest text-jata-text-muted">

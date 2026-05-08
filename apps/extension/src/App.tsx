@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './App.css';
 import { getCurrentUser, isAuthenticated } from './lib/supabaseClient';
 import { detectIndustry } from './lib/jobBoardDetector';
 import { addToQueue, getQueueSize, processQueue, isOnline } from './lib/offlineQueue';
 import { captureJobToInbox } from './lib/captureInboxClient';
 import { openJataPath } from './lib/webAppOrigin';
+import { computeCaptureConfidence } from './lib/captureConfidence';
 
 /**
  * @type ApplicationData
@@ -81,6 +82,17 @@ const App: React.FC = () => {
   const [queueSize, setQueueSize] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
+
+  const confidence = useMemo(() => {
+    if (!hasCapturedContent(data)) return null;
+    return computeCaptureConfidence({
+      title: data.jobTitle,
+      company: data.companyName,
+      jobUrl: data.jobUrl,
+      description: data.jobDescription,
+      source: data.source,
+    });
+  }, [data]);
 
   const clearStoredDraft = useCallback(() => {
     if (typeof chrome === 'undefined' || !chrome.storage?.local) return;
@@ -415,6 +427,28 @@ const App: React.FC = () => {
 
       {statusMessage && (
         <p className="text-center text-amber-400 mb-4 text-xs">{statusMessage}</p>
+      )}
+
+      {confidence && (
+        <div className={`mb-3 rounded px-2.5 py-1.5 text-[11px] flex flex-col gap-0.5 ${
+          confidence.confidenceLabel === 'strong'
+            ? 'bg-green-900/60 text-green-300'
+            : confidence.confidenceLabel === 'review_recommended'
+            ? 'bg-amber-900/60 text-amber-300'
+            : 'bg-red-900/60 text-red-300'
+        }`}>
+          <span>
+            {confidence.confidenceLabel === 'strong'
+              ? '✓ Strong capture'
+              : confidence.confidenceLabel === 'review_recommended'
+              ? '⚠ Review recommended'
+              : '⚠ Weak capture'}
+            {' '}({Math.round(confidence.confidenceScore * 100)}%)
+          </span>
+          {confidence.missingFields.length > 0 && (
+            <span className="opacity-70">Missing: {confidence.missingFields.join(', ')}</span>
+          )}
+        </div>
       )}
 
       <button

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Share2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { QuickCaptureForm, type QuickCaptureInitialValues } from '@/components/capture/QuickCaptureForm';
@@ -25,6 +25,26 @@ const CaptureSharePage: React.FC = () => {
       notes: 'Captured from PWA share target.',
     };
   }, [searchParams]);
+
+  if (!user) {
+    return (
+      <div className="p-sm sm:p-md lg:p-lg space-y-6 max-w-4xl min-w-0">
+        <div className="flex items-center gap-2 text-jata-accent-lime">
+          <Share2 className="h-4 w-4 shrink-0" />
+          <span className="font-mono text-[10px] uppercase tracking-widest">Mobile Share</span>
+        </div>
+        <div className="border border-jata-border rounded-lg bg-jata-bg-surface px-5 py-8 text-center space-y-3">
+          <p className="text-sm text-jata-text-secondary">Sign in to save this opportunity to your Capture Inbox.</p>
+          <Link
+            to={`/signin?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`}
+            className="inline-block font-mono text-[11px] uppercase tracking-widest px-4 py-2 rounded border border-jata-accent-lime text-jata-accent-lime hover:bg-jata-accent-lime/10 transition-colors"
+          >
+            Sign In
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-sm sm:p-md lg:p-lg space-y-6 max-w-4xl min-w-0">

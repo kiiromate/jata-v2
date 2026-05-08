@@ -1,11 +1,12 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import './App.css';
 import { getCurrentUser, isAuthenticated } from './lib/supabaseClient';
 import { detectIndustry } from './lib/jobBoardDetector';
 import { addToQueue, getQueueSize, processQueue, isOnline } from './lib/offlineQueue';
 import { captureJobToInbox } from './lib/captureInboxClient';
 import { openJataPath } from './lib/webAppOrigin';
+import { computeCaptureConfidence } from './lib/captureConfidence';
 const EMPTY_APPLICATION_DATA = {
     jobTitle: '',
     companyName: '',
@@ -42,6 +43,17 @@ const App = () => {
     const [queueSize, setQueueSize] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [isExtracting, setIsExtracting] = useState(false);
+    const confidence = useMemo(() => {
+        if (!hasCapturedContent(data))
+            return null;
+        return computeCaptureConfidence({
+            title: data.jobTitle,
+            company: data.companyName,
+            jobUrl: data.jobUrl,
+            description: data.jobDescription,
+            source: data.source,
+        });
+    }, [data]);
     const clearStoredDraft = useCallback(() => {
         if (typeof chrome === 'undefined' || !chrome.storage?.local)
             return;
@@ -299,6 +311,14 @@ const App = () => {
         jobUrl: '',
         jobDescription: '',
     };
-    return (_jsxs("div", { className: "w-[400px] bg-gray-900 text-white p-5 font-sans", children: [_jsxs("div", { className: "flex justify-between items-center mb-4", children: [_jsx("h1", { className: "text-xl font-semibold tracking-tight", children: "JATA" }), _jsx("button", { onClick: openDashboard, className: "text-sm text-indigo-400 hover:text-indigo-300 font-medium transition-colors", children: "Open in JATA" })] }), queueSize > 0 && (_jsxs("div", { className: "bg-amber-50 border border-amber-200 text-amber-900 rounded-md p-2.5 mb-4 text-xs", children: [queueSize, " ", queueSize === 1 ? 'application' : 'applications', " queued", ' ', isOnline() ? '(syncing)' : '(will sync when online)'] })), statusMessage && (_jsx("p", { className: "text-center text-amber-400 mb-4 text-xs", children: statusMessage })), _jsx("button", { onClick: handleAutoFill, disabled: isLoading || isExtracting || !!isScraping, className: "w-full mb-4 bg-indigo-600 text-white rounded-md py-2 text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors duration-200", children: isExtracting ? 'Refreshing...' : 'Refresh from Page' }), _jsx("div", { className: "space-y-3", children: displayFields.map((key) => (_jsxs("div", { children: [_jsx("label", { className: "block text-xs font-medium text-gray-400 mb-1.5", children: fieldLabels[key] }), _jsxs("div", { className: "flex items-center gap-2", children: [key === 'jobDescription' ? (_jsx("textarea", { value: data[key], onChange: (e) => setData((prev) => ({ ...prev, [key]: e.target.value })), placeholder: fieldPlaceholders[key], className: "w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500", rows: 3 })) : (_jsx("input", { type: "text", value: data[key] || '', onChange: (e) => setData((prev) => ({ ...prev, [key]: e.target.value })), placeholder: fieldPlaceholders[key], className: "w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" })), _jsx("button", { onClick: () => handleSelect(key), disabled: !!isScraping || isLoading || isExtracting, className: "px-3 py-2 bg-gray-700 text-white rounded-md text-xs font-medium hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors duration-200 whitespace-nowrap", children: "Pick" })] })] }, key))) }), _jsx("button", { onClick: handleSave, disabled: !!isScraping || isLoading || isExtracting, className: "w-full mt-6 bg-gray-800 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-700 disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200", children: isLoading ? 'Capturing' : 'Capture to JATA' }), _jsxs("div", { className: "mt-4 flex items-center justify-center gap-2 text-xs text-gray-500", children: [_jsx("div", { className: `w-1.5 h-1.5 rounded-full ${isOnline() ? 'bg-green-500' : 'bg-gray-500'}` }), _jsx("span", { children: isOnline() ? 'Connected' : 'Offline mode' })] })] }));
+    return (_jsxs("div", { className: "w-[400px] bg-gray-900 text-white p-5 font-sans", children: [_jsxs("div", { className: "flex justify-between items-center mb-4", children: [_jsx("h1", { className: "text-xl font-semibold tracking-tight", children: "JATA" }), _jsx("button", { onClick: openDashboard, className: "text-sm text-indigo-400 hover:text-indigo-300 font-medium transition-colors", children: "Open in JATA" })] }), queueSize > 0 && (_jsxs("div", { className: "bg-amber-50 border border-amber-200 text-amber-900 rounded-md p-2.5 mb-4 text-xs", children: [queueSize, " ", queueSize === 1 ? 'application' : 'applications', " queued", ' ', isOnline() ? '(syncing)' : '(will sync when online)'] })), statusMessage && (_jsx("p", { className: "text-center text-amber-400 mb-4 text-xs", children: statusMessage })), confidence && (_jsxs("div", { className: `mb-3 rounded px-2.5 py-1.5 text-[11px] flex flex-col gap-0.5 ${confidence.confidenceLabel === 'strong'
+                    ? 'bg-green-900/60 text-green-300'
+                    : confidence.confidenceLabel === 'review_recommended'
+                        ? 'bg-amber-900/60 text-amber-300'
+                        : 'bg-red-900/60 text-red-300'}`, children: [_jsxs("span", { children: [confidence.confidenceLabel === 'strong'
+                                ? '✓ Strong capture'
+                                : confidence.confidenceLabel === 'review_recommended'
+                                    ? '⚠ Review recommended'
+                                    : '⚠ Weak capture', ' ', "(", Math.round(confidence.confidenceScore * 100), "%)"] }), confidence.missingFields.length > 0 && (_jsxs("span", { className: "opacity-70", children: ["Missing: ", confidence.missingFields.join(', ')] }))] })), _jsx("button", { onClick: handleAutoFill, disabled: isLoading || isExtracting || !!isScraping, className: "w-full mb-4 bg-indigo-600 text-white rounded-md py-2 text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors duration-200", children: isExtracting ? 'Refreshing...' : 'Refresh from Page' }), _jsx("div", { className: "space-y-3", children: displayFields.map((key) => (_jsxs("div", { children: [_jsx("label", { className: "block text-xs font-medium text-gray-400 mb-1.5", children: fieldLabels[key] }), _jsxs("div", { className: "flex items-center gap-2", children: [key === 'jobDescription' ? (_jsx("textarea", { value: data[key], onChange: (e) => setData((prev) => ({ ...prev, [key]: e.target.value })), placeholder: fieldPlaceholders[key], className: "w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500", rows: 3 })) : (_jsx("input", { type: "text", value: data[key] || '', onChange: (e) => setData((prev) => ({ ...prev, [key]: e.target.value })), placeholder: fieldPlaceholders[key], className: "w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" })), _jsx("button", { onClick: () => handleSelect(key), disabled: !!isScraping || isLoading || isExtracting, className: "px-3 py-2 bg-gray-700 text-white rounded-md text-xs font-medium hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors duration-200 whitespace-nowrap", children: "Pick" })] })] }, key))) }), _jsx("button", { onClick: handleSave, disabled: !!isScraping || isLoading || isExtracting, className: "w-full mt-6 bg-gray-800 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-700 disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200", children: isLoading ? 'Capturing' : 'Capture to JATA' }), _jsxs("div", { className: "mt-4 flex items-center justify-center gap-2 text-xs text-gray-500", children: [_jsx("div", { className: `w-1.5 h-1.5 rounded-full ${isOnline() ? 'bg-green-500' : 'bg-gray-500'}` }), _jsx("span", { children: isOnline() ? 'Connected' : 'Offline mode' })] })] }));
 };
 export default App;

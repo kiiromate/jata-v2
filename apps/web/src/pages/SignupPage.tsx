@@ -61,6 +61,8 @@ const SignupPage = () => {
       if (error) {
         setError(getAuthErrorMessage(error.message));
       } else {
+        setPassword('');
+        setConfirmPassword('');
         setMessage('Check your email to confirm your account.');
       }
     } finally {
