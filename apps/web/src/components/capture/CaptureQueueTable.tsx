@@ -19,6 +19,7 @@ import {
 } from '@/services/captureInboxService';
 import type { CaptureInboxItem } from '@jata/common';
 import {
+  ConfidenceBadge,
   DuplicateStatusBadge,
   ParseStatusBadge,
   ScoreStatusBadge,
@@ -98,6 +99,10 @@ const CaptureRow: React.FC<CaptureRowProps> = ({
 
       <td className="px-3 py-3">
         <ParseStatusBadge status={item.parseStatus} />
+      </td>
+
+      <td className="px-3 py-3">
+        <ConfidenceBadge label={item.parsedPayload?.metadata?.confidenceLabel as string | undefined} />
       </td>
 
       <td className="px-3 py-3">
@@ -235,6 +240,7 @@ export const CaptureQueueTable: React.FC<CaptureQueueTableProps> = ({
             <Th>Source</Th>
             <Th>Duplicate</Th>
             <Th>Parse</Th>
+            <Th>Confidence</Th>
             <Th>Score</Th>
             <Th>Band</Th>
             <Th>Captured</Th>

@@ -2,6 +2,7 @@ import { supabase, getCurrentUser, getSupabaseAnonKey, getSupabaseFunctionUrl } 
 import type { JobDetails } from './jobBoardDetector';
 import { detectIndustry } from './jobBoardDetector';
 import { buildJataWebUrl } from './webAppOrigin';
+import { computeCaptureConfidence } from './captureConfidence';
 
 export type CaptureResultState = 'captured' | 'duplicate' | 'possible_duplicate' | 'queued' | 'error';
 
@@ -31,6 +32,14 @@ export function buildCaptureInboxBody(details: JobDetails, metadata: Record<stri
   const url = clean(details.jobUrl);
   const industry = clean(details.industry) || detectIndustry(title || '', rawText || '');
 
+  const confidence = computeCaptureConfidence({
+    title,
+    company,
+    jobUrl: url,
+    description: rawText,
+    source: details.source,
+  });
+
   return {
     action: 'create',
     source: 'browser_extension',
@@ -53,6 +62,13 @@ export function buildCaptureInboxBody(details: JobDetails, metadata: Record<stri
       url,
       metadata: {
         sourceLabel: details.source || 'Browser extension',
+        confidenceScore: confidence.confidenceScore,
+        confidenceLabel: confidence.confidenceLabel,
+        missingFields: confidence.missingFields,
+        warnings: confidence.warnings,
+        requiresReview: confidence.requiresReview,
+        adapterId: confidence.adapterId,
+        extractionMethod: confidence.extractionMethod,
       },
     },
     parseStatus: rawText || title || company ? 'completed' : 'not_started',
