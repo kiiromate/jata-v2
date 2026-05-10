@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, AlertTriangle, Loader2, ClipboardPaste } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -16,7 +17,7 @@ import {
 } from '@/services/captureInboxService';
 import type { CaptureInboxItem, CaptureMethod, CaptureSource } from '@jata/common';
 
-type ActiveAction = 'save' | 'shortlist' | 'pack_later' | null;
+type ActiveAction = 'save' | 'shortlist' | 'pack_later' | 'save_score' | null;
 
 const EMPTY_FIELDS = {
   roleTitle: '',
@@ -93,10 +94,12 @@ export const QuickCaptureForm: React.FC<QuickCaptureFormProps> = ({
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(true);
   const initialFields = useMemo(() => mergeInitialValues(initialValues), [initialValues]);
   const [fields, setFields] = useState(initialFields);
   const [activeAction, setActiveAction] = useState<ActiveAction>(null);
+  const [lastCaptureId, setLastCaptureId] = useState<string | null>(null);
 
   useEffect(() => {
     setFields(initialFields);
@@ -166,16 +169,31 @@ export const QuickCaptureForm: React.FC<QuickCaptureFormProps> = ({
 
   const handleSave = () => {
     if (!validate()) return;
+    setLastCaptureId(null);
     setActiveAction('save');
     createMutation.mutate(buildInput(), {
-      onSuccess: () => {
+      onSuccess: (item: CaptureInboxItem) => {
         invalidate();
+        setLastCaptureId(item.id);
         toast({
           title: 'Captured',
           description: 'Added to Capture Inbox and visible on Dashboard as Saved.',
         });
         resetForm();
         onSuccess?.();
+      },
+    });
+  };
+
+  const handleSaveAndScore = () => {
+    if (!validate()) return;
+    setLastCaptureId(null);
+    setActiveAction('save_score');
+    createMutation.mutate(buildInput(), {
+      onSuccess: (item: CaptureInboxItem) => {
+        invalidate();
+        onSuccess?.();
+        navigate(`/resume-tailor/${item.id}`);
       },
     });
   };
@@ -507,14 +525,29 @@ export const QuickCaptureForm: React.FC<QuickCaptureFormProps> = ({
 
             <Button
               size="sm"
-              variant="ghost"
-              disabled
-              title="Use Resume Tailor for AI-powered analysis after saving"
-              className="opacity-40 cursor-not-allowed font-mono text-[11px] uppercase tracking-widest"
+              variant="outline"
+              onClick={handleSaveAndScore}
+              disabled={isPending}
+              className="border-jata-accent-lime text-jata-accent-lime hover:bg-jata-accent-lime/10 font-mono text-[11px] uppercase tracking-widest"
             >
+              {activeAction === 'save_score' && isPending ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+              ) : null}
               Save and Score
             </Button>
           </div>
+
+          {lastCaptureId && (
+            <div className="flex items-center gap-2 pt-1 font-mono text-[10px] text-jata-text-muted">
+              <span>Captured.</span>
+              <Link
+                to={`/resume-tailor/${lastCaptureId}`}
+                className="text-jata-accent-lime hover:underline"
+              >
+                Open in Resume Tailor →
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { analyzeResumeAgainstJobDescription, type AnalysisResult } from "@/services/aiService";
-import { formatAiGeneratedAt } from "@/services/aiGateway";
+import { formatAiGeneratedAt, invokeAiTask, type AiTextOutput } from "@/services/aiGateway";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -63,6 +63,10 @@ const ResumeTailorPage = () => {
   const [jobUrl, setJobUrl] = useState("");
   const [resumeText, setResumeText] = useState("");
   const [packStatus, setPackStatus] = useState<PackReadinessStatus>('draft');
+  const [aiCoverLetter, setAiCoverLetter] = useState<string | null>(null);
+  const [aiRecruiterMsg, setAiRecruiterMsg] = useState<string | null>(null);
+  const [aiFollowUpMsg, setAiFollowUpMsg] = useState<string | null>(null);
+  const [aiPackStatus, setAiPackStatus] = useState<'idle' | 'generating' | 'done' | 'unavailable' | 'error'>('idle');
 
   // Fetch application data
   const { data: applicationData, isLoading: isLoadingApplication } = useQuery({
@@ -126,13 +130,83 @@ const ResumeTailorPage = () => {
     }
   }, [selectedResumeId, resumes]);
 
+  const generateAiPackContent = async (result: AnalysisResult) => {
+    setAiPackStatus('generating');
+    const userName =
+      (user?.user_metadata?.full_name as string | undefined) ||
+      user?.email ||
+      'Applicant';
+    const highlights = result.matchedSkills;
+
+    const [clResult, rmResult, fuResult] = await Promise.allSettled([
+      invokeAiTask<AiTextOutput>('generateCoverLetter', {
+        jobTitle: applicationData?.title || 'the role',
+        companyName: applicationData?.company || 'the company',
+        userName,
+        highlights,
+        cvText: resumeText,
+        jobDescription: jobDescription,
+      }),
+      invokeAiTask<AiTextOutput>('generateRecruiterMessage', {
+        jobTitle: applicationData?.title,
+        companyName: applicationData?.company,
+        highlights,
+        cvText: resumeText,
+        jobDescription: jobDescription,
+      }),
+      invokeAiTask<AiTextOutput>('generateFollowUpMessage', {
+        jobTitle: applicationData?.title,
+        companyName: applicationData?.company,
+        cvText: resumeText,
+      }),
+    ]);
+
+    let hasSuccess = false;
+    if (clResult.status === 'fulfilled') {
+      setAiCoverLetter(clResult.value.output.content);
+      hasSuccess = true;
+    }
+    if (rmResult.status === 'fulfilled') {
+      setAiRecruiterMsg(rmResult.value.output.content);
+      hasSuccess = true;
+    }
+    if (fuResult.status === 'fulfilled') {
+      setAiFollowUpMsg(fuResult.value.output.content);
+      hasSuccess = true;
+    }
+
+    const allFailed =
+      clResult.status === 'rejected' &&
+      rmResult.status === 'rejected' &&
+      fuResult.status === 'rejected';
+
+    if (allFailed) {
+      const reason = (clResult.reason as Error | undefined)?.message ?? '';
+      const isServerErr =
+        reason.includes('AI generation failed') ||
+        reason.includes('Unauthorized') ||
+        reason.includes('AI usage limit') ||
+        reason.includes('AI credits');
+      setAiPackStatus(isServerErr ? 'unavailable' : 'error');
+    } else {
+      setAiPackStatus(hasSuccess ? 'done' : 'unavailable');
+    }
+  };
+
   type AnalysisVariables = { resumeText: string; jobDescription: string };
 
   // Mutation for AI analysis
   const { mutate: analyze, data: analysis, isPending: isAnalyzing, isError: analysisError, error: analysisErrorMessage } = useMutation<AnalysisResult, Error, AnalysisVariables>({
     mutationFn: (variables) => analyzeResumeAgainstJobDescription(variables.resumeText, variables.jobDescription),
+    onMutate: () => {
+      setAiCoverLetter(null);
+      setAiRecruiterMsg(null);
+      setAiFollowUpMsg(null);
+      setAiPackStatus('idle');
+    },
     onSuccess: (result) => {
       setPackStatus(result.missingSkills.length || result.atsIssues?.length ? 'needs_review' : 'draft');
+      void generateAiPackContent(result);
     },
   });
 
@@ -315,7 +389,19 @@ const ResumeTailorPage = () => {
                 <p>Model used: {analysis.metadata.model || 'not reported'}</p>
                 <p>Generated: {formatAiGeneratedAt(analysis.metadata.generatedAt)}</p>
                 <p>Cached result: {analysis.metadata.cached ? 'yes' : 'no'}</p>
-                <p>Review before sending.</p>
+                <p>
+                  AI pack generation:{' '}
+                  {aiPackStatus === 'done'
+                    ? '✓ Complete'
+                    : aiPackStatus === 'generating'
+                    ? '⏳ Generating cover letter and messages…'
+                    : aiPackStatus === 'unavailable'
+                    ? '⚠ Provider unavailable — showing templates'
+                    : aiPackStatus === 'error'
+                    ? '⚠ Generation failed — showing templates'
+                    : '—'}
+                </p>
+                <p>Review all content before sending.</p>
               </CardContent>
             </Card>
           )}
@@ -418,11 +504,42 @@ const ResumeTailorPage = () => {
                 </TabsContent>
 
                 <TabsContent value="cover-letter">
-                  <CopySection title="Cover Letter" content={packWorkflow.sections.coverLetter} />
+                  {aiPackStatus === 'generating' && !aiCoverLetter ? (
+                    <div className="space-y-3 animate-pulse py-2">
+                      <div className="h-3 bg-gray-200 rounded w-1/4" />
+                      <div className="h-3 bg-gray-200 rounded w-full" />
+                      <div className="h-3 bg-gray-200 rounded w-5/6" />
+                      <div className="h-3 bg-gray-200 rounded w-full" />
+                      <div className="h-3 bg-gray-200 rounded w-4/5" />
+                      <div className="h-3 bg-gray-200 rounded w-full" />
+                      <div className="h-3 bg-gray-200 rounded w-2/3" />
+                    </div>
+                  ) : aiCoverLetter ? (
+                    <CopySection title="Cover Letter (AI Generated)" content={aiCoverLetter} />
+                  ) : (
+                    <div className="space-y-3">
+                      {(aiPackStatus === 'unavailable' || aiPackStatus === 'error') && (
+                        <div className="rounded border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
+                          AI generation unavailable — showing template. Ensure{' '}
+                          <code className="font-mono">JATA_AI_PROVIDER</code> is set in Supabase Edge Function secrets.
+                        </div>
+                      )}
+                      <CopySection
+                        title="Cover Letter (Template — edit before sending)"
+                        content={packWorkflow.sections.coverLetter}
+                      />
+                    </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="answers">
-                  <CopySection title="Custom Question Answer Bank" content={packWorkflow.sections.customQuestionAnswers} />
+                  <div className="mb-3 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+                    Custom answer generation is not yet available. Use these prompts and your matched skills as a guide when answering application questions.
+                  </div>
+                  <CopySection
+                    title="Answer Prompt Guide (Template — not AI generated)"
+                    content={packWorkflow.sections.customQuestionAnswers}
+                  />
                 </TabsContent>
 
                 <TabsContent value="claims">
@@ -431,8 +548,28 @@ const ResumeTailorPage = () => {
 
                 <TabsContent value="kit" className="space-y-5">
                   <CopySection title="Short Intro" content={packWorkflow.sections.shortIntro} />
-                  <CopySection title="Recruiter Message" content={packWorkflow.sections.recruiterMessage} />
-                  <CopySection title="Follow-Up Message" content={packWorkflow.sections.followUpMessage} />
+                  {aiPackStatus === 'generating' && !aiRecruiterMsg ? (
+                    <div className="space-y-2 animate-pulse py-2">
+                      <div className="h-3 bg-gray-200 rounded w-1/3" />
+                      <div className="h-3 bg-gray-200 rounded w-full" />
+                      <div className="h-3 bg-gray-200 rounded w-4/5" />
+                    </div>
+                  ) : aiRecruiterMsg ? (
+                    <CopySection title="Recruiter Message (AI Generated)" content={aiRecruiterMsg} />
+                  ) : (
+                    <CopySection title="Recruiter Message (Template)" content={packWorkflow.sections.recruiterMessage} />
+                  )}
+                  {aiPackStatus === 'generating' && !aiFollowUpMsg ? (
+                    <div className="space-y-2 animate-pulse py-2">
+                      <div className="h-3 bg-gray-200 rounded w-1/3" />
+                      <div className="h-3 bg-gray-200 rounded w-full" />
+                      <div className="h-3 bg-gray-200 rounded w-3/4" />
+                    </div>
+                  ) : aiFollowUpMsg ? (
+                    <CopySection title="Follow-Up Message (AI Generated)" content={aiFollowUpMsg} />
+                  ) : (
+                    <CopySection title="Follow-Up Message (Template)" content={packWorkflow.sections.followUpMessage} />
+                  )}
                 </TabsContent>
 
                 <TabsContent value="notes" className="space-y-5">
