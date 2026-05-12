@@ -35,6 +35,25 @@ interface Message {
 
 type SendResponse = (response?: { status: string }) => void;
 
+/**
+ * @type PostCaptureResultState
+ * @description States that can produce a post-capture CTA view.
+ */
+type PostCaptureResultState = 'captured' | 'possible_duplicate' | 'duplicate';
+
+/**
+ * @interface PostCaptureState
+ * @description Shape stored in chrome.storage.session and held in component state
+ * after a successful or duplicate capture. Only non-sensitive fields are stored.
+ */
+interface PostCaptureState {
+  state: PostCaptureResultState;
+  captureId?: string;
+  sourceUrl: string;
+  capturedAt: number;
+  message: string;
+}
+
 const EMPTY_APPLICATION_DATA: ApplicationData = {
   jobTitle: '',
   companyName: '',
@@ -67,6 +86,9 @@ const normalizeExtractedData = (extracted?: Partial<ApplicationData> | null): Ap
 const hasCapturedContent = (nextData: ApplicationData): boolean =>
   Boolean(nextData.jobTitle || nextData.companyName || nextData.jobUrl || nextData.jobDescription);
 
+/** Build the chrome.storage.session key for a given tab. */
+const captureSessionKey = (tabId: number) => `jata-capture-${tabId}`;
+
 /**
  * Main application component for the JATA Chrome Extension popup.
  * This component manages the UI for scraping job application data, sending scraping
@@ -83,6 +105,13 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
 
+  /**
+   * Post-capture state. When non-null the form is replaced by the result CTA panel.
+   * Only captureId and sourceUrl are persisted to chrome.storage.session — no job
+   * content or auth tokens.
+   */
+  const [captureResult, setCaptureResult] = useState<PostCaptureState | null>(null);
+
   const confidence = useMemo(() => {
     if (!hasCapturedContent(data)) return null;
     return computeCaptureConfidence({
@@ -98,6 +127,26 @@ const App: React.FC = () => {
     if (typeof chrome === 'undefined' || !chrome.storage?.local) return;
     chrome.storage.local.remove(POPUP_DRAFT_KEY);
   }, []);
+
+  /**
+   * Clear the post-capture result state, reset the form, and remove the session
+   * storage entry for the current tab (used by "Capture another").
+   */
+  const clearCaptureSession = useCallback(() => {
+    setCaptureResult(null);
+    setData(createEmptyApplicationData());
+    clearStoredDraft();
+    setStatusMessage('');
+
+    if (typeof chrome !== 'undefined' && chrome.tabs && chrome.storage?.session) {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const tabId = tabs[0]?.id;
+        if (tabId !== undefined) {
+          chrome.storage.session.remove(captureSessionKey(tabId));
+        }
+      });
+    }
+  }, [clearStoredDraft]);
 
   const refreshFromCurrentPage = useCallback((showStatus = true) => {
     setData(createEmptyApplicationData());
@@ -149,7 +198,8 @@ const App: React.FC = () => {
   }, [clearStoredDraft]);
 
   /**
-   * Check authentication status on mount
+   * Check authentication status on mount, load queue size, and restore any
+   * post-capture session state for the current tab (within 30-minute TTL).
    */
   useEffect(() => {
     const checkAuth = async () => {
@@ -166,9 +216,29 @@ const App: React.FC = () => {
         if (size > 0 && isOnline()) {
           processOfflineQueue();
         }
+
+        // Restore post-capture view if a recent capture entry exists for this tab
+        if (typeof chrome !== 'undefined' && chrome.tabs && chrome.storage?.session) {
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            const tabId = tabs[0]?.id;
+            if (tabId === undefined) return;
+            const key = captureSessionKey(tabId);
+            chrome.storage.session.get(key, (items) => {
+              const entry = items[key] as PostCaptureState | undefined;
+              const TTL_MS = 30 * 60 * 1000;
+              if (entry && Date.now() - entry.capturedAt < TTL_MS) {
+                setCaptureResult(entry);
+              } else if (entry) {
+                // Stale — clean up
+                chrome.storage.session.remove(key);
+              }
+            });
+          });
+        }
       }
     };
     checkAuth();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -218,7 +288,7 @@ const App: React.FC = () => {
    */
   const handleSelect = (field: ScrapingField) => {
     if (!field) return;
-    
+
     setIsScraping(field);
     setStatusMessage(`Selecting ${field}...`);
 
@@ -269,6 +339,8 @@ const App: React.FC = () => {
 
   /**
    * Saves the collected application data to the backend via Supabase.
+   * On success, transitions the popup to a post-capture CTA view and persists
+   * the capture ID to chrome.storage.session for 30 minutes.
    */
   const handleSave = async () => {
     if (!data.jobTitle || !data.companyName) {
@@ -278,6 +350,19 @@ const App: React.FC = () => {
 
     setIsLoading(true);
     setStatusMessage('Saving application...');
+
+    // Resolve the current tab upfront so we can use it for session storage
+    let currentTabUrl = '';
+    let currentTabId: number | undefined;
+    if (typeof chrome !== 'undefined' && chrome.tabs) {
+      await new Promise<void>((resolve) => {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          currentTabUrl = tabs[0]?.url ?? '';
+          currentTabId = tabs[0]?.id;
+          resolve();
+        });
+      });
+    }
 
     try {
       const user = await getCurrentUser();
@@ -314,6 +399,7 @@ const App: React.FC = () => {
       );
 
       if (result.state === 'error') {
+        // Add to offline queue as fallback
         await addToQueue({
           ...data,
           industry,
@@ -321,13 +407,32 @@ const App: React.FC = () => {
         const newSize = await getQueueSize();
         setQueueSize(newSize);
         setStatusMessage(`${result.message} Saved to queue for retry.`);
-      } else {
-        setStatusMessage(result.message);
-        // Reset form after successful save
-        setData(EMPTY_APPLICATION_DATA);
-        if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-          clearStoredDraft();
+      } else if (result.state === 'captured' || result.state === 'possible_duplicate') {
+        // Successful new capture — persist to session storage (non-sensitive fields only)
+        const entry: PostCaptureState = {
+          state: result.state,
+          captureId: result.captureId,
+          sourceUrl: currentTabUrl,
+          capturedAt: Date.now(),
+          message: result.message,
+        };
+        if (typeof chrome !== 'undefined' && chrome.storage?.session && currentTabId !== undefined) {
+          chrome.storage.session.set({ [captureSessionKey(currentTabId)]: entry });
         }
+        setCaptureResult(entry);
+        clearStoredDraft();
+      } else if (result.state === 'duplicate') {
+        // Exact duplicate — show duplicate panel (transient, no session write)
+        setCaptureResult({
+          state: 'duplicate',
+          captureId: result.captureId,
+          sourceUrl: currentTabUrl,
+          capturedAt: Date.now(),
+          message: result.message,
+        });
+      } else {
+        // Queued or unexpected state — surface the message directly
+        setStatusMessage(result.message);
       }
     } catch (error) {
       console.error('Failed to save application:', error);
@@ -343,7 +448,7 @@ const App: React.FC = () => {
   };
 
   /**
-   * Open dashboard in new tab
+   * Open capture inbox in new tab
    */
   const openDashboard = () => {
     void openJataPath('/capture-inbox');
@@ -356,7 +461,7 @@ const App: React.FC = () => {
     refreshFromCurrentPage(true);
   };
 
-  // Show loading state while checking auth
+  // ── Loading state ────────────────────────────────────────────────────────
   if (!isAuthChecked) {
     return (
       <div className="w-[400px] bg-gray-900 text-white p-6 font-sans flex items-center justify-center">
@@ -365,20 +470,32 @@ const App: React.FC = () => {
     );
   }
 
-  // Show login prompt if not authenticated
+  // ── Signed-out state ─────────────────────────────────────────────────────
   if (!isLoggedIn) {
     return (
       <div className="w-[400px] bg-gray-900 text-white p-6 font-sans">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-xl font-semibold tracking-tight">JATA</h1>
         </div>
-        <div className="text-center py-8">
+        <div className="text-center py-8 space-y-3">
           <p className="text-gray-300 text-sm mb-4">Sign in to track applications</p>
           <button
             onClick={() => void openJataPath('/signin')}
-            className="bg-indigo-600 text-white rounded-md px-6 py-2.5 text-sm font-medium hover:bg-indigo-700 transition-colors duration-200"
+            className="w-full bg-indigo-600 text-white rounded-md px-6 py-2.5 text-sm font-medium hover:bg-indigo-700 transition-colors duration-200"
           >
             Sign In
+          </button>
+          <button
+            onClick={() => void openJataPath('/signup')}
+            className="w-full bg-gray-700 text-white rounded-md px-6 py-2.5 text-sm font-medium hover:bg-gray-600 transition-colors duration-200"
+          >
+            Create Account
+          </button>
+          <button
+            onClick={() => void openJataPath('/install-extension')}
+            className="w-full text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors duration-200 py-1"
+          >
+            How it works
           </button>
         </div>
       </div>
@@ -406,16 +523,79 @@ const App: React.FC = () => {
     jobDescription: '',
   };
 
+  // ── Post-capture success / possible-duplicate state ───────────────────────
+  if (captureResult && (captureResult.state === 'captured' || captureResult.state === 'possible_duplicate')) {
+    return (
+      <div className="w-[400px] bg-gray-900 text-white p-5 font-sans">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-xl font-semibold tracking-tight">JATA</h1>
+        </div>
+
+        <div className="rounded-lg bg-gray-800 border border-gray-700 p-4 mb-4 text-center">
+          <div className="text-green-400 text-2xl mb-2">✓</div>
+          <p className="text-sm text-gray-200">{captureResult.message}</p>
+        </div>
+
+        <div className="space-y-2">
+          <button
+            onClick={() => void openJataPath('/capture-inbox')}
+            className="w-full bg-indigo-600 text-white rounded-md py-2.5 text-sm font-medium hover:bg-indigo-700 transition-colors duration-200"
+          >
+            View in JATA
+          </button>
+          <button
+            onClick={clearCaptureSession}
+            className="w-full bg-gray-700 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-600 transition-colors duration-200"
+          >
+            Capture another
+          </button>
+          <button
+            onClick={openDashboard}
+            className="w-full text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors duration-200 py-1"
+          >
+            Open Capture Inbox
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Duplicate state ───────────────────────────────────────────────────────
+  if (captureResult && captureResult.state === 'duplicate') {
+    return (
+      <div className="w-[400px] bg-gray-900 text-white p-5 font-sans">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-xl font-semibold tracking-tight">JATA</h1>
+        </div>
+
+        <div className="rounded-lg bg-amber-900/40 border border-amber-700/50 p-4 mb-4 text-center">
+          <div className="text-amber-400 text-2xl mb-2">⊙</div>
+          <p className="text-sm text-amber-200">{captureResult.message}</p>
+        </div>
+
+        <div className="space-y-2">
+          <button
+            onClick={() => void openJataPath('/capture-inbox')}
+            className="w-full bg-indigo-600 text-white rounded-md py-2.5 text-sm font-medium hover:bg-indigo-700 transition-colors duration-200"
+          >
+            View existing opportunity
+          </button>
+          <button
+            onClick={() => setCaptureResult(null)}
+            className="w-full bg-gray-700 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-600 transition-colors duration-200"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Signed-in capture form ────────────────────────────────────────────────
   return (
     <div className="w-[400px] bg-gray-900 text-white p-5 font-sans">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-xl font-semibold tracking-tight">JATA</h1>
-        <button
-          onClick={openDashboard}
-          className="text-sm text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
-        >
-          Open in JATA
-        </button>
       </div>
 
       {queueSize > 0 && (
@@ -504,10 +684,19 @@ const App: React.FC = () => {
         disabled={!!isScraping || isLoading || isExtracting}
         className="w-full mt-6 bg-gray-800 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-700 disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
       >
-        {isLoading ? 'Capturing' : 'Capture to JATA'}
+        {isLoading ? 'Capturing...' : 'Capture to JATA'}
       </button>
 
-      <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-500">
+      <div className="mt-3 flex justify-center">
+        <button
+          onClick={openDashboard}
+          className="text-xs text-gray-500 hover:text-indigo-400 transition-colors duration-200"
+        >
+          Open Capture Inbox
+        </button>
+      </div>
+
+      <div className="mt-3 flex items-center justify-center gap-2 text-xs text-gray-500">
         <div className={`w-1.5 h-1.5 rounded-full ${isOnline() ? 'bg-green-500' : 'bg-gray-500'}`} />
         <span>{isOnline() ? 'Connected' : 'Offline mode'}</span>
       </div>
