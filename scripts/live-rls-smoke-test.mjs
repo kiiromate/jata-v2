@@ -52,18 +52,34 @@ function fail(label, notes = '') {
   console.error(`  ✗  FAIL — ${label}${notes ? `  [${notes}]` : ''}`);
 }
 
+function parseCliOutput(stdout) {
+  // The CLI may emit non-JSON preamble lines (e.g. "Initialising login role...")
+  // before the JSON blob. Find the first '{' or '[' and parse from there.
+  // Handles both envelope shapes: { rows: [...] }  and  [ ... ]
+  const text = stdout.trim();
+  const objIdx = text.indexOf('{');
+  const arrIdx = text.indexOf('[');
+  if (objIdx === -1 && arrIdx === -1) {
+    throw new Error(`No JSON in CLI output: ${text.slice(0, 300)}`);
+  }
+  const start = objIdx === -1 ? arrIdx : arrIdx === -1 ? objIdx : Math.min(objIdx, arrIdx);
+  const parsed = JSON.parse(text.slice(start));
+  return Array.isArray(parsed) ? parsed : (parsed.rows ?? []);
+}
+
 async function runSql(sql) {
   const file = join(tmpdir(), `jata-rls-${Date.now()}.sql`);
   writeFileSync(file, sql, 'utf8');
   try {
     const { stdout } = await execAsync(
-      `supabase db query --linked --file "${file}"`,
+      `supabase db query --linked --output json --agent yes --file "${file}"`,
       { cwd: process.cwd() },
     );
-    const parsed = JSON.parse(stdout.trim());
-    return { rows: parsed.rows ?? [], error: null };
+    return { rows: parseCliOutput(stdout), error: null };
   } catch (err) {
-    return { rows: [], error: err.message ?? String(err) };
+    // Distinguish a harness/parse error from an RLS result
+    const msg = err.message ?? String(err);
+    return { rows: [], error: `harness error: ${msg}` };
   } finally {
     try { unlinkSync(file); } catch { /* ignore */ }
   }
