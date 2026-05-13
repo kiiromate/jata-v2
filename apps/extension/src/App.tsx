@@ -485,6 +485,16 @@ const App: React.FC = () => {
     refreshFromCurrentPage(true);
   };
 
+  /**
+   * Opens the Resume Tailor page with the current job data.
+   */
+  const handleGeneratePack = async () => {
+    if (typeof chrome !== 'undefined' && chrome.storage?.session) {
+      await chrome.storage.session.set({ pendingPackJob: data });
+      void openJataPath('/resume-tailor?from=extension');
+    }
+  };
+
   // ── Loading state ────────────────────────────────────────────────────────
   if (!isAuthChecked) {
     return (
@@ -709,6 +719,14 @@ const App: React.FC = () => {
         className="w-full mt-6 bg-gray-800 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-700 disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
       >
         {isLoading ? 'Capturing...' : 'Capture to JATA'}
+      </button>
+
+      <button
+        onClick={handleGeneratePack}
+        disabled={!isLoggedIn || !!isScraping || isLoading || isExtracting}
+        className="w-full mt-3 bg-indigo-600 text-white rounded-md py-2.5 text-sm font-medium hover:bg-indigo-700 disabled:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+      >
+        Generate Pack →
       </button>
 
       <div className="mt-3 flex justify-center">
