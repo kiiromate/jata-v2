@@ -15,6 +15,11 @@ import {
 } from '@/services/coverLetterService';
 import { formatAiGeneratedAt, type AiOutputMetadata } from '@/services/aiGateway';
 import { generateCoverLetterFileName } from '@/utils/fileNaming';
+import {
+  exportCoverLetterDocx,
+  exportCoverLetterPdf,
+  buildCoverLetterDocument,
+} from '@/services/documentExport';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const CoverLetterPage: React.FC = () => {
@@ -306,20 +311,51 @@ const CoverLetterPage: React.FC = () => {
             {generatedLetter ? (
               <div>
                 {generatedMetadata && (
-                  <div className="mb-sm rounded border border-border bg-muted p-3 text-xs text-muted-foreground">
-                    <p>Provider used: {generatedMetadata.provider}</p>
-                    <p>Model used: {generatedMetadata.model || 'not reported'}</p>
-                    <p>Generated: {formatAiGeneratedAt(generatedMetadata.generatedAt)}</p>
-                    <p>Cached result: {generatedMetadata.cached ? 'yes' : 'no'}</p>
-                    <p>Review before sending.</p>
+                  <div className="mb-sm rounded border border-border bg-muted p-3 text-xs text-muted-foreground space-y-0.5">
+                    {generatedMetadata.generatedAt && (
+                      <p>Generated: {formatAiGeneratedAt(generatedMetadata.generatedAt)}</p>
+                    )}
+                    <p>Cover letter ready — review before sending.</p>
                   </div>
                 )}
                 <div className="bg-muted p-sm rounded-lg border border-border mb-sm max-h-96 overflow-y-auto">
                   <pre className="whitespace-pre-wrap text-sm font-mono">{generatedLetter}</pre>
                 </div>
-                <div className="flex gap-2">
-                  <Button onClick={handleDownload} variant="default">
-                    Download as TXT
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={handleDownload} variant="outline">
+                    Download TXT
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      const candidateName = userName.trim() || 'Applicant';
+                      void exportCoverLetterDocx(buildCoverLetterDocument({
+                        candidateName,
+                        candidateEmail: userEmail || undefined,
+                        roleTitle: jobTitle || 'the role',
+                        companyName: companyName || 'the company',
+                        coverLetterText: generatedLetter ?? '',
+                        generatedAt: new Date().toISOString(),
+                      }));
+                    }}
+                  >
+                    Download DOCX
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const candidateName = userName.trim() || 'Applicant';
+                      void exportCoverLetterPdf(buildCoverLetterDocument({
+                        candidateName,
+                        candidateEmail: userEmail || undefined,
+                        roleTitle: jobTitle || 'the role',
+                        companyName: companyName || 'the company',
+                        coverLetterText: generatedLetter ?? '',
+                        generatedAt: new Date().toISOString(),
+                      }));
+                    }}
+                  >
+                    Download PDF
                   </Button>
                   <Button onClick={handleCopy} variant="outline">
                     Copy to Clipboard

@@ -88,6 +88,49 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
         return true;
     }
+    // Selection popover: user clicked "Capture to JATA" from ambient selection UI.
+    if (message.action === 'CAPTURE_SELECTION' && sender.tab) {
+        const details = message.data;
+        captureJobToInbox({ jobTitle: details.pageTitle, companyName: '', jobUrl: details.sourceUrl, jobDescription: details.textContent }, { captureSurface: message.captureSurface || 'selection_popover' })
+            .then((result) => sendResponse(result))
+            .catch((err) => {
+            const msg = err instanceof Error ? err.message : 'Capture failed.';
+            buildJataWebUrl('/capture-inbox').then((openUrl) => sendResponse({ state: 'error', message: msg, openUrl }));
+        });
+        return true;
+    }
+    // Selection popover: user clicked "+ Add" to append selection to the current draft.
+    if (message.action === 'APPEND_SELECTION' && sender.tab) {
+        const POPUP_DRAFT_KEY = 'jata-popup-capture-draft';
+        const textContent = message.data.textContent;
+        chrome.storage.local.get(POPUP_DRAFT_KEY, (items) => {
+            const draft = items[POPUP_DRAFT_KEY];
+            const updated = {
+                ...(draft || {}),
+                jobDescription: ((draft?.jobDescription ?? '') + '\n\n' + textContent).trim(),
+            };
+            chrome.storage.local.set({ [POPUP_DRAFT_KEY]: updated }, () => sendResponse({ status: 'ok' }));
+        });
+        return true;
+    }
+    // Pick-bridge: intercept elementSelected from content script while popup may be closed.
+    // Store the result in session storage keyed by pending field so popup can restore it on reopen.
+    if (message.action === 'elementSelected' && sender.tab) {
+        chrome.storage.session.get('jata-pick-pending', (items) => {
+            const pending = items['jata-pick-pending'];
+            if (pending && Date.now() - pending.startedAt < 2 * 60 * 1000) {
+                chrome.storage.session.set({
+                    'jata-pick-result': {
+                        field: pending.field,
+                        value: message.data?.textContent ?? '',
+                        completedAt: Date.now(),
+                    },
+                });
+                chrome.storage.session.remove('jata-pick-pending');
+            }
+        });
+        return; // Popup reads result on reopen; no forwarding needed.
+    }
     // We only forward messages from other parts of the extension (like the popup),
     // not from content scripts, to avoid potential message loops.
     if (sender.tab) {

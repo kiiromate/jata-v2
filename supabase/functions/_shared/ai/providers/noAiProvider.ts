@@ -1,12 +1,14 @@
 import {
   createDeterministicMatchOutput,
   createNoAiTextOutput,
+  createStubTailoredResumeOutput,
 } from '../content.ts';
 import type {
   AiProvider,
   AnalyzeCvMatchInput,
   GenerateCoverLetterInput,
   GenerateFollowUpMessageInput,
+  GenerateTailoredResumeInput,
   GenerateRecruiterMessageInput,
   SuggestResumeImprovementsInput,
   SummarizeOpportunityInput,
@@ -34,6 +36,9 @@ export function createNoAiProvider(): AiProvider {
     },
     async summarizeOpportunity(input: SummarizeOpportunityInput) {
       return createNoAiTextOutput(input, 'summarizeOpportunity', 'No-AI opportunity summary fallback');
+    },
+    async generateTailoredResume(input: GenerateTailoredResumeInput) {
+      return createStubTailoredResumeOutput(input);
     },
   };
 }

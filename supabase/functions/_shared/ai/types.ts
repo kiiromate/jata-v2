@@ -6,7 +6,8 @@ export type AiTaskType =
   | 'generateCoverLetter'
   | 'generateRecruiterMessage'
   | 'generateFollowUpMessage'
-  | 'summarizeOpportunity';
+  | 'summarizeOpportunity'
+  | 'generateTailoredResume';
 
 export interface AiSafetySections {
   humanReviewRequired: string;
@@ -67,6 +68,13 @@ export interface SummarizeOpportunityInput extends AiBaseInput {
   companyName?: string;
 }
 
+export interface GenerateTailoredResumeInput extends AiBaseInput {
+  cvText: string;
+  jobDescription: string;
+  jobTitle?: string;
+  companyName?: string;
+}
+
 export interface AiTaskInputMap {
   analyzeCvMatch: AnalyzeCvMatchInput;
   suggestResumeImprovements: SuggestResumeImprovementsInput;
@@ -74,6 +82,7 @@ export interface AiTaskInputMap {
   generateRecruiterMessage: GenerateRecruiterMessageInput;
   generateFollowUpMessage: GenerateFollowUpMessageInput;
   summarizeOpportunity: SummarizeOpportunityInput;
+  generateTailoredResume: GenerateTailoredResumeInput;
 }
 
 export type AiTaskInput<T extends AiTaskType = AiTaskType> = AiTaskInputMap[T];
@@ -100,6 +109,7 @@ export interface AiTaskOutputMap {
   generateRecruiterMessage: AiTextOutput;
   generateFollowUpMessage: AiTextOutput;
   summarizeOpportunity: AiTextOutput;
+  generateTailoredResume: AiTextOutput;
 }
 
 export type AiTaskOutput<T extends AiTaskType = AiTaskType> = AiTaskOutputMap[T];
@@ -126,6 +136,7 @@ export interface AiProvider {
   generateRecruiterMessage(input: GenerateRecruiterMessageInput): Promise<AiTextOutput>;
   generateFollowUpMessage(input: GenerateFollowUpMessageInput): Promise<AiTextOutput>;
   summarizeOpportunity(input: SummarizeOpportunityInput): Promise<AiTextOutput>;
+  generateTailoredResume(input: GenerateTailoredResumeInput): Promise<AiTextOutput>;
 }
 
 export type AiEnv = Record<string, string | undefined>;

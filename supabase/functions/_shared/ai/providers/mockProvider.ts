@@ -1,12 +1,14 @@
 import {
   createDeterministicMatchOutput,
   createDeterministicTextOutput,
+  createStubTailoredResumeOutput,
 } from '../content.ts';
 import type {
   AiProvider,
   AnalyzeCvMatchInput,
   GenerateCoverLetterInput,
   GenerateFollowUpMessageInput,
+  GenerateTailoredResumeInput,
   GenerateRecruiterMessageInput,
   SuggestResumeImprovementsInput,
   SummarizeOpportunityInput,
@@ -34,6 +36,9 @@ export function createMockProvider(): AiProvider {
     },
     async summarizeOpportunity(input: SummarizeOpportunityInput) {
       return createDeterministicTextOutput(input, 'summarizeOpportunity', 'Opportunity summary');
+    },
+    async generateTailoredResume(input: GenerateTailoredResumeInput) {
+      return createStubTailoredResumeOutput(input);
     },
   };
 }

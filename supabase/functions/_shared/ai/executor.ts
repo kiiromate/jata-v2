@@ -120,6 +120,8 @@ async function callProvider<T extends AiTaskType>(
       return provider.generateFollowUpMessage(input as never) as Promise<AiTaskOutput<T>>;
     case 'summarizeOpportunity':
       return provider.summarizeOpportunity(input as never) as Promise<AiTaskOutput<T>>;
+    case 'generateTailoredResume':
+      return provider.generateTailoredResume(input as never) as Promise<AiTaskOutput<T>>;
     default:
       throw new Error('Unsupported AI task type');
   }

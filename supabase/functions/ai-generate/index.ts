@@ -78,6 +78,16 @@ const AiRequestSchema = z.discriminatedUnion('taskType', [
       companyName: z.string().optional(),
     }),
   }),
+  z.object({
+    taskType: z.literal('generateTailoredResume'),
+    provider: ProviderSchema.optional(),
+    input: BaseInputSchema.extend({
+      cvText: z.string().min(1),
+      jobDescription: z.string().min(1),
+      jobTitle: z.string().optional(),
+      companyName: z.string().optional(),
+    }),
+  }),
 ]);
 
 /** Reads server-only AI environment values for provider routing and limits. */

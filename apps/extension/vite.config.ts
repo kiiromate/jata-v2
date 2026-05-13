@@ -27,10 +27,11 @@ export default defineConfig({
         popup: path.resolve(__dirname, 'index.html'),
         background: path.resolve(__dirname, 'src/background.ts'),
         scraper: path.resolve(__dirname, 'src/contentScripts/scraper.ts'),
+        selectionPopover: path.resolve(__dirname, 'src/contentScripts/selectionPopover.ts'),
       },
       output: {
         entryFileNames: (chunkInfo) => {
-          if (chunkInfo.name === 'scraper') {
+          if (chunkInfo.name === 'scraper' || chunkInfo.name === 'selectionPopover') {
             return 'src/contentScripts/[name].js';
           }
           return 'src/[name].js';

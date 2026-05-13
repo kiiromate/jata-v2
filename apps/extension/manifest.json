@@ -33,6 +33,11 @@
       "matches": ["<all_urls>"],
       "js": ["src/contentScripts/scraper.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/contentScripts/selectionPopover.js"],
+      "run_at": "document_idle"
     }
   ]
 }

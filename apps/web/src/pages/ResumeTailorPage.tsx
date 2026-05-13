@@ -1,13 +1,23 @@
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { analyzeResumeAgainstJobDescription, type AnalysisResult } from "@/services/aiService";
 import { formatAiGeneratedAt, invokeAiTask, type AiTextOutput } from "@/services/aiGateway";
+import {
+  type TailoredResumeContent,
+  type TailoredResumeStructured,
+  exportCoverLetterDocx,
+  exportCoverLetterPdf,
+  exportResumeDocx,
+  exportResumePdf,
+  buildCoverLetterDocument,
+  buildResumeDocument,
+} from "@/services/documentExport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -67,6 +77,9 @@ const ResumeTailorPage = () => {
   const [aiRecruiterMsg, setAiRecruiterMsg] = useState<string | null>(null);
   const [aiFollowUpMsg, setAiFollowUpMsg] = useState<string | null>(null);
   const [aiPackStatus, setAiPackStatus] = useState<'idle' | 'generating' | 'done' | 'unavailable' | 'error'>('idle');
+  const [aiTailoredResume, setAiTailoredResume] = useState<TailoredResumeContent | null>(null);
+  const [showManualJobInput, setShowManualJobInput] = useState(false);
+  const tabsRef = useRef<HTMLDivElement>(null);
 
   // Fetch application data
   const { data: applicationData, isLoading: isLoadingApplication } = useQuery({
@@ -101,7 +114,37 @@ const ResumeTailorPage = () => {
     }
   }, [applicationData, jobDescription, jobUrl, resumeText, selectedResumeId]);
 
+  const jobIsPreloaded = Boolean(applicationData?.job_description && !showManualJobInput);
 
+  const PACK_CACHE_KEY = applicationId ? `jata-pack-${applicationId}` : null;
+
+  // Restore pack from localStorage on load
+  useEffect(() => {
+    if (!PACK_CACHE_KEY) return;
+    const cached = localStorage.getItem(PACK_CACHE_KEY);
+    if (!cached) return;
+    try {
+      const data = JSON.parse(cached) as {
+        coverLetter?: string | null;
+        recruiterMsg?: string | null;
+        followUpMsg?: string | null;
+        tailoredResume?: TailoredResumeContent | null;
+        generatedAt: number;
+      };
+      if (Date.now() - data.generatedAt > 24 * 60 * 60 * 1000) {
+        localStorage.removeItem(PACK_CACHE_KEY);
+        return;
+      }
+      if (data.coverLetter) setAiCoverLetter(data.coverLetter);
+      if (data.recruiterMsg) setAiRecruiterMsg(data.recruiterMsg);
+      if (data.followUpMsg) setAiFollowUpMsg(data.followUpMsg);
+      if (data.tailoredResume) setAiTailoredResume(data.tailoredResume);
+      if (data.coverLetter || data.tailoredResume) setAiPackStatus('done');
+    } catch {
+      localStorage.removeItem(PACK_CACHE_KEY);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applicationId]);
 
   // Fetch user's resumes
   const { data: resumes, isLoading: isLoadingResumes } = useQuery<Resume[], Error>({
@@ -130,6 +173,30 @@ const ResumeTailorPage = () => {
     }
   }, [selectedResumeId, resumes]);
 
+  function buildMarkdownFromStructured(s: TailoredResumeStructured): string {
+    const lines: string[] = [];
+    if (s.summary) { lines.push('## Professional Summary', s.summary, ''); }
+    if (s.skills.length) { lines.push('## Skills', s.skills.join(' · '), ''); }
+    if (s.experience.length) {
+      lines.push('## Experience');
+      for (const exp of s.experience) {
+        lines.push(`**${exp.role}** — ${exp.company}`, `${exp.location} · ${exp.dates}`);
+        for (const b of exp.bullets) lines.push(`- ${b}`);
+        lines.push('');
+      }
+    }
+    if (s.education.length) {
+      lines.push('## Education');
+      for (const edu of s.education) lines.push(`${edu.degree} — ${edu.institution} · ${edu.dates}`);
+      lines.push('');
+    }
+    if (s.projects_or_additional.length) {
+      lines.push('## Additional');
+      for (const item of s.projects_or_additional) lines.push(`- ${item}`);
+    }
+    return lines.join('\n');
+  }
+
   const generateAiPackContent = async (result: AnalysisResult) => {
     setAiPackStatus('generating');
     const userName =
@@ -138,7 +205,7 @@ const ResumeTailorPage = () => {
       'Applicant';
     const highlights = result.matchedSkills;
 
-    const [clResult, rmResult, fuResult] = await Promise.allSettled([
+    const [clResult, rmResult, fuResult, trResult] = await Promise.allSettled([
       invokeAiTask<AiTextOutput>('generateCoverLetter', {
         jobTitle: applicationData?.title || 'the role',
         companyName: applicationData?.company || 'the company',
@@ -159,26 +226,55 @@ const ResumeTailorPage = () => {
         companyName: applicationData?.company,
         cvText: resumeText,
       }),
+      invokeAiTask<AiTextOutput>('generateTailoredResume', {
+        cvText: resumeText,
+        jobDescription: jobDescription,
+        jobTitle: applicationData?.title,
+        companyName: applicationData?.company,
+      }),
     ]);
 
     let hasSuccess = false;
+    let resolvedCoverLetter: string | null = null;
+    let resolvedRecruiterMsg: string | null = null;
+    let resolvedFollowUpMsg: string | null = null;
+    let resolvedTailoredResume: TailoredResumeContent | null = null;
+
     if (clResult.status === 'fulfilled') {
-      setAiCoverLetter(clResult.value.output.content);
+      resolvedCoverLetter = clResult.value.output.content;
+      setAiCoverLetter(resolvedCoverLetter);
       hasSuccess = true;
     }
     if (rmResult.status === 'fulfilled') {
-      setAiRecruiterMsg(rmResult.value.output.content);
+      resolvedRecruiterMsg = rmResult.value.output.content;
+      setAiRecruiterMsg(resolvedRecruiterMsg);
       hasSuccess = true;
     }
     if (fuResult.status === 'fulfilled') {
-      setAiFollowUpMsg(fuResult.value.output.content);
+      resolvedFollowUpMsg = fuResult.value.output.content;
+      setAiFollowUpMsg(resolvedFollowUpMsg);
+      hasSuccess = true;
+    }
+    if (trResult.status === 'fulfilled') {
+      const raw = trResult.value.output.content;
+      try {
+        const structured = JSON.parse(raw) as TailoredResumeStructured;
+        resolvedTailoredResume = { structured, markdown: buildMarkdownFromStructured(structured) };
+      } catch {
+        resolvedTailoredResume = {
+          structured: { summary: '', skills: [], experience: [], education: [], projects_or_additional: [], claimsToVerify: [] },
+          markdown: raw,
+        };
+      }
+      setAiTailoredResume(resolvedTailoredResume);
       hasSuccess = true;
     }
 
     const allFailed =
       clResult.status === 'rejected' &&
       rmResult.status === 'rejected' &&
-      fuResult.status === 'rejected';
+      fuResult.status === 'rejected' &&
+      trResult.status === 'rejected';
 
     if (allFailed) {
       const reason = (clResult.reason as Error | undefined)?.message ?? '';
@@ -191,6 +287,21 @@ const ResumeTailorPage = () => {
     } else {
       setAiPackStatus(hasSuccess ? 'done' : 'unavailable');
     }
+
+    // Persist to localStorage (24h TTL)
+    if (PACK_CACHE_KEY) {
+      try {
+        localStorage.setItem(PACK_CACHE_KEY, JSON.stringify({
+          coverLetter: resolvedCoverLetter,
+          recruiterMsg: resolvedRecruiterMsg,
+          followUpMsg: resolvedFollowUpMsg,
+          tailoredResume: resolvedTailoredResume,
+          generatedAt: Date.now(),
+        }));
+      } catch {
+        // Storage quota — non-fatal
+      }
+    }
   };
 
   type AnalysisVariables = { resumeText: string; jobDescription: string };
@@ -202,7 +313,9 @@ const ResumeTailorPage = () => {
       setAiCoverLetter(null);
       setAiRecruiterMsg(null);
       setAiFollowUpMsg(null);
+      setAiTailoredResume(null);
       setAiPackStatus('idle');
+      if (PACK_CACHE_KEY) localStorage.removeItem(PACK_CACHE_KEY);
     },
     onSuccess: (result) => {
       setPackStatus(result.missingSkills.length || result.atsIssues?.length ? 'needs_review' : 'draft');
@@ -252,6 +365,12 @@ const ResumeTailorPage = () => {
         ...readObject(applicationData?.capture_parsed_payload),
         packStatus: 'used',
         packUsedAt: now,
+        generatedPack: {
+          coverLetter: aiCoverLetter,
+          tailoredResumeMarkdown: aiTailoredResume?.markdown ?? null,
+          tailoredResumeStructured: aiTailoredResume?.structured ?? null,
+          generatedAt: now,
+        },
       };
       const actionLog = [
         ...readActionLog(applicationData?.capture_action_log),
@@ -292,6 +411,13 @@ const ResumeTailorPage = () => {
     },
   });
 
+  // Scroll to application pack tabs when AI generation completes
+  useEffect(() => {
+    if (aiPackStatus === 'done' && tabsRef.current) {
+      tabsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [aiPackStatus]);
+
   return (
     <div className="container mx-auto p-sm sm:p-md lg:p-lg">
       <div className="flex justify-between items-center mb-sm">
@@ -302,42 +428,72 @@ const ResumeTailorPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
         <div>
           <h2 className="text-xl font-semibold mb-sm">Job Description</h2>
-          <div className="space-y-sm">
-            <div className="space-y-2">
-              <Input
-                type="text"
-                value={jobUrl}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setJobUrl(e.target.value)}
-                className="flex-grow p-2 border rounded-l-md"
-                placeholder="https://www.linkedin.com/jobs/view/..."
-              />
-              <Button
-                onClick={() => scrapeJobDescription(jobUrl)}
-                disabled={!jobUrl.trim() || isScraping || isLoadingApplication}
-              >
-                {isScraping ? 'Fetching...' : 'Fetch Job Description'}
-              </Button>
-              {isScrapeError && (
-                <p className="text-red-500 text-sm">Error: {scrapeError.message}</p>
+          {jobIsPreloaded ? (
+            <div className="space-y-2 text-sm">
+              <p className="font-medium text-gray-900">
+                {applicationData.title}{' '}
+                <span className="text-gray-500 font-normal">at</span>{' '}
+                {applicationData.company}
+              </p>
+              {applicationData.url && (
+                <a
+                  href={applicationData.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-indigo-600 hover:underline text-xs block truncate"
+                >
+                  {applicationData.url}
+                </a>
               )}
+              <p className="text-gray-500 text-xs line-clamp-3">
+                {applicationData.job_description?.slice(0, 200)}…
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowManualJobInput(true)}
+                className="text-xs text-gray-400 hover:text-gray-600 underline mt-1"
+              >
+                Use a different job description
+              </button>
             </div>
-            <div className="text-center text-sm text-gray-500">or</div>
-            <FileUpload
-              label="Upload Job Description"
-              description="Upload a PDF, DOCX, or TXT file"
-              onFileProcessed={(result: FileUploadResult) => console.log('JD file processed:', result)}
-              onTextExtracted={setJobDescription}
-              disabled={isLoadingApplication}
-            />
-            <div className="text-center text-sm text-gray-500">or</div>
-            <Textarea
-              className="h-64 bg-white"
-              value={jobDescription}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setJobDescription(e.target.value)}
-              placeholder="Paste the job description here..."
-              disabled={isLoadingApplication}
-            />
-          </div>
+          ) : (
+            <div className="space-y-sm">
+              <div className="space-y-2">
+                <Input
+                  type="text"
+                  value={jobUrl}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setJobUrl(e.target.value)}
+                  className="flex-grow p-2 border rounded-l-md"
+                  placeholder="https://www.linkedin.com/jobs/view/..."
+                />
+                <Button
+                  onClick={() => scrapeJobDescription(jobUrl)}
+                  disabled={!jobUrl.trim() || isScraping || isLoadingApplication}
+                >
+                  {isScraping ? 'Fetching...' : 'Fetch Job Description'}
+                </Button>
+                {isScrapeError && (
+                  <p className="text-red-500 text-sm">Error: {scrapeError.message}</p>
+                )}
+              </div>
+              <div className="text-center text-sm text-gray-500">or</div>
+              <FileUpload
+                label="Upload Job Description"
+                description="Upload a PDF, DOCX, or TXT file"
+                onFileProcessed={(result: FileUploadResult) => console.log('JD file processed:', result)}
+                onTextExtracted={setJobDescription}
+                disabled={isLoadingApplication}
+              />
+              <div className="text-center text-sm text-gray-500">or</div>
+              <Textarea
+                className="h-64 bg-white"
+                value={jobDescription}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setJobDescription(e.target.value)}
+                placeholder="Paste the job description here..."
+                disabled={isLoadingApplication}
+              />
+            </div>
+          )}
         </div>
         <div>
           <h2 className="text-xl font-semibold mb-sm">Your Resume</h2>
@@ -356,7 +512,17 @@ const ResumeTailorPage = () => {
             <FileUpload
               label="Upload Resume"
               description="Upload a PDF, DOCX, or TXT file"
-              onFileProcessed={(result: FileUploadResult) => console.log('Resume file processed:', result)}
+              onFileProcessed={async (result: FileUploadResult) => {
+                if (result.text && user) {
+                  try {
+                    const { uploadResume } = await import('@/services/fileUploadService');
+                    await uploadResume(result.fileName ?? 'resume', result.text);
+                    queryClient.invalidateQueries({ queryKey: ['resumes', user.id] });
+                  } catch {
+                    // Non-fatal — text still available for immediate use
+                  }
+                }
+              }}
               onTextExtracted={(text: string) => setResumeText(text)}
               disabled={false}
             />
@@ -370,6 +536,15 @@ const ResumeTailorPage = () => {
           </div>
         </div>
       </div>
+      {(isAnalyzing || aiPackStatus === 'generating') && (
+        <div
+          style={{ position: 'sticky', top: 0, zIndex: 10 }}
+          className="flex items-center gap-2 bg-indigo-950 border border-indigo-800 px-4 py-2 rounded text-sm text-indigo-300 mt-sm mb-2"
+        >
+          <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full" />
+          <span>{isAnalyzing ? 'Analysing your resume…' : 'Building your application pack…'}</span>
+        </div>
+      )}
       <div className="mt-sm text-center">
         <Button onClick={() => analyze({ resumeText, jobDescription })} disabled={isAnalyzing || !jobDescription.trim() || !resumeText.trim()}>
           {isAnalyzing ? "Analyzing..." : "Analyze & Tailor"}
@@ -384,24 +559,21 @@ const ResumeTailorPage = () => {
         <div className="mt-md space-y-sm">
           {analysis.metadata && (
             <Card>
-              <CardContent className="pt-6 text-xs text-muted-foreground">
-                <p>Provider used: {analysis.metadata.provider}</p>
-                <p>Model used: {analysis.metadata.model || 'not reported'}</p>
-                <p>Generated: {formatAiGeneratedAt(analysis.metadata.generatedAt)}</p>
-                <p>Cached result: {analysis.metadata.cached ? 'yes' : 'no'}</p>
+              <CardContent className="pt-6 text-xs text-muted-foreground space-y-1">
+                {analysis.metadata.generatedAt && (
+                  <p>Generated: {formatAiGeneratedAt(analysis.metadata.generatedAt)}</p>
+                )}
                 <p>
-                  AI pack generation:{' '}
                   {aiPackStatus === 'done'
-                    ? '✓ Complete'
+                    ? 'Application pack ready — review before sending.'
                     : aiPackStatus === 'generating'
-                    ? '⏳ Generating cover letter and messages…'
+                    ? 'Building your application pack…'
                     : aiPackStatus === 'unavailable'
-                    ? '⚠ Provider unavailable — showing templates'
+                    ? 'Pack generation is currently unavailable.'
                     : aiPackStatus === 'error'
-                    ? '⚠ Generation failed — showing templates'
-                    : '—'}
+                    ? 'Pack generation encountered an issue.'
+                    : 'Review all content before sending.'}
                 </p>
-                <p>Review all content before sending.</p>
               </CardContent>
             </Card>
           )}
@@ -417,6 +589,7 @@ const ResumeTailorPage = () => {
             </AlertDescription>
           </Alert>
 
+          <div ref={tabsRef}>
           <Card>
             <CardHeader>
               <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -501,6 +674,56 @@ const ResumeTailorPage = () => {
                       )}
                     </div>
                   )}
+                  {aiTailoredResume ? (
+                    <div className="mt-4 space-y-3">
+                      <div className="rounded border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800">
+                        Tailored resume generated — review all content and claims before downloading.
+                      </div>
+                      <pre className="whitespace-pre-wrap text-xs text-gray-700 bg-gray-50 border rounded p-3 max-h-64 overflow-y-auto">
+                        {aiTailoredResume.markdown}
+                      </pre>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const candidateName = (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || 'Applicant';
+                            void exportResumeDocx(buildResumeDocument({ candidateName, candidateEmail: user?.email, roleTitle: applicationData?.title ?? 'the role', companyName: applicationData?.company ?? 'the company', tailoredResume: aiTailoredResume }));
+                          }}
+                        >
+                          Download Resume DOCX
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const candidateName = (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || 'Applicant';
+                            void exportResumePdf(buildResumeDocument({ candidateName, candidateEmail: user?.email, roleTitle: applicationData?.title ?? 'the role', companyName: applicationData?.company ?? 'the company', tailoredResume: aiTailoredResume }));
+                          }}
+                        >
+                          Download Resume PDF
+                        </Button>
+                      </div>
+                      {(aiTailoredResume.structured.claimsToVerify ?? []).length > 0 && (
+                        <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                          <strong>Review before use:</strong>
+                          <ul className="mt-1 list-disc pl-4 space-y-0.5">
+                            {aiTailoredResume.structured.claimsToVerify.map((c, i) => (
+                              <li key={i}>{c}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ) : aiPackStatus === 'generating' ? (
+                    <div className="mt-4 text-xs text-gray-400 animate-pulse">Generating tailored resume…</div>
+                  ) : (aiPackStatus === 'done' || aiPackStatus === 'unavailable' || aiPackStatus === 'error') ? (
+                    <div className="mt-4 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500">
+                      Tailored resume generation was unavailable. Run Analyze &amp; Tailor again or check AI configuration.
+                    </div>
+                  ) : null}
                 </TabsContent>
 
                 <TabsContent value="cover-letter">
@@ -515,13 +738,38 @@ const ResumeTailorPage = () => {
                       <div className="h-3 bg-gray-200 rounded w-2/3" />
                     </div>
                   ) : aiCoverLetter ? (
-                    <CopySection title="Cover Letter (AI Generated)" content={aiCoverLetter} />
+                    <div className="space-y-3">
+                      <CopySection title="Cover Letter (AI Generated)" content={aiCoverLetter} />
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const candidateName = (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || 'Applicant';
+                            void exportCoverLetterDocx(buildCoverLetterDocument({ candidateName, candidateEmail: user?.email, roleTitle: applicationData?.title ?? 'the role', companyName: applicationData?.company ?? 'the company', coverLetterText: aiCoverLetter }));
+                          }}
+                        >
+                          Download DOCX
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const candidateName = (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || 'Applicant';
+                            void exportCoverLetterPdf(buildCoverLetterDocument({ candidateName, candidateEmail: user?.email, roleTitle: applicationData?.title ?? 'the role', companyName: applicationData?.company ?? 'the company', coverLetterText: aiCoverLetter }));
+                          }}
+                        >
+                          Download PDF
+                        </Button>
+                      </div>
+                    </div>
                   ) : (
                     <div className="space-y-3">
                       {(aiPackStatus === 'unavailable' || aiPackStatus === 'error') && (
                         <div className="rounded border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
-                          AI generation unavailable — showing template. Ensure{' '}
-                          <code className="font-mono">JATA_AI_PROVIDER</code> is set in Supabase Edge Function secrets.
+                          AI writing is currently unavailable. Edit the template before sending.
                         </div>
                       )}
                       <CopySection
@@ -591,6 +839,7 @@ const ResumeTailorPage = () => {
               </Tabs>
             </CardContent>
           </Card>
+          </div>
         </div>
       )}
     </div>

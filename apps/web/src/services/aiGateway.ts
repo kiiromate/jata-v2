@@ -8,7 +8,8 @@ export type AiTaskType =
   | 'generateCoverLetter'
   | 'generateRecruiterMessage'
   | 'generateFollowUpMessage'
-  | 'summarizeOpportunity';
+  | 'summarizeOpportunity'
+  | 'generateTailoredResume';
 
 export interface AiSafetySections {
   humanReviewRequired: string;

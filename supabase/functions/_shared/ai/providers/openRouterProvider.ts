@@ -1,5 +1,6 @@
 import {
   buildPrompt,
+  buildTailoredResumePrompt,
   createDeterministicMatchOutput,
   ensureTextOutputSafety,
 } from '../content.ts';
@@ -11,6 +12,7 @@ import type {
   AnalyzeCvMatchInput,
   GenerateCoverLetterInput,
   GenerateFollowUpMessageInput,
+  GenerateTailoredResumeInput,
   GenerateRecruiterMessageInput,
   SuggestResumeImprovementsInput,
   SummarizeOpportunityInput,
@@ -103,6 +105,41 @@ export function createOpenRouterProvider(env: AiEnv, fetchFn: typeof fetch = fet
     },
     async summarizeOpportunity(input: SummarizeOpportunityInput) {
       return generateText('summarizeOpportunity', input);
+    },
+    async generateTailoredResume(input: GenerateTailoredResumeInput) {
+      if (!apiKey) throw new Error('OpenRouter API key not configured');
+      if (!model) throw new Error('JATA_AI_MODEL_DEFAULT is required for OpenRouter');
+
+      const prompt = buildTailoredResumePrompt(input);
+      const response = await fetchFn(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'X-Title': 'JATA',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a professional resume writer. Return only valid JSON with no markdown fences. Do not invent any facts not present in the provided resume text.',
+            },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.1,
+          max_tokens: 2000,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
+      }
+
+      const content = parseOpenRouterText(await response.json());
+      const safety = { humanReviewRequired: '', claimsToVerifyBeforeSending: [], evidenceMissing: [], suggestedEdits: [] };
+      return { content, safety };
     },
   };
 }

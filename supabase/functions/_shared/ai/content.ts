@@ -317,6 +317,61 @@ export function buildPrompt<T extends AiTaskType>(taskType: T, input: AiTaskInpu
   ].join('\n');
 }
 
+/** Builds the structured JSON prompt for tailored resume generation. */
+export function buildTailoredResumePrompt(input: AiBaseInput): string {
+  const systemInstruction = [
+    'You are a professional resume writer. Your only source of truth is the candidate\'s existing resume text.',
+    'Do NOT invent or add any experience, employer, date, metric, tool, certification, education, location,',
+    'eligibility, or claim that does not appear in the provided resume. If a keyword from the job description',
+    'would strengthen the resume but cannot be verified from the existing content, add it to claimsToVerify only.',
+    '',
+    'Return a JSON object with this exact shape (no markdown fences, raw JSON only):',
+    '{',
+    '  "summary": "2-3 sentence professional summary tailored to the role",',
+    '  "skills": ["skill1", "skill2"],',
+    '  "experience": [',
+    '    { "role": "Job Title", "company": "Company", "location": "City, Country or Remote", "dates": "Month Year – Month Year", "bullets": ["bullet 1"] }',
+    '  ],',
+    '  "education": [',
+    '    { "degree": "Degree name", "institution": "School name", "dates": "Year" }',
+    '  ],',
+    '  "projects_or_additional": ["item 1"],',
+    '  "claimsToVerify": ["anything the AI is uncertain about that the candidate must verify before using"]',
+    '}',
+  ].join('\n');
+
+  const jobTitle = cleanText((input as { jobTitle?: string }).jobTitle) || 'the role';
+  const companyName = cleanText((input as { companyName?: string }).companyName) || 'the company';
+  const cvText = sanitizePromptText(input.cvText, 10000);
+  const jobDescription = sanitizePromptText(input.jobDescription, 6000);
+
+  return [
+    systemInstruction,
+    '',
+    `Target role: ${jobTitle} at ${companyName}`,
+    '',
+    'Candidate resume:',
+    cvText || 'Evidence needed: no CV text provided.',
+    '',
+    'Job description:',
+    jobDescription || 'Evidence needed: no job description provided.',
+  ].join('\n');
+}
+
+/** Creates a stub tailored resume JSON output for offline/mock providers. */
+export function createStubTailoredResumeOutput(input: AiBaseInput): AiTextOutput {
+  const safety = buildSafetySections(input, 'generateTailoredResume' as AiTaskType);
+  const stub = JSON.stringify({
+    summary: 'Evidence needed: source professional summary from your CV before using.',
+    skills: [],
+    experience: [],
+    education: [],
+    projects_or_additional: [],
+    claimsToVerify: ['AI generation was unavailable. Please review and complete this resume manually.'],
+  });
+  return { content: stub, safety };
+}
+
 /** Extracts plain text from any typed AI output for hashing and character counts. */
 export function outputToText(output: AiTaskOutput): string {
   if ('content' in output) return output.content;

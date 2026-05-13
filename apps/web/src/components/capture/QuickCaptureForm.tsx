@@ -467,8 +467,7 @@ export const QuickCaptureForm: React.FC<QuickCaptureFormProps> = ({
           <div className="flex items-start gap-2 px-3 py-2 rounded border border-jata-status-interview/20 bg-jata-status-interview/5">
             <AlertTriangle className="h-3.5 w-3.5 text-jata-status-interview mt-0.5 shrink-0" />
             <p className="font-mono text-[10px] text-jata-text-muted">
-              AI pack analysis is available in Resume Tailor after saving. Full AI generation
-              requires server-side provider keys (JATA_AI_PROVIDER). Local fallback is always active.
+              AI analysis is available in Resume Tailor after saving.
             </p>
           </div>
 
