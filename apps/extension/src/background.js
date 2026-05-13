@@ -116,15 +116,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Pick-bridge: intercept elementSelected from content script while popup may be closed.
     // Store the result in session storage keyed by pending field so popup can restore it on reopen.
     if (message.action === 'elementSelected' && sender.tab) {
-        chrome.storage.session.get('jata-pick-pending', (items) => {
+        chrome.storage.session.get(['jata-pick-pending', 'pickedFields'], (items) => {
             const pending = items['jata-pick-pending'];
             if (pending && Date.now() - pending.startedAt < 2 * 60 * 1000) {
+                const fields = items.pickedFields || {};
+                fields[pending.field] = message.data?.textContent ?? '';
                 chrome.storage.session.set({
-                    'jata-pick-result': {
-                        field: pending.field,
-                        value: message.data?.textContent ?? '',
-                        completedAt: Date.now(),
-                    },
+                    pickedFields: fields,
+                    pickMode: true
                 });
                 chrome.storage.session.remove('jata-pick-pending');
             }
