@@ -77,6 +77,7 @@ const App = () => {
         clearStoredDraft();
         setStatusMessage('');
         if (typeof chrome !== 'undefined' && chrome.tabs && chrome.storage?.session) {
+            chrome.storage.session.remove(['pickMode', 'pickedFields', 'jata-pick-pending']);
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 const tabId = tabs[0]?.id;
                 if (tabId !== undefined) {
@@ -173,7 +174,20 @@ const App = () => {
      */
     useEffect(() => {
         if (isLoggedIn && typeof chrome !== 'undefined' && chrome.tabs) {
-            refreshFromCurrentPage(false);
+            if (chrome.storage?.session) {
+                chrome.storage.session.get(['pickMode', 'pickedFields'], (stored) => {
+                    if (stored.pickMode && stored.pickedFields) {
+                        setData(normalizeExtractedData(stored.pickedFields));
+                        setStatusMessage('Restored picked values.');
+                    }
+                    else {
+                        refreshFromCurrentPage(false);
+                    }
+                });
+            }
+            else {
+                refreshFromCurrentPage(false);
+            }
         }
     }, [isLoggedIn, refreshFromCurrentPage]);
     /**
@@ -211,6 +225,14 @@ const App = () => {
         setIsScraping(field);
         setStatusMessage(`Selecting ${field}...`);
         if (typeof chrome !== 'undefined' && chrome.runtime) {
+            if (chrome.storage?.session) {
+                // Save current data so we don't lose typed-in fields
+                chrome.storage.session.set({
+                    'jata-pick-pending': { field, startedAt: Date.now() },
+                    pickedFields: data,
+                    pickMode: true
+                });
+            }
             chrome.runtime.sendMessage({ action: 'startScraping' }, (response) => {
                 if (chrome.runtime.lastError) {
                     console.error('Error sending startScraping message:', chrome.runtime.lastError.message);
@@ -218,7 +240,7 @@ const App = () => {
                     setIsScraping(null);
                 }
                 else {
-                    console.log(response.status);
+                    console.log(response?.status);
                 }
             });
         }
@@ -367,7 +389,19 @@ const App = () => {
      * Refresh with detected data from the active page.
      */
     const handleAutoFill = async () => {
+        if (typeof chrome !== 'undefined' && chrome.storage?.session) {
+            chrome.storage.session.remove(['pickMode', 'pickedFields', 'jata-pick-pending']);
+        }
         refreshFromCurrentPage(true);
+    };
+    /**
+     * Opens the Resume Tailor page with the current job data.
+     */
+    const handleGeneratePack = async () => {
+        if (typeof chrome !== 'undefined' && chrome.storage?.session) {
+            await chrome.storage.session.set({ pendingPackJob: data });
+            void openJataPath('/resume-tailor?from=extension');
+        }
     };
     // ── Loading state ────────────────────────────────────────────────────────
     if (!isAuthChecked) {
@@ -412,6 +446,6 @@ const App = () => {
                                 ? '✓ Strong capture'
                                 : confidence.confidenceLabel === 'review_recommended'
                                     ? '⚠ Review recommended'
-                                    : '⚠ Weak capture', ' ', "(", Math.round(confidence.confidenceScore * 100), "%)"] }), confidence.missingFields.length > 0 && (_jsxs("span", { className: "opacity-70", children: ["Missing: ", confidence.missingFields.join(', ')] }))] })), _jsx("button", { onClick: handleAutoFill, disabled: isLoading || isExtracting || !!isScraping, className: "w-full mb-4 bg-indigo-600 text-white rounded-md py-2 text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors duration-200", children: isExtracting ? 'Refreshing...' : 'Refresh from Page' }), _jsx("div", { className: "space-y-3", children: displayFields.map((key) => (_jsxs("div", { children: [_jsx("label", { className: "block text-xs font-medium text-gray-400 mb-1.5", children: fieldLabels[key] }), _jsxs("div", { className: "flex items-center gap-2", children: [key === 'jobDescription' ? (_jsx("textarea", { value: data[key], onChange: (e) => setData((prev) => ({ ...prev, [key]: e.target.value })), placeholder: fieldPlaceholders[key], className: "w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500", rows: 3 })) : (_jsx("input", { type: "text", value: data[key] || '', onChange: (e) => setData((prev) => ({ ...prev, [key]: e.target.value })), placeholder: fieldPlaceholders[key], className: "w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" })), _jsx("button", { onClick: () => handleSelect(key), disabled: !!isScraping || isLoading || isExtracting, className: "px-3 py-2 bg-gray-700 text-white rounded-md text-xs font-medium hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors duration-200 whitespace-nowrap", children: "Pick" })] })] }, key))) }), _jsx("button", { onClick: handleSave, disabled: !!isScraping || isLoading || isExtracting, className: "w-full mt-6 bg-gray-800 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-700 disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200", children: isLoading ? 'Capturing...' : 'Capture to JATA' }), _jsx("div", { className: "mt-3 flex justify-center", children: _jsx("button", { onClick: openDashboard, className: "text-xs text-gray-500 hover:text-indigo-400 transition-colors duration-200", children: "Open Capture Inbox" }) }), _jsxs("div", { className: "mt-3 flex items-center justify-center gap-2 text-xs text-gray-500", children: [_jsx("div", { className: `w-1.5 h-1.5 rounded-full ${isOnline() ? 'bg-green-500' : 'bg-gray-500'}` }), _jsx("span", { children: isOnline() ? 'Connected' : 'Offline mode' })] })] }));
+                                    : '⚠ Weak capture', ' ', "(", Math.round(confidence.confidenceScore * 100), "%)"] }), confidence.missingFields.length > 0 && (_jsxs("span", { className: "opacity-70", children: ["Missing: ", confidence.missingFields.join(', ')] }))] })), _jsx("button", { onClick: handleAutoFill, disabled: isLoading || isExtracting || !!isScraping, className: "w-full mb-4 bg-indigo-600 text-white rounded-md py-2 text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors duration-200", children: isExtracting ? 'Refreshing...' : 'Refresh from Page' }), _jsx("div", { className: "space-y-3", children: displayFields.map((key) => (_jsxs("div", { children: [_jsx("label", { className: "block text-xs font-medium text-gray-400 mb-1.5", children: fieldLabels[key] }), _jsxs("div", { className: "flex items-center gap-2", children: [key === 'jobDescription' ? (_jsx("textarea", { value: data[key], onChange: (e) => setData((prev) => ({ ...prev, [key]: e.target.value })), placeholder: fieldPlaceholders[key], className: "w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500", rows: 3 })) : (_jsx("input", { type: "text", value: data[key] || '', onChange: (e) => setData((prev) => ({ ...prev, [key]: e.target.value })), placeholder: fieldPlaceholders[key], className: "w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" })), _jsx("button", { onClick: () => handleSelect(key), disabled: !!isScraping || isLoading || isExtracting, className: "px-3 py-2 bg-gray-700 text-white rounded-md text-xs font-medium hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors duration-200 whitespace-nowrap", children: "Pick" })] })] }, key))) }), _jsx("button", { onClick: handleSave, disabled: !!isScraping || isLoading || isExtracting, className: "w-full mt-6 bg-gray-800 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-700 disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200", children: isLoading ? 'Capturing...' : 'Capture to JATA' }), _jsx("button", { onClick: handleGeneratePack, disabled: !isLoggedIn || !!isScraping || isLoading || isExtracting, className: "w-full mt-3 bg-indigo-600 text-white rounded-md py-2.5 text-sm font-medium hover:bg-indigo-700 disabled:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200", children: "Generate Pack \u2192" }), _jsx("div", { className: "mt-3 flex justify-center", children: _jsx("button", { onClick: openDashboard, className: "text-xs text-gray-500 hover:text-indigo-400 transition-colors duration-200", children: "Open Capture Inbox" }) }), _jsxs("div", { className: "mt-3 flex items-center justify-center gap-2 text-xs text-gray-500", children: [_jsx("div", { className: `w-1.5 h-1.5 rounded-full ${isOnline() ? 'bg-green-500' : 'bg-gray-500'}` }), _jsx("span", { children: isOnline() ? 'Connected' : 'Offline mode' })] })] }));
 };
 export default App;

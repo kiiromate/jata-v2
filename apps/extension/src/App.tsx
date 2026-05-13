@@ -139,6 +139,7 @@ const App: React.FC = () => {
     setStatusMessage('');
 
     if (typeof chrome !== 'undefined' && chrome.tabs && chrome.storage?.session) {
+      chrome.storage.session.remove(['pickMode', 'pickedFields', 'jata-pick-pending']);
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const tabId = tabs[0]?.id;
         if (tabId !== undefined) {
@@ -250,7 +251,18 @@ const App: React.FC = () => {
    */
   useEffect(() => {
     if (isLoggedIn && typeof chrome !== 'undefined' && chrome.tabs) {
-      refreshFromCurrentPage(false);
+      if (chrome.storage?.session) {
+        chrome.storage.session.get(['pickMode', 'pickedFields'], (stored) => {
+          if (stored.pickMode && stored.pickedFields) {
+            setData(normalizeExtractedData(stored.pickedFields));
+            setStatusMessage('Restored picked values.');
+          } else {
+            refreshFromCurrentPage(false);
+          }
+        });
+      } else {
+        refreshFromCurrentPage(false);
+      }
     }
   }, [isLoggedIn, refreshFromCurrentPage]);
 
@@ -293,13 +305,22 @@ const App: React.FC = () => {
     setStatusMessage(`Selecting ${field}...`);
 
     if (typeof chrome !== 'undefined' && chrome.runtime) {
+      if (chrome.storage?.session) {
+        // Save current data so we don't lose typed-in fields
+        chrome.storage.session.set({
+          'jata-pick-pending': { field, startedAt: Date.now() },
+          pickedFields: data,
+          pickMode: true
+        });
+      }
+
       chrome.runtime.sendMessage({ action: 'startScraping' }, (response) => {
         if (chrome.runtime.lastError) {
           console.error('Error sending startScraping message:', chrome.runtime.lastError.message);
           setStatusMessage('Error: Could not start selector.');
           setIsScraping(null);
         } else {
-          console.log(response.status);
+          console.log(response?.status);
         }
       });
     } else {
@@ -458,7 +479,20 @@ const App: React.FC = () => {
    * Refresh with detected data from the active page.
    */
   const handleAutoFill = async () => {
+    if (typeof chrome !== 'undefined' && chrome.storage?.session) {
+      chrome.storage.session.remove(['pickMode', 'pickedFields', 'jata-pick-pending']);
+    }
     refreshFromCurrentPage(true);
+  };
+
+  /**
+   * Opens the Resume Tailor page with the current job data.
+   */
+  const handleGeneratePack = async () => {
+    if (typeof chrome !== 'undefined' && chrome.storage?.session) {
+      await chrome.storage.session.set({ pendingPackJob: data });
+      void openJataPath('/resume-tailor?from=extension');
+    }
   };
 
   // ── Loading state ────────────────────────────────────────────────────────
@@ -685,6 +719,14 @@ const App: React.FC = () => {
         className="w-full mt-6 bg-gray-800 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-700 disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
       >
         {isLoading ? 'Capturing...' : 'Capture to JATA'}
+      </button>
+
+      <button
+        onClick={handleGeneratePack}
+        disabled={!isLoggedIn || !!isScraping || isLoading || isExtracting}
+        className="w-full mt-3 bg-indigo-600 text-white rounded-md py-2.5 text-sm font-medium hover:bg-indigo-700 disabled:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+      >
+        Generate Pack →
       </button>
 
       <div className="mt-3 flex justify-center">
