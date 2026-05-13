@@ -43,6 +43,12 @@ export type Database = {
           pack_requested_at: string | null
           parsed_at: string | null
           scored_at: string | null
+          company_about: string | null
+          work_mode: 'remote' | 'hybrid' | 'onsite' | 'unknown' | null
+          salary_range: string | null
+          deadline: string | null
+          job_type: 'full_time' | 'part_time' | 'contract' | 'internship' | 'other' | null
+          location_detail: string | null
           created_at: string
           updated_at: string
         }
@@ -77,6 +83,12 @@ export type Database = {
           pack_requested_at?: string | null
           parsed_at?: string | null
           scored_at?: string | null
+          company_about?: string | null
+          work_mode?: 'remote' | 'hybrid' | 'onsite' | 'unknown' | null
+          salary_range?: string | null
+          deadline?: string | null
+          job_type?: 'full_time' | 'part_time' | 'contract' | 'internship' | 'other' | null
+          location_detail?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -111,6 +123,12 @@ export type Database = {
           pack_requested_at?: string | null
           parsed_at?: string | null
           scored_at?: string | null
+          company_about?: string | null
+          work_mode?: 'remote' | 'hybrid' | 'onsite' | 'unknown' | null
+          salary_range?: string | null
+          deadline?: string | null
+          job_type?: 'full_time' | 'part_time' | 'contract' | 'internship' | 'other' | null
+          location_detail?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -122,6 +140,7 @@ export type Database = {
           user_id: string
           filename: string
           content: string
+          extracted_text: string | null
           created_at: string
           updated_at: string | null
         }
@@ -130,6 +149,7 @@ export type Database = {
           user_id: string
           filename: string
           content: string
+          extracted_text?: string | null
           created_at?: string
           updated_at?: string | null
         }
@@ -138,6 +158,7 @@ export type Database = {
           user_id?: string
           filename?: string
           content?: string
+          extracted_text?: string | null
           created_at?: string
           updated_at?: string | null
         }

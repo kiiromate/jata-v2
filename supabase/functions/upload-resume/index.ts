@@ -8,6 +8,22 @@ function readPdfTextItem(item: { str?: string }): string {
   return typeof item.str === 'string' ? item.str : ''
 }
 
+async function extractTextFromPdf(buffer: ArrayBuffer): Promise<string> {
+  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise
+  let text = ''
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i)
+    const content = await page.getTextContent()
+    text += content.items.map(readPdfTextItem).join(' ') + '\n'
+  }
+  return text
+}
+
+async function extractTextFromDocx(buffer: ArrayBuffer): Promise<string> {
+  const result = await mammoth.extractRawText({ arrayBuffer: buffer })
+  return result.value
+}
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -35,6 +51,16 @@ serve(async (req: Request): Promise<Response> => {
       })
     }
 
+    if (
+      file.type !== 'application/pdf' &&
+      file.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ) {
+      return new Response(JSON.stringify({ error: 'Unsupported file type' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+
     const filePath = `${userId}/${Date.now()}_${file.name}`
     const { error: uploadError } = await supabase.storage
       .from('resumes')
@@ -48,32 +74,23 @@ serve(async (req: Request): Promise<Response> => {
       })
     }
 
-    let resumeContent = ''
-    const fileBuffer = await file.arrayBuffer()
-
-    if (file.type === 'application/pdf') {
-      const pdf = await pdfjsLib.getDocument({ data: fileBuffer }).promise
-      let text = ''
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i)
-        const content = await page.getTextContent()
-        text += content.items.map(readPdfTextItem).join(' ') + '\n'
+    let extractedText: string | null = null
+    try {
+      const fileBuffer = await file.arrayBuffer()
+      if (file.type === 'application/pdf') {
+        extractedText = await extractTextFromPdf(fileBuffer)
+      } else {
+        extractedText = await extractTextFromDocx(fileBuffer)
       }
-      resumeContent = text
-    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      const result = await mammoth.extractRawText({ arrayBuffer: fileBuffer })
-      resumeContent = result.value
-    } else {
-      return new Response(JSON.stringify({ error: 'Unsupported file type' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      })
+    } catch (extractErr) {
+      console.warn('Text extraction failed, file saved without text content:', extractErr)
     }
 
     const { error: dbError } = await supabase.from('resumes').insert({
       user_id: userId,
       filename: resumeName,
-      content: resumeContent,
+      content: extractedText ?? '',
+      extracted_text: extractedText,
     })
 
     if (dbError) {
