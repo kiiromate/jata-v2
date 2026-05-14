@@ -39,8 +39,9 @@ const CaptureInboxPage: React.FC = () => {
   const isEmpty = !isLoading && !isError && (!captures || captures.length === 0);
 
   return (
-    <div className="p-sm sm:p-md lg:p-lg space-y-6 min-w-0">
-      <div>
+    <div className="min-w-0 flex flex-col">
+      {/* Sticky page header */}
+      <div className="sticky top-0 z-10 bg-jata-deep-carbon px-sm sm:px-md lg:px-lg pt-sm sm:pt-md lg:pt-lg pb-4 border-b border-jata-border">
         <h1 className="text-2xl font-headline font-semibold text-jata-text-primary">
           Capture Inbox
         </h1>
@@ -54,26 +55,29 @@ const CaptureInboxPage: React.FC = () => {
         </p>
       </div>
 
-      <QuickCaptureForm userId={userId} />
+      {/* Scrollable content */}
+      <div className="px-sm sm:px-md lg:px-lg pb-sm sm:pb-md lg:pb-lg space-y-6 pt-6">
+        <QuickCaptureForm userId={userId} />
 
-      <BulkLinkCapture userId={userId} />
+        <BulkLinkCapture userId={userId} />
 
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-jata-text-muted">
-          Queue ({captures?.length ?? 0})
-        </span>
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-jata-text-muted">
+            Queue ({captures?.length ?? 0})
+          </span>
+        </div>
+
+        {isEmpty ? (
+          <EmptyState />
+        ) : (
+          <CaptureQueueTable
+            items={captures ?? []}
+            userId={userId}
+            isLoading={isLoading}
+            isError={isError}
+          />
+        )}
       </div>
-
-      {isEmpty ? (
-        <EmptyState />
-      ) : (
-        <CaptureQueueTable
-          items={captures ?? []}
-          userId={userId}
-          isLoading={isLoading}
-          isError={isError}
-        />
-      )}
     </div>
   );
 };

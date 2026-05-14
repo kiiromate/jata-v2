@@ -30,6 +30,7 @@ import NotFoundPage from '@/pages/NotFoundPage';
 import DiagnosticPage from '@/pages/DiagnosticPage';
 import CaptureInboxPage from '@/pages/CaptureInboxPage';
 import CaptureSharePage from '@/pages/CaptureSharePage';
+import ResumeBankPage from '@/pages/ResumeBankPage';
 import { Toaster } from '@/components/ui/toaster';
 
 const queryClient = new QueryClient();
@@ -110,6 +111,13 @@ function App() {
                       <ProtectedRoute>
                         <DashboardLayout>
                           <CaptureInboxPage />
+                        </DashboardLayout>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/resume-bank" element={
+                      <ProtectedRoute>
+                        <DashboardLayout>
+                          <ResumeBankPage />
                         </DashboardLayout>
                       </ProtectedRoute>
                     } />
