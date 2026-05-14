@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { useState, useEffect, useMemo, useRef } from "react";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -21,10 +22,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileUpload } from "@/components/FileUpload";
 import type { FileUploadResult } from "@/services/fileUploadService";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
 import {
   buildApplicationPackWorkflow,
   PackReadinessStatuses,
@@ -44,25 +45,115 @@ function readActionLog(value: unknown): Array<Record<string, unknown>> {
 }
 
 function CopySection({ title, content }: { title: string; content: string }) {
-  const copy = () => {
-    void navigator.clipboard?.writeText(content);
-  };
-
+  const copy = () => { void navigator.clipboard?.writeText(content); };
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-gray-900">{title}</h3>
-        <Button type="button" variant="outline" size="sm" onClick={copy}>
-          Copy
-        </Button>
+        <h3 className="font-semibold text-jata-text-primary text-sm">{title}</h3>
+        <Button type="button" variant="outline" size="sm" onClick={copy}>Copy</Button>
       </div>
-      <pre className="min-h-40 whitespace-pre-wrap rounded-md border bg-white p-4 text-sm leading-6 text-gray-800">
+      <pre className="min-h-40 whitespace-pre-wrap rounded-md border border-jata-border bg-jata-bg-surface p-4 text-sm leading-6 text-jata-text-secondary">
         {content}
       </pre>
     </div>
   );
 }
 
+// ── Step indicator ─────────────────────────────────────────────────────────────
+const STEP_LABELS = ['Job Loaded', 'Resume Selected', 'Analyzing', 'Review Pack', 'Download'];
+
+type StepState = 'complete' | 'active' | 'pending';
+
+function StepIndicator({ states }: { states: StepState[] }) {
+  return (
+    <div className="flex items-center w-full overflow-x-auto pb-1">
+      {STEP_LABELS.map((label, i) => {
+        const s = states[i] ?? 'pending';
+        return (
+          <div key={i} className="flex items-center flex-1 min-w-0">
+            <div className="flex flex-col items-center gap-1 shrink-0">
+              <div className={cn(
+                "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors",
+                s === 'complete' && "border-jata-accent-lime bg-jata-accent-lime text-jata-deep-carbon",
+                s === 'active'   && "border-jata-accent-blue bg-jata-accent-blue/20 text-jata-accent-blue",
+                s === 'pending'  && "border-jata-border bg-transparent text-jata-text-muted",
+              )}>
+                {s === 'complete' ? '✓' : i + 1}
+              </div>
+              <span className={cn(
+                "text-[9px] font-mono uppercase tracking-widest text-center whitespace-nowrap",
+                s === 'complete' && "text-jata-accent-lime",
+                s === 'active'   && "text-jata-accent-blue",
+                s === 'pending'  && "text-jata-text-muted",
+              )}>
+                {label}
+              </span>
+            </div>
+            {i < STEP_LABELS.length - 1 && (
+              <div className={cn(
+                "flex-1 h-px mx-1 min-w-[12px] transition-colors",
+                i < states.findIndex(s => s !== 'complete') || states.every(s => s === 'complete')
+                  ? "bg-jata-accent-lime"
+                  : "bg-jata-border",
+              )} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Expandable section ─────────────────────────────────────────────────────────
+function ExpandableSection({
+  title,
+  defaultOpen = false,
+  children,
+  warning = false,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+  warning?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className={cn(
+      "rounded-lg border overflow-hidden",
+      warning ? "border-jata-status-rejected/40" : "border-jata-border",
+    )}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className={cn(
+          "w-full flex items-center justify-between px-4 py-3 text-left transition-colors",
+          warning
+            ? "bg-jata-status-rejected/10 hover:bg-jata-status-rejected/15"
+            : "bg-jata-bg-surface hover:bg-jata-graphite-mist/30",
+        )}
+      >
+        <span className={cn(
+          "font-medium text-sm",
+          warning ? "text-jata-status-rejected" : "text-jata-text-primary",
+        )}>
+          {title}
+        </span>
+        <ChevronDown className={cn(
+          "h-4 w-4 shrink-0 transition-transform",
+          open && "rotate-180",
+          warning ? "text-jata-status-rejected" : "text-jata-text-muted",
+        )} />
+      </button>
+      {open && (
+        <div className="px-4 py-4 bg-jata-deep-carbon border-t border-jata-border space-y-3">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────────
 const ResumeTailorPage = () => {
   const { id: applicationId } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -79,9 +170,11 @@ const ResumeTailorPage = () => {
   const [aiPackStatus, setAiPackStatus] = useState<'idle' | 'generating' | 'done' | 'unavailable' | 'error'>('idle');
   const [aiTailoredResume, setAiTailoredResume] = useState<TailoredResumeContent | null>(null);
   const [showManualJobInput, setShowManualJobInput] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const tabsRef = useRef<HTMLDivElement>(null);
+  const analysisStartRef = useRef<number | null>(null);
 
-  // Fetch application data
+  // ── Fetch application data ─────────────────────────────────────────────────
   const { data: applicationData, isLoading: isLoadingApplication } = useQuery({
     queryKey: ['application', applicationId],
     queryFn: async () => {
@@ -100,25 +193,17 @@ const ResumeTailorPage = () => {
 
   useEffect(() => {
     if (!applicationData) return;
-    if (applicationData.job_description && !jobDescription) {
-      setJobDescription(applicationData.job_description);
-    }
-    if (applicationData.url && !jobUrl) {
-      setJobUrl(applicationData.url);
-    }
-    if (applicationData.final_resume_text && !resumeText) {
-      setResumeText(applicationData.final_resume_text);
-    }
-    if (applicationData.selected_resume_id && !selectedResumeId) {
-      setSelectedResumeId(applicationData.selected_resume_id);
-    }
+    if (applicationData.job_description && !jobDescription) setJobDescription(applicationData.job_description);
+    if (applicationData.url && !jobUrl) setJobUrl(applicationData.url);
+    if (applicationData.final_resume_text && !resumeText) setResumeText(applicationData.final_resume_text);
+    if (applicationData.selected_resume_id && !selectedResumeId) setSelectedResumeId(applicationData.selected_resume_id);
   }, [applicationData, jobDescription, jobUrl, resumeText, selectedResumeId]);
 
   const jobIsPreloaded = Boolean(applicationData?.job_description && !showManualJobInput);
 
+  // ── Pack cache (localStorage, 24h TTL) ────────────────────────────────────
   const PACK_CACHE_KEY = applicationId ? `jata-pack-${applicationId}` : null;
 
-  // Restore pack from localStorage on load
   useEffect(() => {
     if (!PACK_CACHE_KEY) return;
     const cached = localStorage.getItem(PACK_CACHE_KEY);
@@ -146,7 +231,7 @@ const ResumeTailorPage = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applicationId]);
 
-  // Fetch user's resumes
+  // ── Fetch user resumes ─────────────────────────────────────────────────────
   const { data: resumes, isLoading: isLoadingResumes } = useQuery<Resume[], Error>({
     queryKey: ['resumes', user?.id],
     queryFn: async () => {
@@ -159,20 +244,32 @@ const ResumeTailorPage = () => {
   });
 
   useEffect(() => {
-    // Auto-select the first resume when the list loads
     if (!selectedResumeId && resumes && resumes.length > 0) {
-      const firstResumeId = resumes[0].id.toString();
-      setSelectedResumeId(firstResumeId);
-      setResumeText(resumes[0].content || '');
+      const first = resumes.find(r => r.extracted_text) ?? resumes[0];
+      setSelectedResumeId(first.id.toString());
+      setResumeText(first.extracted_text || first.content || '');
     } else {
-      // Update resume text when selection changes
-      const selectedResume = resumes?.find(r => r.id.toString() === selectedResumeId);
-      if (selectedResume) {
-        setResumeText(selectedResume.content || '');
-      }
+      const selected = resumes?.find(r => r.id.toString() === selectedResumeId);
+      if (selected) setResumeText(selected.extracted_text || selected.content || '');
     }
   }, [selectedResumeId, resumes]);
 
+  // ── Elapsed time counter while analyzing ──────────────────────────────────
+  const isRunning = aiPackStatus === 'generating';
+  useEffect(() => {
+    if (isRunning) {
+      if (!analysisStartRef.current) analysisStartRef.current = Date.now();
+      const interval = setInterval(() => {
+        setElapsedSeconds(Math.floor((Date.now() - (analysisStartRef.current ?? Date.now())) / 1000));
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      analysisStartRef.current = null;
+      setElapsedSeconds(0);
+    }
+  }, [isRunning]);
+
+  // ── Markdown builder for structured resume ─────────────────────────────────
   function buildMarkdownFromStructured(s: TailoredResumeStructured): string {
     const lines: string[] = [];
     if (s.summary) { lines.push('## Professional Summary', s.summary, ''); }
@@ -197,40 +294,28 @@ const ResumeTailorPage = () => {
     return lines.join('\n');
   }
 
+  // ── AI pack generation ─────────────────────────────────────────────────────
   const generateAiPackContent = async (result: AnalysisResult) => {
     setAiPackStatus('generating');
-    const userName =
-      (user?.user_metadata?.full_name as string | undefined) ||
-      user?.email ||
-      'Applicant';
+    const userName = (user?.user_metadata?.full_name as string | undefined) || user?.email || 'Applicant';
     const highlights = result.matchedSkills;
 
     const [clResult, rmResult, fuResult, trResult] = await Promise.allSettled([
       invokeAiTask<AiTextOutput>('generateCoverLetter', {
         jobTitle: applicationData?.title || 'the role',
         companyName: applicationData?.company || 'the company',
-        userName,
-        highlights,
-        cvText: resumeText,
-        jobDescription: jobDescription,
+        userName, highlights, cvText: resumeText, jobDescription,
       }),
       invokeAiTask<AiTextOutput>('generateRecruiterMessage', {
-        jobTitle: applicationData?.title,
-        companyName: applicationData?.company,
-        highlights,
-        cvText: resumeText,
-        jobDescription: jobDescription,
+        jobTitle: applicationData?.title, companyName: applicationData?.company,
+        highlights, cvText: resumeText, jobDescription,
       }),
       invokeAiTask<AiTextOutput>('generateFollowUpMessage', {
-        jobTitle: applicationData?.title,
-        companyName: applicationData?.company,
-        cvText: resumeText,
+        jobTitle: applicationData?.title, companyName: applicationData?.company, cvText: resumeText,
       }),
       invokeAiTask<AiTextOutput>('generateTailoredResume', {
-        cvText: resumeText,
-        jobDescription: jobDescription,
-        jobTitle: applicationData?.title,
-        companyName: applicationData?.company,
+        cvText: resumeText, jobDescription,
+        jobTitle: applicationData?.title, companyName: applicationData?.company,
       }),
     ]);
 
@@ -240,21 +325,9 @@ const ResumeTailorPage = () => {
     let resolvedFollowUpMsg: string | null = null;
     let resolvedTailoredResume: TailoredResumeContent | null = null;
 
-    if (clResult.status === 'fulfilled') {
-      resolvedCoverLetter = clResult.value.output.content;
-      setAiCoverLetter(resolvedCoverLetter);
-      hasSuccess = true;
-    }
-    if (rmResult.status === 'fulfilled') {
-      resolvedRecruiterMsg = rmResult.value.output.content;
-      setAiRecruiterMsg(resolvedRecruiterMsg);
-      hasSuccess = true;
-    }
-    if (fuResult.status === 'fulfilled') {
-      resolvedFollowUpMsg = fuResult.value.output.content;
-      setAiFollowUpMsg(resolvedFollowUpMsg);
-      hasSuccess = true;
-    }
+    if (clResult.status === 'fulfilled') { resolvedCoverLetter = clResult.value.output.content; setAiCoverLetter(resolvedCoverLetter); hasSuccess = true; }
+    if (rmResult.status === 'fulfilled') { resolvedRecruiterMsg = rmResult.value.output.content; setAiRecruiterMsg(resolvedRecruiterMsg); hasSuccess = true; }
+    if (fuResult.status === 'fulfilled') { resolvedFollowUpMsg = fuResult.value.output.content; setAiFollowUpMsg(resolvedFollowUpMsg); hasSuccess = true; }
     if (trResult.status === 'fulfilled') {
       const raw = trResult.value.output.content;
       try {
@@ -270,25 +343,15 @@ const ResumeTailorPage = () => {
       hasSuccess = true;
     }
 
-    const allFailed =
-      clResult.status === 'rejected' &&
-      rmResult.status === 'rejected' &&
-      fuResult.status === 'rejected' &&
-      trResult.status === 'rejected';
-
+    const allFailed = clResult.status === 'rejected' && rmResult.status === 'rejected' && fuResult.status === 'rejected' && trResult.status === 'rejected';
     if (allFailed) {
       const reason = (clResult.reason as Error | undefined)?.message ?? '';
-      const isServerErr =
-        reason.includes('AI generation failed') ||
-        reason.includes('Unauthorized') ||
-        reason.includes('AI usage limit') ||
-        reason.includes('AI credits');
+      const isServerErr = reason.includes('AI generation failed') || reason.includes('Unauthorized') || reason.includes('AI usage limit') || reason.includes('AI credits');
       setAiPackStatus(isServerErr ? 'unavailable' : 'error');
     } else {
       setAiPackStatus(hasSuccess ? 'done' : 'unavailable');
     }
 
-    // Persist to localStorage (24h TTL)
     if (PACK_CACHE_KEY) {
       try {
         localStorage.setItem(PACK_CACHE_KEY, JSON.stringify({
@@ -298,22 +361,17 @@ const ResumeTailorPage = () => {
           tailoredResume: resolvedTailoredResume,
           generatedAt: Date.now(),
         }));
-      } catch {
-        // Storage quota — non-fatal
-      }
+      } catch { /* quota — non-fatal */ }
     }
   };
 
   type AnalysisVariables = { resumeText: string; jobDescription: string };
 
-  // Mutation for AI analysis
-  const { mutate: analyze, data: analysis, isPending: isAnalyzing, isError: analysisError, error: analysisErrorMessage } = useMutation<AnalysisResult, Error, AnalysisVariables>({
+  // ── Analysis mutation ──────────────────────────────────────────────────────
+  const { mutate: analyze, data: analysis, isPending: isAnalyzing, isError: analysisError } = useMutation<AnalysisResult, Error, AnalysisVariables>({
     mutationFn: (variables) => analyzeResumeAgainstJobDescription(variables.resumeText, variables.jobDescription),
     onMutate: () => {
-      setAiCoverLetter(null);
-      setAiRecruiterMsg(null);
-      setAiFollowUpMsg(null);
-      setAiTailoredResume(null);
+      setAiCoverLetter(null); setAiRecruiterMsg(null); setAiFollowUpMsg(null); setAiTailoredResume(null);
       setAiPackStatus('idle');
       if (PACK_CACHE_KEY) localStorage.removeItem(PACK_CACHE_KEY);
     },
@@ -323,21 +381,28 @@ const ResumeTailorPage = () => {
     },
   });
 
-  // Mutation for scraping job description from URL
-  const { mutate: scrapeJobDescription, isPending: isScraping, isError: isScrapeError, error: scrapeError } = useMutation<string, Error, string>({
+  // ── Step indicator states (needs `analysis` in scope) ─────────────────────
+  const stepStates = useMemo((): StepState[] => {
+    const jobLoaded = jobDescription.trim().length > 0;
+    const resumeReady = Boolean(selectedResumeId || resumeText.trim());
+    const analyzing = aiPackStatus === 'generating';
+    const analyzed = Boolean(analysis) || aiPackStatus === 'done';
+    const packReady = aiPackStatus === 'done';
+    return [
+      jobLoaded ? 'complete' : 'active',
+      jobLoaded ? (resumeReady ? 'complete' : 'active') : 'pending',
+      resumeReady ? (analyzed ? 'complete' : analyzing ? 'active' : 'pending') : 'pending',
+      analyzed ? (packReady ? 'active' : 'pending') : 'pending',
+      packReady ? 'active' : 'pending',
+    ];
+  }, [jobDescription, selectedResumeId, resumeText, aiPackStatus, analysis]);
+
+  // ── URL scrape mutation ────────────────────────────────────────────────────
+  const { mutate: scrapeJobDescription, isPending: isScraping, isError: isScrapeError } = useMutation<string, Error, string>({
     mutationFn: async (url: string) => {
-      const { data, error } = await supabase.functions.invoke<{ content?: string }>('scrape-url', {
-        body: { url },
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Failed to scrape URL');
-      }
-
-      if (!data?.content) {
-        throw new Error('No job description content was returned.');
-      }
-
+      const { data, error } = await supabase.functions.invoke<{ content?: string }>('scrape-url', { body: { url } });
+      if (error) throw new Error(error.message || 'Failed to scrape URL');
+      if (!data?.content) throw new Error('No job description content was returned.');
       setJobDescription(data.content);
       return data.content;
     },
@@ -346,16 +411,13 @@ const ResumeTailorPage = () => {
   const packWorkflow = useMemo(() => {
     if (!analysis) return null;
     return buildApplicationPackWorkflow({
-      roleTitle: applicationData?.title,
-      company: applicationData?.company,
-      resumeText,
-      jobDescription,
-      matchedSkills: analysis.matchedSkills,
-      missingSkills: analysis.missingSkills,
-      atsIssues: analysis.atsIssues,
+      roleTitle: applicationData?.title, company: applicationData?.company,
+      resumeText, jobDescription,
+      matchedSkills: analysis.matchedSkills, missingSkills: analysis.missingSkills, atsIssues: analysis.atsIssues,
     });
   }, [analysis, applicationData, resumeText, jobDescription]);
 
+  // ── Mark pack used mutation ────────────────────────────────────────────────
   const markPackUsedMutation = useMutation({
     mutationFn: async () => {
       if (!applicationId || !user) throw new Error('Application not available.');
@@ -363,8 +425,7 @@ const ResumeTailorPage = () => {
       const today = now.slice(0, 10);
       const parsedPayload = {
         ...readObject(applicationData?.capture_parsed_payload),
-        packStatus: 'used',
-        packUsedAt: now,
+        packStatus: 'used', packUsedAt: now,
         generatedPack: {
           coverLetter: aiCoverLetter,
           tailoredResumeMarkdown: aiTailoredResume?.markdown ?? null,
@@ -374,25 +435,13 @@ const ResumeTailorPage = () => {
       };
       const actionLog = [
         ...readActionLog(applicationData?.capture_action_log),
-        {
-          type: 'pack_used',
-          at: now,
-          actorId: user.id,
-          metadata: { packStatus: 'used' },
-        },
-        {
-          type: 'marked_applied',
-          at: now,
-          actorId: user.id,
-          metadata: { source: 'pack_viewer' },
-        },
+        { type: 'pack_used', at: now, actorId: user.id, metadata: { packStatus: 'used' } },
+        { type: 'marked_applied', at: now, actorId: user.id, metadata: { source: 'pack_viewer' } },
       ];
-
       const { error } = await supabase
         .from('applications')
         .update({
-          status: 'Applied',
-          date_applied: today,
+          status: 'Applied', date_applied: today,
           final_resume_text: resumeText || applicationData?.final_resume_text || null,
           selected_resume_id: selectedResumeId || applicationData?.selected_resume_id || null,
           capture_parsed_payload: parsedPayload as Json,
@@ -401,7 +450,6 @@ const ResumeTailorPage = () => {
         })
         .eq('id', applicationId)
         .eq('user_id', user.id);
-
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -411,92 +459,86 @@ const ResumeTailorPage = () => {
     },
   });
 
-  // Scroll to application pack tabs when AI generation completes
   useEffect(() => {
     if (aiPackStatus === 'done' && tabsRef.current) {
       tabsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [aiPackStatus]);
 
+  // ── Render helpers ─────────────────────────────────────────────────────────
+  const candidateName = (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || 'Applicant';
+
+  const scoreColor = (score: number) =>
+    score >= 70 ? 'text-jata-status-offer' : score >= 50 ? 'text-jata-status-interview' : 'text-jata-status-rejected';
+
   return (
-    <div className="container mx-auto p-sm sm:p-md lg:p-lg">
-      <div className="flex justify-between items-center mb-sm">
-        <h1 className="text-3xl font-bold">
-          Resume Tailor for {applicationData ? `${applicationData.title} at ${applicationData.company}` : 'Your Application'}
+    <div className="container mx-auto p-sm sm:p-md lg:p-lg space-y-md">
+      {/* Step indicator */}
+      <StepIndicator states={stepStates} />
+
+      {/* Title */}
+      <div>
+        <h1 className="text-3xl font-bold text-jata-text-primary">
+          Resume Tailor{applicationData ? ` — ${applicationData.title} at ${applicationData.company}` : ''}
         </h1>
       </div>
+
+      {/* Job + Resume columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+        {/* Job Description */}
         <div>
-          <h2 className="text-xl font-semibold mb-sm">Job Description</h2>
+          <h2 className="text-xl font-semibold mb-sm text-jata-text-primary">Job Description</h2>
           {jobIsPreloaded ? (
             <div className="space-y-2 text-sm">
-              <p className="font-medium text-gray-900">
+              <p className="font-medium text-jata-text-primary">
                 {applicationData.title}{' '}
-                <span className="text-gray-500 font-normal">at</span>{' '}
+                <span className="text-jata-text-muted font-normal">at</span>{' '}
                 {applicationData.company}
               </p>
               {applicationData.url && (
-                <a
-                  href={applicationData.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-indigo-600 hover:underline text-xs block truncate"
-                >
+                <a href={applicationData.url} target="_blank" rel="noreferrer"
+                  className="text-jata-accent-blue hover:underline text-xs block truncate">
                   {applicationData.url}
                 </a>
               )}
-              <p className="text-gray-500 text-xs line-clamp-3">
+              <p className="text-jata-text-muted text-xs line-clamp-3">
                 {applicationData.job_description?.slice(0, 200)}…
               </p>
-              <button
-                type="button"
-                onClick={() => setShowManualJobInput(true)}
-                className="text-xs text-gray-400 hover:text-gray-600 underline mt-1"
-              >
+              <button type="button" onClick={() => setShowManualJobInput(true)}
+                className="text-xs text-jata-text-muted hover:text-jata-text-secondary underline mt-1">
                 Use a different job description
               </button>
             </div>
           ) : (
             <div className="space-y-sm">
               <div className="space-y-2">
-                <Input
-                  type="text"
-                  value={jobUrl}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setJobUrl(e.target.value)}
-                  className="flex-grow p-2 border rounded-l-md"
-                  placeholder="https://www.linkedin.com/jobs/view/..."
-                />
-                <Button
-                  onClick={() => scrapeJobDescription(jobUrl)}
-                  disabled={!jobUrl.trim() || isScraping || isLoadingApplication}
-                >
-                  {isScraping ? 'Fetching...' : 'Fetch Job Description'}
+                <Input type="text" value={jobUrl} onChange={(e) => setJobUrl(e.target.value)}
+                  className="flex-grow" placeholder="https://www.linkedin.com/jobs/view/..." />
+                <Button onClick={() => scrapeJobDescription(jobUrl)}
+                  disabled={!jobUrl.trim() || isScraping || isLoadingApplication}>
+                  {isScraping ? 'Fetching…' : 'Fetch Job Description'}
                 </Button>
                 {isScrapeError && (
-                  <p className="text-red-500 text-sm">Error: {scrapeError.message}</p>
+                  <p className="text-jata-status-rejected text-sm">
+                    Could not fetch the job description. Please paste it manually.
+                  </p>
                 )}
               </div>
-              <div className="text-center text-sm text-gray-500">or</div>
-              <FileUpload
-                label="Upload Job Description"
-                description="Upload a PDF, DOCX, or TXT file"
-                onFileProcessed={(result: FileUploadResult) => console.log('JD file processed:', result)}
-                onTextExtracted={setJobDescription}
-                disabled={isLoadingApplication}
-              />
-              <div className="text-center text-sm text-gray-500">or</div>
-              <Textarea
-                className="h-64 bg-white"
-                value={jobDescription}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setJobDescription(e.target.value)}
-                placeholder="Paste the job description here..."
-                disabled={isLoadingApplication}
-              />
+              <div className="text-center text-sm text-jata-text-muted">or</div>
+              <FileUpload label="Upload Job Description" description="Upload a PDF, DOCX, or TXT file"
+                onFileProcessed={(result: FileUploadResult) => void result}
+                onTextExtracted={setJobDescription} disabled={isLoadingApplication} />
+              <div className="text-center text-sm text-jata-text-muted">or</div>
+              <Textarea className="h-64" value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                placeholder="Paste the job description here…" disabled={isLoadingApplication} />
             </div>
           )}
         </div>
+
+        {/* Resume */}
         <div>
-          <h2 className="text-xl font-semibold mb-sm">Your Resume</h2>
+          <h2 className="text-xl font-semibold mb-sm text-jata-text-primary">Your Resume</h2>
           <div className="space-y-sm">
             <Select onValueChange={setSelectedResumeId} value={selectedResumeId} disabled={isLoadingResumes}>
               <SelectTrigger>
@@ -504,303 +546,294 @@ const ResumeTailorPage = () => {
               </SelectTrigger>
               <SelectContent>
                 {resumes?.map(resume => (
-                  <SelectItem key={resume.id} value={resume.id.toString()}>{resume.filename}</SelectItem>
+                  <SelectItem
+                    key={resume.id}
+                    value={resume.id.toString()}
+                    disabled={!resume.extracted_text && !resume.content}
+                  >
+                    {resume.filename}
+                    {!resume.extracted_text ? ' — extraction pending' : ''}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <div className="text-center text-sm text-gray-500">or</div>
-            <FileUpload
-              label="Upload Resume"
-              description="Upload a PDF, DOCX, or TXT file"
+
+            {selectedResumeId && resumes && (
+              <p className="text-xs font-mono text-jata-text-muted">
+                {(() => {
+                  const r = resumes.find(r => r.id.toString() === selectedResumeId);
+                  return r?.extracted_text
+                    ? '✓ Text extracted — ready for analysis'
+                    : '⚠ Using uploaded text — server extraction pending';
+                })()}
+              </p>
+            )}
+
+            <div className="text-center text-sm text-jata-text-muted">or</div>
+            <FileUpload label="Upload Resume" description="Upload a PDF, DOCX, or TXT file"
               onFileProcessed={async (result: FileUploadResult) => {
                 if (result.text && user) {
                   try {
                     const { uploadResume } = await import('@/services/fileUploadService');
                     await uploadResume(result.fileName ?? 'resume', result.text);
                     queryClient.invalidateQueries({ queryKey: ['resumes', user.id] });
-                  } catch {
-                    // Non-fatal — text still available for immediate use
-                  }
+                  } catch { /* non-fatal */ }
                 }
               }}
-              onTextExtracted={(text: string) => setResumeText(text)}
-              disabled={false}
-            />
-            <div className="text-center text-sm text-gray-500">or</div>
-            <Textarea
-              className="h-64 bg-white"
-              value={resumeText}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setResumeText(e.target.value)}
-              placeholder="Paste your resume here..."
-            />
+              onTextExtracted={(text: string) => setResumeText(text)} disabled={false} />
+            <div className="text-center text-sm text-jata-text-muted">or</div>
+            <Textarea className="h-64" value={resumeText}
+              onChange={(e) => setResumeText(e.target.value)}
+              placeholder="Paste your resume here…" />
           </div>
         </div>
       </div>
+
+      {/* Progress indicator */}
       {(isAnalyzing || aiPackStatus === 'generating') && (
-        <div
-          style={{ position: 'sticky', top: 0, zIndex: 10 }}
-          className="flex items-center gap-2 bg-indigo-950 border border-indigo-800 px-4 py-2 rounded text-sm text-indigo-300 mt-sm mb-2"
-        >
-          <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full" />
-          <span>{isAnalyzing ? 'Analysing your resume…' : 'Building your application pack…'}</span>
+        <div className="sticky top-0 z-10 flex items-center gap-3 bg-jata-bg-surface border border-jata-border px-4 py-2.5 rounded-lg text-sm text-jata-text-secondary">
+          <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-jata-accent-blue border-t-transparent rounded-full" />
+          <span>
+            {isAnalyzing ? 'Analysing your resume…' : 'Building your application pack…'}
+            {elapsedSeconds > 0 && (
+              <span className="ml-2 font-mono text-xs text-jata-text-muted">
+                {elapsedSeconds}s
+              </span>
+            )}
+          </span>
         </div>
       )}
-      <div className="mt-sm text-center">
-        <Button onClick={() => analyze({ resumeText, jobDescription })} disabled={isAnalyzing || !jobDescription.trim() || !resumeText.trim()}>
-          {isAnalyzing ? "Analyzing..." : "Analyze & Tailor"}
+
+      {/* Analyze button */}
+      <div className="text-center">
+        <Button
+          onClick={() => analyze({ resumeText, jobDescription })}
+          disabled={isAnalyzing || aiPackStatus === 'generating' || !jobDescription.trim() || !resumeText.trim()}
+          size="lg"
+        >
+          {isAnalyzing ? 'Analyzing…' : 'Analyze & Tailor'}
         </Button>
       </div>
+
+      {/* Analysis error */}
       {analysisError && (
-        <div className="mt-sm text-red-500 text-center">
-          <p>Error: {analysisErrorMessage?.message}</p>
-        </div>
+        <Alert className="border-jata-status-rejected/40 bg-jata-status-rejected/10">
+          <AlertTitle className="text-jata-status-rejected">Analysis failed</AlertTitle>
+          <AlertDescription className="text-jata-text-secondary">
+            Something went wrong. Please try again.
+          </AlertDescription>
+        </Alert>
       )}
+
+      {/* ── Pack review ──────────────────────────────────────────────────── */}
       {analysis && packWorkflow && (
-        <div className="mt-md space-y-sm">
-          {analysis.metadata && (
-            <Card>
-              <CardContent className="pt-6 text-xs text-muted-foreground space-y-1">
-                {analysis.metadata.generatedAt && (
-                  <p>Generated: {formatAiGeneratedAt(analysis.metadata.generatedAt)}</p>
-                )}
-                <p>
-                  {aiPackStatus === 'done'
-                    ? 'Application pack ready — review before sending.'
-                    : aiPackStatus === 'generating'
-                    ? 'Building your application pack…'
-                    : aiPackStatus === 'unavailable'
-                    ? 'Pack generation is currently unavailable.'
-                    : aiPackStatus === 'error'
-                    ? 'Pack generation encountered an issue.'
-                    : 'Review all content before sending.'}
-                </p>
-              </CardContent>
-            </Card>
-          )}
+        <div className="space-y-4" ref={tabsRef}>
 
-          <Alert className="border-red-300 bg-red-50 text-red-950">
-            <AlertTitle>Claims and risk warnings must be reviewed before sending</AlertTitle>
-            <AlertDescription>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                {packWorkflow.claimsToVerify.map((claim) => (
-                  <li key={claim}>{claim}</li>
-                ))}
-              </ul>
-            </AlertDescription>
-          </Alert>
-
-          <div ref={tabsRef}>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <span>Application Pack Review</span>
-                <div className="flex flex-wrap gap-2">
-                  {PackReadinessStatuses.map((status) => (
-                    <Button
-                      key={status}
-                      type="button"
-                      size="sm"
-                      variant={packStatus === status ? 'default' : 'outline'}
-                      onClick={() => setPackStatus(status)}
-                    >
-                      {status.replace('_', ' ')}
-                    </Button>
-                  ))}
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => markPackUsedMutation.mutate()}
-                    disabled={markPackUsedMutation.isPending}
-                  >
-                    {markPackUsedMutation.isPending ? 'Saving...' : 'Use This Pack'}
-                  </Button>
+          {/* Match score card */}
+          <Card className="border-jata-border bg-jata-bg-surface">
+            <CardContent className="pt-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-jata-text-primary">Resume Match</span>
+                <span className={cn("text-3xl font-bold", scoreColor(analysis.score))}>
+                  {analysis.score}%
+                </span>
+              </div>
+              {analysis.atsScore !== undefined && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-jata-text-secondary">ATS Score</span>
+                  <span className={cn("font-semibold", scoreColor(analysis.atsScore))}>
+                    {analysis.atsScore}%
+                  </span>
                 </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {markPackUsedMutation.isError && (
-                <Alert className="mb-4 border-red-300 bg-red-50 text-red-950">
-                  <AlertTitle>Could not mark pack used</AlertTitle>
-                  <AlertDescription>
-                    {markPackUsedMutation.error.message}
+              )}
+              <div className="flex flex-wrap gap-2">
+                {analysis.matchedSkills.map(s => (
+                  <Badge key={s} className="bg-jata-status-offer/15 text-jata-status-offer border-jata-status-offer/30">{s}</Badge>
+                ))}
+                {analysis.missingSkills.map(s => (
+                  <Badge key={s} variant="destructive">{s}</Badge>
+                ))}
+              </div>
+              {analysis.atsIssues && analysis.atsIssues.length > 0 && (
+                <ul className="mt-1 list-disc pl-5 space-y-0.5">
+                  {analysis.atsIssues.map((issue, i) => (
+                    <li key={i} className="text-xs text-jata-text-secondary">{issue}</li>
+                  ))}
+                </ul>
+              )}
+              {analysis.metadata?.generatedAt && (
+                <p className="text-xs text-jata-text-muted">
+                  Generated {formatAiGeneratedAt(analysis.metadata.generatedAt)}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* APPLICATION PACK */}
+          <div className="border-2 border-jata-accent-lime/25 rounded-xl overflow-hidden">
+            {/* Pack header */}
+            <div className="bg-jata-accent-lime/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <h2 className="font-headline font-semibold text-jata-text-primary">
+                Application Pack
+                {applicationData ? ` — ${applicationData.title} at ${applicationData.company}` : ''}
+              </h2>
+              <div className="flex flex-wrap gap-2 items-center">
+                {PackReadinessStatuses.map((status) => (
+                  <Button key={status} type="button" size="sm"
+                    variant={packStatus === status ? 'default' : 'outline'}
+                    onClick={() => setPackStatus(status)}>
+                    {status.replace('_', ' ')}
+                  </Button>
+                ))}
+                <Button type="button" size="sm"
+                  onClick={() => markPackUsedMutation.mutate()}
+                  disabled={markPackUsedMutation.isPending}>
+                  {markPackUsedMutation.isPending ? 'Saving…' : 'Use This Pack'}
+                </Button>
+              </div>
+            </div>
+
+            {markPackUsedMutation.isError && (
+              <div className="px-4 pt-3">
+                <Alert className="border-jata-status-rejected/40 bg-jata-status-rejected/10">
+                  <AlertTitle className="text-jata-status-rejected">Could not save pack</AlertTitle>
+                  <AlertDescription className="text-jata-text-secondary">
+                    Something went wrong. Please try again.
                   </AlertDescription>
                 </Alert>
-              )}
-              <Tabs defaultValue="resume-match" className="w-full">
-                <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-6">
-                  <TabsTrigger value="resume-match">Resume match</TabsTrigger>
-                  <TabsTrigger value="cover-letter">Cover letter</TabsTrigger>
-                  <TabsTrigger value="answers">Custom answers</TabsTrigger>
-                  <TabsTrigger value="claims">Claims</TabsTrigger>
-                  <TabsTrigger value="kit">Submission kit</TabsTrigger>
-                  <TabsTrigger value="notes">Notes</TabsTrigger>
-                </TabsList>
+              </div>
+            )}
 
-                <TabsContent value="resume-match" className="space-y-4">
-                  <div className="flex items-center justify-between rounded-md border bg-white p-4">
-                    <span className="font-semibold text-gray-900">Resume Match Score</span>
-                    <span className="text-3xl font-bold text-indigo-600">{analysis.score}%</span>
+            {/* Accordion sections */}
+            <div className="p-4 space-y-3">
+
+              {/* Cover Letter */}
+              <ExpandableSection title="Cover Letter" defaultOpen>
+                {aiPackStatus === 'generating' && !aiCoverLetter ? (
+                  <div className="space-y-3 animate-pulse py-2">
+                    {[1/4, 1, 5/6, 1, 4/5].map((w, i) => (
+                      <div key={i} className="h-3 bg-jata-graphite-mist rounded" style={{ width: `${w * 100}%` }} />
+                    ))}
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-green-700">Matched Skills ({analysis.matchedSkills.length})</h3>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {analysis.matchedSkills.map((skill) => (
-                        <Badge key={skill} className="bg-green-100 text-green-800 border-green-300">{skill}</Badge>
-                      ))}
+                ) : aiCoverLetter ? (
+                  <div className="space-y-3">
+                    <CopySection title="Cover Letter (AI Generated)" content={aiCoverLetter} />
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" size="sm"
+                        onClick={() => void exportCoverLetterDocx(buildCoverLetterDocument({
+                          candidateName, candidateEmail: user?.email,
+                          roleTitle: applicationData?.title ?? 'the role',
+                          companyName: applicationData?.company ?? 'the company',
+                          coverLetterText: aiCoverLetter,
+                        }))}>
+                        Download DOCX
+                      </Button>
+                      <Button type="button" variant="outline" size="sm"
+                        onClick={() => void exportCoverLetterPdf(buildCoverLetterDocument({
+                          candidateName, candidateEmail: user?.email,
+                          roleTitle: applicationData?.title ?? 'the role',
+                          companyName: applicationData?.company ?? 'the company',
+                          coverLetterText: aiCoverLetter,
+                        }))}>
+                        Download PDF
+                      </Button>
                     </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-red-700">Missing Skills ({analysis.missingSkills.length})</h3>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {analysis.missingSkills.map((skill) => (
-                        <Badge key={skill} variant="destructive">{skill}</Badge>
-                      ))}
+                ) : (
+                  <div className="space-y-3">
+                    {(aiPackStatus === 'unavailable' || aiPackStatus === 'error') && (
+                      <p className="text-xs text-jata-status-interview font-mono">
+                        AI writing unavailable — using template. Edit before sending.
+                      </p>
+                    )}
+                    <CopySection title="Cover Letter (Template — edit before sending)"
+                      content={packWorkflow.sections.coverLetter} />
+                  </div>
+                )}
+              </ExpandableSection>
+
+              {/* Tailored Resume */}
+              <ExpandableSection title="Tailored Resume" defaultOpen>
+                {aiTailoredResume ? (
+                  <div className="space-y-3">
+                    <p className="text-xs text-jata-status-offer font-mono">
+                      Tailored resume generated — review all content before downloading.
+                    </p>
+                    <pre className="whitespace-pre-wrap text-xs text-jata-text-secondary bg-jata-bg-surface border border-jata-border rounded p-3 max-h-64 overflow-y-auto">
+                      {aiTailoredResume.markdown}
+                    </pre>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" size="sm"
+                        onClick={() => void exportResumeDocx(buildResumeDocument({
+                          candidateName, candidateEmail: user?.email,
+                          roleTitle: applicationData?.title ?? 'the role',
+                          companyName: applicationData?.company ?? 'the company',
+                          tailoredResume: aiTailoredResume,
+                        }))}>
+                        Download Resume DOCX
+                      </Button>
+                      <Button type="button" variant="outline" size="sm"
+                        onClick={() => void exportResumePdf(buildResumeDocument({
+                          candidateName, candidateEmail: user?.email,
+                          roleTitle: applicationData?.title ?? 'the role',
+                          companyName: applicationData?.company ?? 'the company',
+                          tailoredResume: aiTailoredResume,
+                        }))}>
+                        Download Resume PDF
+                      </Button>
                     </div>
                   </div>
-                  {analysis.atsScore !== undefined && (
-                    <div className="rounded-md border bg-white p-4">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-gray-900">ATS Compatibility Score</span>
-                        <span className={`text-2xl font-bold ${analysis.atsScore >= 80 ? 'text-green-600' : analysis.atsScore >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                          {analysis.atsScore}%
-                        </span>
-                      </div>
-                      {analysis.atsIssues && analysis.atsIssues.length > 0 && (
-                        <ul className="mt-3 list-disc space-y-1 pl-5">
-                          {analysis.atsIssues.map((issue, index) => (
-                            <li key={index} className="text-sm text-gray-600">{issue}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  )}
-                  {aiTailoredResume ? (
-                    <div className="mt-4 space-y-3">
-                      <div className="rounded border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800">
-                        Tailored resume generated — review all content and claims before downloading.
-                      </div>
-                      <pre className="whitespace-pre-wrap text-xs text-gray-700 bg-gray-50 border rounded p-3 max-h-64 overflow-y-auto">
-                        {aiTailoredResume.markdown}
-                      </pre>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const candidateName = (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || 'Applicant';
-                            void exportResumeDocx(buildResumeDocument({ candidateName, candidateEmail: user?.email, roleTitle: applicationData?.title ?? 'the role', companyName: applicationData?.company ?? 'the company', tailoredResume: aiTailoredResume }));
-                          }}
-                        >
-                          Download Resume DOCX
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const candidateName = (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || 'Applicant';
-                            void exportResumePdf(buildResumeDocument({ candidateName, candidateEmail: user?.email, roleTitle: applicationData?.title ?? 'the role', companyName: applicationData?.company ?? 'the company', tailoredResume: aiTailoredResume }));
-                          }}
-                        >
-                          Download Resume PDF
-                        </Button>
-                      </div>
-                      {(aiTailoredResume.structured.claimsToVerify ?? []).length > 0 && (
-                        <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                          <strong>Review before use:</strong>
-                          <ul className="mt-1 list-disc pl-4 space-y-0.5">
-                            {aiTailoredResume.structured.claimsToVerify.map((c, i) => (
-                              <li key={i}>{c}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  ) : aiPackStatus === 'generating' ? (
-                    <div className="mt-4 text-xs text-gray-400 animate-pulse">Generating tailored resume…</div>
-                  ) : (aiPackStatus === 'done' || aiPackStatus === 'unavailable' || aiPackStatus === 'error') ? (
-                    <div className="mt-4 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500">
-                      Tailored resume generation was unavailable. Run Analyze &amp; Tailor again or check AI configuration.
-                    </div>
-                  ) : null}
-                </TabsContent>
+                ) : aiPackStatus === 'generating' ? (
+                  <p className="text-xs text-jata-text-muted animate-pulse font-mono">
+                    Generating tailored resume…
+                  </p>
+                ) : (
+                  <p className="text-xs text-jata-text-muted font-mono">
+                    Not yet generated. Run Analyze &amp; Tailor to produce a tailored resume.
+                  </p>
+                )}
+              </ExpandableSection>
 
-                <TabsContent value="cover-letter">
-                  {aiPackStatus === 'generating' && !aiCoverLetter ? (
-                    <div className="space-y-3 animate-pulse py-2">
-                      <div className="h-3 bg-gray-200 rounded w-1/4" />
-                      <div className="h-3 bg-gray-200 rounded w-full" />
-                      <div className="h-3 bg-gray-200 rounded w-5/6" />
-                      <div className="h-3 bg-gray-200 rounded w-full" />
-                      <div className="h-3 bg-gray-200 rounded w-4/5" />
-                      <div className="h-3 bg-gray-200 rounded w-full" />
-                      <div className="h-3 bg-gray-200 rounded w-2/3" />
-                    </div>
-                  ) : aiCoverLetter ? (
-                    <div className="space-y-3">
-                      <CopySection title="Cover Letter (AI Generated)" content={aiCoverLetter} />
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const candidateName = (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || 'Applicant';
-                            void exportCoverLetterDocx(buildCoverLetterDocument({ candidateName, candidateEmail: user?.email, roleTitle: applicationData?.title ?? 'the role', companyName: applicationData?.company ?? 'the company', coverLetterText: aiCoverLetter }));
-                          }}
-                        >
-                          Download DOCX
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const candidateName = (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || 'Applicant';
-                            void exportCoverLetterPdf(buildCoverLetterDocument({ candidateName, candidateEmail: user?.email, roleTitle: applicationData?.title ?? 'the role', companyName: applicationData?.company ?? 'the company', coverLetterText: aiCoverLetter }));
-                          }}
-                        >
-                          Download PDF
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {(aiPackStatus === 'unavailable' || aiPackStatus === 'error') && (
-                        <div className="rounded border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
-                          AI writing is currently unavailable. Edit the template before sending.
-                        </div>
-                      )}
-                      <CopySection
-                        title="Cover Letter (Template — edit before sending)"
-                        content={packWorkflow.sections.coverLetter}
-                      />
-                    </div>
-                  )}
-                </TabsContent>
+              {/* Claims to Verify — always-visible warning */}
+              <ExpandableSection
+                title={`Claims to Verify (${packWorkflow.claimsToVerify.length})`}
+                defaultOpen
+                warning
+              >
+                <p className="text-xs text-jata-status-rejected font-mono mb-2">
+                  Review every claim before sending. Do not submit inaccurate information.
+                </p>
+                <ul className="space-y-1 list-disc pl-5">
+                  {packWorkflow.claimsToVerify.map((claim) => (
+                    <li key={claim} className="text-sm text-jata-text-secondary">{claim}</li>
+                  ))}
+                </ul>
+              </ExpandableSection>
 
-                <TabsContent value="answers">
-                  <div className="mb-3 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-                    Custom answer generation is not yet available. Use these prompts and your matched skills as a guide when answering application questions.
-                  </div>
-                  <CopySection
-                    title="Answer Prompt Guide (Template — not AI generated)"
-                    content={packWorkflow.sections.customQuestionAnswers}
-                  />
-                </TabsContent>
+              {/* Application Notes */}
+              <ExpandableSection title="Application Notes">
+                <CopySection title="Review Notes" content={packWorkflow.sections.notes} />
+                {analysis.suggestions && analysis.suggestions.length > 0 && (
+                  <ul className="mt-3 space-y-2">
+                    {analysis.suggestions.map((suggestion, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-jata-text-secondary">
+                        <span className="text-jata-accent-blue font-bold mt-0.5">–</span>
+                        {suggestion}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </ExpandableSection>
 
-                <TabsContent value="claims">
-                  <CopySection title="Claims to Verify" content={packWorkflow.claimsToVerify.map((claim) => `- ${claim}`).join('\n')} />
-                </TabsContent>
-
-                <TabsContent value="kit" className="space-y-5">
+              {/* Submission Kit */}
+              <ExpandableSection title="Submission Kit">
+                <div className="space-y-4">
                   <CopySection title="Short Intro" content={packWorkflow.sections.shortIntro} />
                   {aiPackStatus === 'generating' && !aiRecruiterMsg ? (
-                    <div className="space-y-2 animate-pulse py-2">
-                      <div className="h-3 bg-gray-200 rounded w-1/3" />
-                      <div className="h-3 bg-gray-200 rounded w-full" />
-                      <div className="h-3 bg-gray-200 rounded w-4/5" />
+                    <div className="space-y-2 animate-pulse">
+                      {[1/3, 1, 4/5].map((w, i) => (
+                        <div key={i} className="h-3 bg-jata-graphite-mist rounded" style={{ width: `${w * 100}%` }} />
+                      ))}
                     </div>
                   ) : aiRecruiterMsg ? (
                     <CopySection title="Recruiter Message (AI Generated)" content={aiRecruiterMsg} />
@@ -808,37 +841,29 @@ const ResumeTailorPage = () => {
                     <CopySection title="Recruiter Message (Template)" content={packWorkflow.sections.recruiterMessage} />
                   )}
                   {aiPackStatus === 'generating' && !aiFollowUpMsg ? (
-                    <div className="space-y-2 animate-pulse py-2">
-                      <div className="h-3 bg-gray-200 rounded w-1/3" />
-                      <div className="h-3 bg-gray-200 rounded w-full" />
-                      <div className="h-3 bg-gray-200 rounded w-3/4" />
+                    <div className="space-y-2 animate-pulse">
+                      {[1/3, 1, 3/4].map((w, i) => (
+                        <div key={i} className="h-3 bg-jata-graphite-mist rounded" style={{ width: `${w * 100}%` }} />
+                      ))}
                     </div>
                   ) : aiFollowUpMsg ? (
                     <CopySection title="Follow-Up Message (AI Generated)" content={aiFollowUpMsg} />
                   ) : (
                     <CopySection title="Follow-Up Message (Template)" content={packWorkflow.sections.followUpMessage} />
                   )}
-                </TabsContent>
+                </div>
+              </ExpandableSection>
 
-                <TabsContent value="notes" className="space-y-5">
-                  <CopySection title="Review Notes" content={packWorkflow.sections.notes} />
-                  {analysis.suggestions && analysis.suggestions.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-gray-900">AI Suggestions</h3>
-                      <ul className="mt-2 space-y-2">
-                        {analysis.suggestions.map((suggestion, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <span className="mt-1 font-bold text-indigo-600">-</span>
-                            <span className="text-gray-700">{suggestion}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+              {/* Custom Answers */}
+              <ExpandableSection title="Custom Answer Guide">
+                <p className="text-xs text-jata-accent-blue font-mono mb-3">
+                  Use these prompts and your matched skills when answering application questions.
+                </p>
+                <CopySection title="Answer Prompt Guide (Template)"
+                  content={packWorkflow.sections.customQuestionAnswers} />
+              </ExpandableSection>
+
+            </div>
           </div>
         </div>
       )}
