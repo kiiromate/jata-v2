@@ -1,3 +1,10 @@
+import type {
+  TailoredResumeExperience,
+  TailoredResumeStructured,
+} from '../../../../packages/common/src/packWorkflow.ts';
+
+export type { TailoredResumeExperience, TailoredResumeStructured };
+
 export type AiProviderMode = 'none' | 'mock' | 'huggingface' | 'openrouter';
 
 export type AiTaskType =
@@ -102,6 +109,12 @@ export interface AiTextOutput {
   safety: AiSafetySections;
 }
 
+export interface AiTailoredResumeOutput {
+  structured: TailoredResumeStructured;
+  markdown: string;
+  safety: AiSafetySections;
+}
+
 export interface AiTaskOutputMap {
   analyzeCvMatch: AiMatchOutput;
   suggestResumeImprovements: AiTextOutput;
@@ -109,7 +122,7 @@ export interface AiTaskOutputMap {
   generateRecruiterMessage: AiTextOutput;
   generateFollowUpMessage: AiTextOutput;
   summarizeOpportunity: AiTextOutput;
-  generateTailoredResume: AiTextOutput;
+  generateTailoredResume: AiTailoredResumeOutput;
 }
 
 export type AiTaskOutput<T extends AiTaskType = AiTaskType> = AiTaskOutputMap[T];
@@ -136,7 +149,7 @@ export interface AiProvider {
   generateRecruiterMessage(input: GenerateRecruiterMessageInput): Promise<AiTextOutput>;
   generateFollowUpMessage(input: GenerateFollowUpMessageInput): Promise<AiTextOutput>;
   summarizeOpportunity(input: SummarizeOpportunityInput): Promise<AiTextOutput>;
-  generateTailoredResume(input: GenerateTailoredResumeInput): Promise<AiTextOutput>;
+  generateTailoredResume(input: GenerateTailoredResumeInput): Promise<AiTailoredResumeOutput>;
 }
 
 export type AiEnv = Record<string, string | undefined>;

@@ -2,13 +2,18 @@ import type {
   AiBaseInput,
   AiMatchOutput,
   AiSafetySections,
+  AiTailoredResumeOutput,
   AiTaskInput,
   AiTaskOutput,
   AiTaskType,
   AiTextOutput,
+  TailoredResumeExperience,
+  TailoredResumeStructured,
 } from './types.ts';
 
 export const HUMAN_REVIEW_REQUIRED = 'Human Review Required';
+export const DEFAULT_TAILORED_RESUME_CLAIM =
+  'Confirm every tailored resume claim against the original CV before sending.';
 
 const SKILLS = [
   'JavaScript',
@@ -61,6 +66,14 @@ function cleanList(value: unknown): string[] {
   return Array.isArray(value)
     ? value.map((item) => cleanText(item)).filter(Boolean)
     : [];
+}
+
+function uniqueList(values: string[]): string[] {
+  return Array.from(new Set(values.map((value) => cleanText(value)).filter(Boolean)));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 /** Formats one sanitized prompt field with an explicit missing-evidence fallback. */
@@ -195,6 +208,172 @@ export function ensureMatchOutputSafety(output: AiMatchOutput, input: AiBaseInpu
   };
 }
 
+function normalizeClaimsToVerify(value: unknown): string[] {
+  const claims = cleanList(value);
+  return claims.length ? uniqueList(claims) : [DEFAULT_TAILORED_RESUME_CLAIM];
+}
+
+function normalizeExperience(value: unknown): TailoredResumeExperience[] {
+  if (!Array.isArray(value)) {
+    throw new Error('Tailored resume JSON must include an experience array.');
+  }
+
+  return value
+    .filter(isRecord)
+    .map((item) => ({
+      role: cleanText(item.role),
+      company: cleanText(item.company),
+      location: cleanText(item.location),
+      dates: cleanText(item.dates),
+      bullets: cleanList(item.bullets),
+    }));
+}
+
+function normalizeEducation(value: unknown): TailoredResumeStructured['education'] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter(isRecord)
+    .map((item) => ({
+      degree: cleanText(item.degree),
+      institution: cleanText(item.institution),
+      dates: cleanText(item.dates),
+    }));
+}
+
+export function normalizeTailoredResumeStructured(value: unknown): TailoredResumeStructured {
+  if (!isRecord(value)) {
+    throw new Error('Tailored resume output must be a JSON object.');
+  }
+
+  if (typeof value.summary !== 'string') {
+    throw new Error('Tailored resume JSON must include a string summary.');
+  }
+
+  return {
+    summary: cleanText(value.summary) || 'Evidence needed: verified professional summary from the CV.',
+    skills: cleanList(value.skills),
+    experience: normalizeExperience(value.experience),
+    education: normalizeEducation(value.education),
+    projects_or_additional: cleanList(value.projects_or_additional),
+    claimsToVerify: normalizeClaimsToVerify(value.claimsToVerify),
+  };
+}
+
+function stripJsonFence(value: string): string {
+  return value
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+}
+
+export function parseTailoredResumeJson(value: string): TailoredResumeStructured {
+  const cleaned = stripJsonFence(value);
+  try {
+    return normalizeTailoredResumeStructured(JSON.parse(cleaned));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Tailored resume output was not valid JSON.';
+    throw new Error(`Tailored resume JSON parse failed: ${message}`);
+  }
+}
+
+export function buildTailoredResumeMarkdown(structured: TailoredResumeStructured): string {
+  const lines: string[] = ['## Summary', structured.summary, ''];
+
+  lines.push('## Skills');
+  lines.push(structured.skills.length ? structured.skills.map((skill) => `- ${skill}`).join('\n') : '- Evidence needed: verified skills from the CV.');
+  lines.push('');
+
+  lines.push('## Experience');
+  if (structured.experience.length) {
+    for (const item of structured.experience) {
+      lines.push(`### ${item.role || 'Evidence needed: role'} | ${item.company || 'Evidence needed: company'}`);
+      lines.push([item.location, item.dates].filter(Boolean).join(' | '));
+      lines.push(...(item.bullets.length ? item.bullets.map((bullet) => `- ${bullet}`) : ['- Evidence needed: verified achievement bullet.']));
+      lines.push('');
+    }
+  } else {
+    lines.push('- Evidence needed: verified experience from the CV.');
+    lines.push('');
+  }
+
+  lines.push('## Education');
+  if (structured.education.length) {
+    lines.push(
+      ...structured.education.map((item) =>
+        `- ${[item.degree, item.institution, item.dates].filter(Boolean).join(' | ')}`,
+      ),
+    );
+  } else {
+    lines.push('- Evidence needed: verified education details, if applicable.');
+  }
+  lines.push('');
+
+  lines.push('## Projects or Additional');
+  lines.push(
+    structured.projects_or_additional.length
+      ? structured.projects_or_additional.map((item) => `- ${item}`).join('\n')
+      : '- Evidence needed: verified projects or additional qualifications, if applicable.',
+  );
+  lines.push('');
+
+  lines.push('## Claims To Verify');
+  lines.push(...structured.claimsToVerify.map((claim) => `- ${claim}`));
+
+  return lines.filter((line, index, all) => line || all[index - 1]).join('\n').trim();
+}
+
+export function ensureTailoredResumeOutputSafety(
+  output: AiTailoredResumeOutput,
+  input: AiBaseInput,
+): AiTailoredResumeOutput {
+  const structured = normalizeTailoredResumeStructured(output.structured);
+  const baseSafety = buildSafetySections(input, 'generateTailoredResume');
+  const outputSafety = output.safety || {
+    humanReviewRequired: '',
+    claimsToVerifyBeforeSending: [],
+    evidenceMissing: [],
+    suggestedEdits: [],
+  };
+  const safety: AiSafetySections = {
+    humanReviewRequired: HUMAN_REVIEW_REQUIRED,
+    claimsToVerifyBeforeSending: uniqueList([
+      ...baseSafety.claimsToVerifyBeforeSending,
+      ...cleanList(outputSafety.claimsToVerifyBeforeSending),
+      ...structured.claimsToVerify,
+    ]),
+    evidenceMissing: uniqueList([
+      ...baseSafety.evidenceMissing,
+      ...cleanList(outputSafety.evidenceMissing),
+    ]),
+    suggestedEdits: uniqueList([
+      ...baseSafety.suggestedEdits,
+      ...cleanList(outputSafety.suggestedEdits),
+    ]),
+  };
+
+  return {
+    structured,
+    markdown: cleanText(output.markdown) || buildTailoredResumeMarkdown(structured),
+    safety,
+  };
+}
+
+export function createTailoredResumeOutputFromStructured(
+  structured: TailoredResumeStructured,
+  input: AiBaseInput,
+): AiTailoredResumeOutput {
+  return ensureTailoredResumeOutputSafety(
+    {
+      structured,
+      markdown: buildTailoredResumeMarkdown(structured),
+      safety: buildSafetySections(input, 'generateTailoredResume'),
+    },
+    input,
+  );
+}
+
 /** Creates a deterministic CV match result from supplied CV and job facts. */
 export function createDeterministicMatchOutput(input: AiBaseInput): AiMatchOutput {
   const cvText = cleanText(input.cvText);
@@ -274,8 +453,31 @@ export function createNoAiTextOutput(
   return ensureTextOutputSafety({ content, safety }, input, taskType);
 }
 
+function buildTaskSpecificInstructions<T extends AiTaskType>(taskType: T, input: AiTaskInput<T>): string {
+  if (taskType === 'generateCoverLetter') {
+    const tone = cleanText((input as { tone?: string }).tone) || 'professional';
+    return [
+      'Cover letter requirements:',
+      'Write a complete, ready-to-send cover letter, not a template, outline, or placeholder.',
+      'Include a greeting, 2-3 concise body paragraphs, a closing paragraph, and a sign-off.',
+      `Use a ${tone} tone throughout.`,
+      'Stay under 400 words before the required review sections.',
+      'Reference specific skills or experience from the CV, highlights, user profile, or notes.',
+      'Reference specific requirements or context from the job description.',
+      'Do not invent experience, credentials, metrics, dates, or company knowledge not present in the inputs.',
+      'In Claims to Verify Before Sending, flag any wording that may embellish or overstate the supplied evidence.',
+    ].join('\n');
+  }
+
+  return '';
+}
+
 /** Builds the provider prompt while excluding secrets and raw persistence details. */
 export function buildPrompt<T extends AiTaskType>(taskType: T, input: AiTaskInput<T>): string {
+  if (taskType === 'generateTailoredResume') {
+    return buildTailoredResumePrompt(input);
+  }
+
   const baseInstructions = [
     'You are JATA AI for job application tailoring.',
     'Use only uploaded CV facts, user profile facts, job description facts, and user-provided notes.',
@@ -290,6 +492,7 @@ export function buildPrompt<T extends AiTaskType>(taskType: T, input: AiTaskInpu
 
   return [
     baseInstructions,
+    buildTaskSpecificInstructions(taskType, input),
     '',
     `Task: ${taskType}`,
     promptLine('Role title', (input as { jobTitle?: string }).jobTitle, 'Evidence needed: role title.', 200),
@@ -320,24 +523,35 @@ export function buildPrompt<T extends AiTaskType>(taskType: T, input: AiTaskInpu
 /** Builds the structured JSON prompt for tailored resume generation. */
 export function buildTailoredResumePrompt(input: AiBaseInput): string {
   const systemInstruction = [
-    'You are a professional resume writer. Your only source of truth is the candidate\'s existing resume text.',
-    'Do NOT invent or add any experience, employer, date, metric, tool, certification, education, location,',
-    'eligibility, or claim that does not appear in the provided resume. If a keyword from the job description',
-    'would strengthen the resume but cannot be verified from the existing content, add it to claimsToVerify only.',
+    'You are a professional resume writer. Given the candidate\'s CV and the target job description, produce a tailored resume as JSON.',
     '',
-    'Return a JSON object with this exact shape (no markdown fences, raw JSON only):',
+    'Return ONLY valid JSON matching this exact structure:',
     '{',
     '  "summary": "2-3 sentence professional summary tailored to the role",',
-    '  "skills": ["skill1", "skill2"],',
+    '  "skills": ["skill1", "skill2", "..."],',
     '  "experience": [',
-    '    { "role": "Job Title", "company": "Company", "location": "City, Country or Remote", "dates": "Month Year – Month Year", "bullets": ["bullet 1"] }',
+    '    {',
+    '      "role": "Job Title",',
+    '      "company": "Company Name",',
+    '      "location": "City, Country",',
+    '      "dates": "Month Year - Month Year",',
+    '      "bullets": ["Achievement 1", "Achievement 2"]',
+    '    }',
     '  ],',
     '  "education": [',
-    '    { "degree": "Degree name", "institution": "School name", "dates": "Year" }',
+    '    { "degree": "Degree Name", "institution": "University", "dates": "Year - Year" }',
     '  ],',
-    '  "projects_or_additional": ["item 1"],',
-    '  "claimsToVerify": ["anything the AI is uncertain about that the candidate must verify before using"]',
+    '  "projects_or_additional": ["Item 1", "Item 2"],',
+    '  "claimsToVerify": ["Any claim that needs human verification"]',
     '}',
+    '',
+    'RULES:',
+    '- ONLY include experience, skills, and education that appear in the candidate\'s CV.',
+    '- Do NOT invent roles, companies, metrics, credentials, or dates.',
+    '- Rewrite bullets to emphasize relevance to the target job, but keep them factually grounded.',
+    '- claimsToVerify must list anything you rephrased that might misrepresent the original.',
+    '- If the CV lacks a section (e.g., no education listed), return an empty array.',
+    '- Do not include markdown fences, commentary, or prose outside the JSON object.',
   ].join('\n');
 
   const jobTitle = cleanText((input as { jobTitle?: string }).jobTitle) || 'the role';
@@ -359,22 +573,59 @@ export function buildTailoredResumePrompt(input: AiBaseInput): string {
 }
 
 /** Creates a stub tailored resume JSON output for offline/mock providers. */
-export function createStubTailoredResumeOutput(input: AiBaseInput): AiTextOutput {
-  const safety = buildSafetySections(input, 'generateTailoredResume' as AiTaskType);
-  const stub = JSON.stringify({
-    summary: 'Evidence needed: source professional summary from your CV before using.',
-    skills: [],
-    experience: [],
-    education: [],
-    projects_or_additional: [],
-    claimsToVerify: ['AI generation was unavailable. Please review and complete this resume manually.'],
+export function createStubTailoredResumeOutput(input: AiBaseInput): AiTailoredResumeOutput {
+  const jobTitle = cleanText((input as { jobTitle?: string }).jobTitle) || 'the target role';
+  const companyName = cleanText((input as { companyName?: string }).companyName) || 'the target company';
+  const skills = extractKnownSkills(cleanText(input.cvText));
+  const firstSkill = skills[0] || 'Evidence needed: verified skill from the CV';
+  const structured = normalizeTailoredResumeStructured({
+    summary: `Tailored resume draft for ${jobTitle} at ${companyName}. Use this mock output only after checking every claim against the original CV.`,
+    skills: skills.length ? skills : [firstSkill],
+    experience: [
+      {
+        role: 'Evidence needed: verified role from the CV',
+        company: 'Evidence needed: verified company from the CV',
+        location: 'Evidence needed: verified location from the CV',
+        dates: 'Evidence needed: verified dates from the CV',
+        bullets: [
+          `Emphasize verified ${firstSkill} experience only where it appears in the CV.`,
+          `Align wording to ${jobTitle} requirements without adding unsupported metrics.`,
+        ],
+      },
+    ],
+    education: [
+      {
+        degree: 'Evidence needed: verified degree or training from the CV',
+        institution: 'Evidence needed: verified institution from the CV',
+        dates: 'Evidence needed: verified education dates from the CV',
+      },
+    ],
+    projects_or_additional: [
+      'Evidence needed: verified project, certification, or additional qualification from the CV.',
+    ],
+    claimsToVerify: [
+      DEFAULT_TAILORED_RESUME_CLAIM,
+      'Replace every Evidence needed placeholder with verified CV facts before exporting.',
+    ],
   });
-  return { content: stub, safety };
+
+  return createTailoredResumeOutputFromStructured(structured, input);
 }
 
 /** Extracts plain text from any typed AI output for hashing and character counts. */
 export function outputToText(output: AiTaskOutput): string {
   if ('content' in output) return output.content;
+  if ('structured' in output) {
+    return [
+      output.markdown,
+      '',
+      'Claims to Verify',
+      ...output.structured.claimsToVerify.map((claim) => `- ${claim}`),
+      '',
+      formatSafetySections(output.safety),
+    ].join('\n');
+  }
+
   return [
     `Score: ${output.score}`,
     `Matched: ${output.matchedSkills.join(', ')}`,

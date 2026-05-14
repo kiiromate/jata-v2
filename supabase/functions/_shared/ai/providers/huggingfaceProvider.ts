@@ -1,13 +1,15 @@
 import {
   buildPrompt,
   buildTailoredResumePrompt,
+  createTailoredResumeOutputFromStructured,
   createDeterministicMatchOutput,
-  createStubTailoredResumeOutput,
   ensureTextOutputSafety,
+  parseTailoredResumeJson,
 } from '../content.ts';
 import type {
   AiEnv,
   AiProvider,
+  AiTailoredResumeOutput,
   AiTaskType,
   AiTextOutput,
   AnalyzeCvMatchInput,
@@ -98,7 +100,7 @@ export function createHuggingFaceProvider(env: AiEnv, fetchFn: typeof fetch = fe
     async summarizeOpportunity(input: SummarizeOpportunityInput) {
       return generateText('summarizeOpportunity', input);
     },
-    async generateTailoredResume(input: GenerateTailoredResumeInput) {
+    async generateTailoredResume(input: GenerateTailoredResumeInput): Promise<AiTailoredResumeOutput> {
       if (!apiKey) throw new Error('Hugging Face API key not configured');
 
       const prompt = buildTailoredResumePrompt(input);
@@ -112,12 +114,13 @@ export function createHuggingFaceProvider(env: AiEnv, fetchFn: typeof fetch = fe
       });
 
       if (!response.ok) {
-        return createStubTailoredResumeOutput(input);
+        const errorText = await response.text();
+        throw new Error(`Hugging Face API error: ${response.status} - ${errorText}`);
       }
 
       const content = parseHuggingFaceText(await response.json());
-      const safety = { humanReviewRequired: '', claimsToVerifyBeforeSending: [], evidenceMissing: [], suggestedEdits: [] };
-      return { content, safety };
+      const structured = parseTailoredResumeJson(content);
+      return createTailoredResumeOutputFromStructured(structured, input);
     },
   };
 }

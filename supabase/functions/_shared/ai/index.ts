@@ -1,6 +1,15 @@
 export { createAiRouter, normalizeProviderMode } from './router.ts';
 export { executeAiTask } from './executor.ts';
-export { buildPrompt, sanitizePromptText } from './content.ts';
+export {
+  buildPrompt,
+  buildTailoredResumePrompt,
+  parseTailoredResumeJson,
+  sanitizePromptText,
+} from './content.ts';
+export {
+  resolveResumeBackedInput,
+  validateRequiredCvText,
+} from './resumeInput.ts';
 export {
   createNoopCreditsStore,
   createSupabaseCreditsStore,
@@ -17,6 +26,7 @@ export type {
   AiOutputPayload,
   AiProvider,
   AiProviderMode,
+  AiTailoredResumeOutput,
   AiTaskInput,
   AiTaskOutput,
   AiTaskType,

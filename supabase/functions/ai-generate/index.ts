@@ -7,15 +7,18 @@ import {
   createSupabaseCreditsStore,
   createSupabaseUsageStore,
   executeAiTask,
+  resolveResumeBackedInput,
   type AiEnv,
   type AiProviderMode,
   type AiTaskInput,
   type AiTaskType,
+  validateRequiredCvText,
 } from '../_shared/ai/index.ts';
 
 const ProviderSchema = z.enum(['none', 'mock', 'huggingface', 'openrouter']);
 
 const BaseInputSchema = z.object({
+  resumeId: z.string().min(1).optional(),
   cvText: z.string().optional(),
   jobDescription: z.string().optional(),
   userProfile: z.string().optional(),
@@ -27,16 +30,16 @@ const AiRequestSchema = z.discriminatedUnion('taskType', [
     taskType: z.literal('analyzeCvMatch'),
     provider: ProviderSchema.optional(),
     input: BaseInputSchema.extend({
-      cvText: z.string(),
-      jobDescription: z.string(),
+      cvText: z.string().optional(),
+      jobDescription: z.string().min(1),
     }),
   }),
   z.object({
     taskType: z.literal('suggestResumeImprovements'),
     provider: ProviderSchema.optional(),
     input: BaseInputSchema.extend({
-      cvText: z.string(),
-      jobDescription: z.string(),
+      cvText: z.string().optional(),
+      jobDescription: z.string().min(1),
     }),
   }),
   z.object({
@@ -82,7 +85,7 @@ const AiRequestSchema = z.discriminatedUnion('taskType', [
     taskType: z.literal('generateTailoredResume'),
     provider: ProviderSchema.optional(),
     input: BaseInputSchema.extend({
-      cvText: z.string().min(1),
+      cvText: z.string().optional(),
       jobDescription: z.string().min(1),
       jobTitle: z.string().optional(),
       companyName: z.string().optional(),
@@ -127,6 +130,29 @@ function publicMessageForStatus(status: number): string {
   return 'AI generation failed.';
 }
 
+type SupabaseLike = {
+  from(table: string): any;
+};
+
+async function lookupResumeExtractedText(
+  supabase: SupabaseLike,
+  resumeId: string,
+  userId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('resumes')
+    .select('extracted_text')
+    .eq('id', resumeId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Resume text lookup failed: ${error.message}`);
+  }
+
+  return typeof data?.extracted_text === 'string' ? data.extracted_text : null;
+}
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -165,10 +191,23 @@ serve(async (req: Request): Promise<Response> => {
     const env = readAiEnv();
     const router = createAiRouter({ env, fetchFn: fetch });
     const provider = router.resolveProvider(parsed.data.provider || readUserProvider(user));
+    const input = await resolveResumeBackedInput(
+      parsed.data.input,
+      user.id,
+      (resumeId, userId) => lookupResumeExtractedText(supabase, resumeId, userId),
+    );
+    const cvTextError = validateRequiredCvText(parsed.data.taskType as AiTaskType, input);
+    if (cvTextError) {
+      return new Response(JSON.stringify({ error: cvTextError }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+
     const payload = await executeAiTask({
       userId: user.id,
       taskType: parsed.data.taskType as AiTaskType,
-      input: parsed.data.input as AiTaskInput,
+      input: input as AiTaskInput,
       provider,
       usageStore: createSupabaseUsageStore(supabase),
       creditsStore: createSupabaseCreditsStore(supabase),

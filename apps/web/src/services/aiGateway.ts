@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import type { TailoredResumeStructured } from '@jata/common';
 
 export type AiProviderMode = 'none' | 'mock' | 'huggingface' | 'openrouter';
 
@@ -30,6 +31,12 @@ export interface AiTextOutput {
   safety: AiSafetySections;
 }
 
+export interface AiTailoredResumeOutput {
+  structured: TailoredResumeStructured;
+  markdown: string;
+  safety: AiSafetySections;
+}
+
 export interface AiMatchOutput {
   score: number;
   matchedSkills: string[];
@@ -40,10 +47,28 @@ export interface AiMatchOutput {
   safety: AiSafetySections;
 }
 
-export interface AiOutputPayload<TOutput = AiTextOutput | AiMatchOutput> {
+export interface AiOutputPayload<TOutput = AiTextOutput | AiMatchOutput | AiTailoredResumeOutput> {
   taskType: AiTaskType;
   output: TOutput;
   metadata: AiOutputMetadata;
+}
+
+function addLegacyTailoredResumeContent<TOutput>(
+  taskType: AiTaskType,
+  payload: AiOutputPayload<TOutput>,
+): AiOutputPayload<TOutput> {
+  if (taskType !== 'generateTailoredResume') return payload;
+
+  const output = payload.output as AiTailoredResumeOutput & { content?: string };
+  if (!output?.structured || output.content) return payload;
+
+  return {
+    ...payload,
+    output: {
+      ...output,
+      content: JSON.stringify(output.structured),
+    },
+  } as AiOutputPayload<TOutput>;
 }
 
 /** Calls the server-side AI Edge Function without exposing provider keys. */
@@ -66,7 +91,7 @@ export async function invokeAiTask<TOutput>(
     throw new Error('AI request returned no data');
   }
 
-  return data;
+  return addLegacyTailoredResumeContent(taskType, data);
 }
 
 /** Creates fallback safety sections for local-only deterministic results. */
