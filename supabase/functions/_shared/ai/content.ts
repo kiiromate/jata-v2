@@ -10,6 +10,7 @@ import type {
   TailoredResumeExperience,
   TailoredResumeStructured,
 } from './types.ts';
+import { quickScore } from '../../../../packages/common/src/scoring/index.ts';
 
 export const HUMAN_REVIEW_REQUIRED = 'Human Review Required';
 export const DEFAULT_TAILORED_RESUME_CLAIM =
@@ -454,6 +455,44 @@ export function createNoAiTextOutput(
 }
 
 function buildTaskSpecificInstructions<T extends AiTaskType>(taskType: T, input: AiTaskInput<T>): string {
+  if (taskType === 'analyzeCvMatch') {
+    const deterministicScore = quickScore({
+      cvText: cleanText(input.cvText),
+      jdText: cleanText(input.jobDescription),
+    });
+    const matchedSkills = deterministicScore.match.matchedSkills.join(', ') || 'none detected';
+    const missingSkills = deterministicScore.match.missingSkills.join(', ') || 'none detected';
+    const matchEvidence = Object.entries(deterministicScore.match.evidenceMap)
+      .map(
+        ([skill, evidence]) =>
+          `matchEvidence: ${skill} | CV: "${sanitizePromptText(evidence.cvSpan, 160)}" | JD: "${sanitizePromptText(evidence.jdSpan, 160)}"`,
+      )
+      .join('\n') || 'matchEvidence: none detected by deterministic pre-screening';
+
+    return [
+      'CV match analysis requirements:',
+      'Return an AiMatchOutput-compatible result with score, matchedSkills, missingSkills, suggestions, optional atsScore, optional atsIssues, and safety.',
+      'Use the deterministic pre-screening results below as the starting point, then verify every item against the full CV and job description.',
+      'For each skill you list in matchedSkills, you MUST include a matchEvidence entry showing:',
+      '- The exact phrase from the CV that supports this skill claim',
+      '- The exact phrase from the job description that requires this skill',
+      'Because the current output type has no dedicated matchEvidence field, place matchEvidence entries in suggestions or safety.suggestedEdits.',
+      'Use this evidence format exactly: matchEvidence: <skill> | CV: "<exact CV phrase>" | JD: "<exact JD phrase>".',
+      'If you cannot find a specific CV phrase to support a skill match, do NOT include that skill in matchedSkills. Move it to missingSkills instead.',
+      'Do not inflate the score beyond what the cited CV evidence supports.',
+      '',
+      'The following skills were detected by automated pre-screening. Verify each one against the CV text:',
+      `[DETERMINISTIC_MATCHED_SKILLS]: ${matchedSkills}`,
+      '',
+      'The following skills appear in the job description but were not found in the CV by automated screening:',
+      `[DETERMINISTIC_MISSING_SKILLS]: ${missingSkills}`,
+      '',
+      `Deterministic quick score: ${deterministicScore.match.score}/100 (${deterministicScore.match.label}).`,
+      'Deterministic evidence preview:',
+      matchEvidence,
+    ].join('\n');
+  }
+
   if (taskType === 'generateCoverLetter') {
     const tone = cleanText((input as { tone?: string }).tone) || 'professional';
     return [
