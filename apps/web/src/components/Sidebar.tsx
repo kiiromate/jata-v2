@@ -6,15 +6,16 @@ import {
   Mail,
   Puzzle,
   Settings,
+  FileText,
   ChevronRight,
   ChevronLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@/components/ui/tooltip';
 
 interface SidebarProps {
@@ -33,6 +34,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { id: 'capture-inbox', label: 'Capture Inbox', icon: Inbox, path: '/capture-inbox' },
+  { id: 'resume-bank', label: 'Resume Bank', icon: FileText, path: '/resume-bank' },
   { id: 'cover-letters', label: 'Cover Letters', icon: Mail, path: '/cover-letter' },
   { id: 'extension', label: 'Extension', icon: Puzzle, path: '/install-extension', badge: 'New' },
 ];
@@ -82,7 +84,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {item.badge}
                 </span>
               )}
-              
               {item.badge && !isExpanded && (
                 <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-jata-accent-blue block" />
               )}
