@@ -1,5 +1,6 @@
 import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,7 @@ interface CaptureRowProps {
   onArchive: () => void;
   onShortlist: () => void;
   onPackLater: () => void;
+  onGeneratePack: () => void;
   isArchiving: boolean;
   isShortlisting: boolean;
   isPacking: boolean;
@@ -69,6 +71,7 @@ const CaptureRow: React.FC<CaptureRowProps> = ({
   onArchive,
   onShortlist,
   onPackLater,
+  onGeneratePack,
   isArchiving,
   isShortlisting,
   isPacking,
@@ -129,7 +132,7 @@ const CaptureRow: React.FC<CaptureRowProps> = ({
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 w-7 p-0 text-jata-text-muted hover:text-jata-text-primary"
+              className="h-11 w-11 p-0 text-jata-text-muted hover:text-jata-text-primary"
               disabled={anyPending}
             >
               <MoreHorizontal className="h-4 w-4" />
@@ -140,6 +143,12 @@ const CaptureRow: React.FC<CaptureRowProps> = ({
             align="end"
             className="bg-jata-bg-surface border-jata-border text-jata-text-primary"
           >
+            <DropdownMenuItem
+              onClick={onGeneratePack}
+              className="font-mono text-[11px] uppercase tracking-widest cursor-pointer hover:bg-jata-graphite-mist text-jata-accent-lime focus:text-jata-accent-lime"
+            >
+              Generate Pack
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={onShortlist}
               disabled={isShortlisting}
@@ -176,6 +185,7 @@ export const CaptureQueueTable: React.FC<CaptureQueueTableProps> = ({
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['capture-inbox', userId] });
@@ -255,6 +265,7 @@ export const CaptureQueueTable: React.FC<CaptureQueueTableProps> = ({
               onArchive={() => archiveMutation.mutate(item.id)}
               onShortlist={() => shortlistMutation.mutate(item.id)}
               onPackLater={() => packMutation.mutate(item.id)}
+              onGeneratePack={() => navigate(`/resume-tailor/${item.id}`)}
               isArchiving={archiveMutation.isPending}
               isShortlisting={shortlistMutation.isPending}
               isPacking={packMutation.isPending}
