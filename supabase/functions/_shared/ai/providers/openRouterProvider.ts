@@ -1,12 +1,15 @@
 import {
   buildPrompt,
   buildTailoredResumePrompt,
+  createTailoredResumeOutputFromStructured,
   createDeterministicMatchOutput,
   ensureTextOutputSafety,
+  parseTailoredResumeJson,
 } from '../content.ts';
 import type {
   AiEnv,
   AiProvider,
+  AiTailoredResumeOutput,
   AiTaskType,
   AiTextOutput,
   AnalyzeCvMatchInput,
@@ -106,7 +109,7 @@ export function createOpenRouterProvider(env: AiEnv, fetchFn: typeof fetch = fet
     async summarizeOpportunity(input: SummarizeOpportunityInput) {
       return generateText('summarizeOpportunity', input);
     },
-    async generateTailoredResume(input: GenerateTailoredResumeInput) {
+    async generateTailoredResume(input: GenerateTailoredResumeInput): Promise<AiTailoredResumeOutput> {
       if (!apiKey) throw new Error('OpenRouter API key not configured');
       if (!model) throw new Error('JATA_AI_MODEL_DEFAULT is required for OpenRouter');
 
@@ -138,8 +141,8 @@ export function createOpenRouterProvider(env: AiEnv, fetchFn: typeof fetch = fet
       }
 
       const content = parseOpenRouterText(await response.json());
-      const safety = { humanReviewRequired: '', claimsToVerifyBeforeSending: [], evidenceMissing: [], suggestedEdits: [] };
-      return { content, safety };
+      const structured = parseTailoredResumeJson(content);
+      return createTailoredResumeOutputFromStructured(structured, input);
     },
   };
 }

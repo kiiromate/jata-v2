@@ -1,19 +1,6 @@
-export interface TailoredResumeExperience {
-  role: string;
-  company: string;
-  location: string;
-  dates: string;
-  bullets: string[];
-}
+import type { TailoredResumeStructured } from '@jata/common';
 
-export interface TailoredResumeStructured {
-  summary: string;
-  skills: string[];
-  experience: TailoredResumeExperience[];
-  education: Array<{ degree: string; institution: string; dates: string }>;
-  projects_or_additional: string[];
-  claimsToVerify: string[];
-}
+export type { TailoredResumeExperience, TailoredResumeStructured } from '@jata/common';
 
 export interface TailoredResumeContent {
   structured: TailoredResumeStructured;

@@ -2,6 +2,23 @@ export const PackReadinessStatuses = ['draft', 'needs_review', 'ready', 'used'] 
 
 export type PackReadinessStatus = (typeof PackReadinessStatuses)[number];
 
+export interface TailoredResumeExperience {
+  role: string;
+  company: string;
+  location: string;
+  dates: string;
+  bullets: string[];
+}
+
+export interface TailoredResumeStructured {
+  summary: string;
+  skills: string[];
+  experience: TailoredResumeExperience[];
+  education: Array<{ degree: string; institution: string; dates: string }>;
+  projects_or_additional: string[];
+  claimsToVerify: string[];
+}
+
 export interface ApplicationPackWorkflowInput {
   roleTitle?: string | null;
   company?: string | null;

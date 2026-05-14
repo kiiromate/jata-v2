@@ -1,5 +1,7 @@
 import {
   buildPrompt,
+  buildTailoredResumePrompt,
+  parseTailoredResumeJson,
   createAiRouter,
   executeAiTask,
   type AiCreditsStore,
@@ -7,6 +9,8 @@ import {
   type AiUsageStore,
 } from '../index';
 import { hashTaskInput } from '../hash';
+import { createMockProvider } from '../providers/mockProvider';
+import { resolveResumeBackedInput } from '../resumeInput';
 import type {
   AiOutputPayload,
   AiProviderMode,
@@ -25,6 +29,15 @@ const baseInput: AiTaskInput<'generateCoverLetter'> = {
   userName: 'Kaze',
   highlights: ['Built React dashboards'],
   tone: 'professional',
+};
+
+const tailoredResumeInput: AiTaskInput<'generateTailoredResume'> = {
+  cvText:
+    'Experience: Product Engineer at Acme, Remote, January 2022 - Present. Built React dashboards and TypeScript workflow tools. Education: BSc Information Systems, Kigali University, 2019.',
+  jobDescription:
+    'Frontend Engineer role requiring React, TypeScript, dashboard delivery, and clear product collaboration.',
+  jobTitle: 'Frontend Engineer',
+  companyName: 'Acme Labs',
 };
 
 /** Creates a minimal successful text output for provider tests. */
@@ -74,6 +87,10 @@ function createProvider(mode: AiProviderMode, shouldFail = false): AiProvider {
     async summarizeOpportunity() {
       if (shouldFail) throw new Error('provider failed');
       return createTextOutput('Opportunity summary.');
+    },
+    async generateTailoredResume(input) {
+      if (shouldFail) throw new Error('provider failed');
+      return createMockProvider().generateTailoredResume(input);
     },
   };
 
@@ -355,6 +372,33 @@ describe('ai execution controls', () => {
     expect(result.output.safety.evidenceMissing.join(' ')).toContain('Evidence needed:');
     expect(result.output.content).not.toContain('increased revenue');
   });
+
+  it('returns structured tailored resume output with markdown and non-empty claims', async () => {
+    const result = await executeAiTask({
+      userId: 'user-1',
+      taskType: 'generateTailoredResume',
+      input: tailoredResumeInput,
+      provider: createMockProvider(),
+      usageStore: createUsageStore(),
+      creditsStore: createCreditsStore(),
+      env: {},
+      now: () => new Date('2026-01-01T00:00:00.000Z'),
+    });
+
+    expect(result.output.structured.summary).toContain('Frontend Engineer');
+    expect(result.output.structured.experience).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: expect.any(String),
+          company: expect.any(String),
+          bullets: expect.any(Array),
+        }),
+      ]),
+    );
+    expect(result.output.structured.claimsToVerify.length).toBeGreaterThan(0);
+    expect(result.output.markdown).toContain('## Summary');
+    expect(result.output.safety.humanReviewRequired).toBe('Human Review Required');
+  });
 });
 
 describe('ai prompt privacy and cache keys', () => {
@@ -377,6 +421,43 @@ describe('ai prompt privacy and cache keys', () => {
     expect(prompt).not.toContain('https://private.example.com/token');
     expect(prompt).not.toContain('privateSalaryFloor');
     expect(prompt).not.toContain('internal.example.com');
+  });
+
+  it('builds a tailored resume prompt that requires raw JSON and forbids invented resume facts', () => {
+    const prompt = buildTailoredResumePrompt(tailoredResumeInput);
+
+    expect(prompt).toContain('Return ONLY valid JSON matching this exact structure');
+    expect(prompt).toContain('"claimsToVerify"');
+    expect(prompt).toContain('Do NOT invent roles, companies, metrics, credentials, or dates.');
+    expect(prompt).toContain('If the CV lacks a section');
+    expect(prompt).not.toContain('Human Review Required');
+  });
+
+  it('parses tailored resume JSON and populates claims to verify when the model omits them', () => {
+    const structured = parseTailoredResumeJson(
+      JSON.stringify({
+        summary: 'Product engineer focused on React dashboards.',
+        skills: ['React', 'TypeScript'],
+        experience: [
+          {
+            role: 'Product Engineer',
+            company: 'Acme',
+            location: 'Remote',
+            dates: 'January 2022 - Present',
+            bullets: ['Built React dashboards.'],
+          },
+        ],
+        education: [],
+        projects_or_additional: [],
+        claimsToVerify: [],
+      }),
+    );
+
+    expect(structured.summary).toBe('Product engineer focused on React dashboards.');
+    expect(structured.experience).toHaveLength(1);
+    expect(structured.claimsToVerify).toEqual([
+      'Confirm every tailored resume claim against the original CV before sending.',
+    ]);
   });
 
   it('keys cache entries by opportunity hash, resume/profile version, and generation type', async () => {
@@ -409,5 +490,47 @@ describe('ai prompt privacy and cache keys', () => {
 
     expect(repeated).toBe(first);
     expect(changedResume).not.toBe(first);
+  });
+});
+
+describe('resume text input hydration', () => {
+  it('uses extracted resume text when a resumeId is provided and strips resumeId before execution', async () => {
+    const hydrated = await resolveResumeBackedInput(
+      {
+        resumeId: 'resume-1',
+        cvText: 'Fallback request body CV.',
+        jobDescription: 'Role needs React.',
+      },
+      'user-1',
+      async (resumeId, userId) => {
+        expect(resumeId).toBe('resume-1');
+        expect(userId).toBe('user-1');
+        return 'Extracted resume text from storage.';
+      },
+    );
+
+    expect(hydrated).toMatchObject({
+      cvText: 'Extracted resume text from storage.',
+      jobDescription: 'Role needs React.',
+    });
+    expect('resumeId' in hydrated).toBe(false);
+  });
+
+  it('falls back to request body cvText when extracted resume text is missing', async () => {
+    const hydrated = await resolveResumeBackedInput(
+      {
+        resumeId: 'resume-1',
+        cvText: 'Fallback request body CV.',
+        jobDescription: 'Role needs React.',
+      },
+      'user-1',
+      async () => null,
+    );
+
+    expect(hydrated).toMatchObject({
+      cvText: 'Fallback request body CV.',
+      jobDescription: 'Role needs React.',
+    });
+    expect('resumeId' in hydrated).toBe(false);
   });
 });

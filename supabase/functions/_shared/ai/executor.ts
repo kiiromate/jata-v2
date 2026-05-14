@@ -1,6 +1,7 @@
 import {
   buildPrompt,
   ensureMatchOutputSafety,
+  ensureTailoredResumeOutputSafety,
   ensureTextOutputSafety,
   outputToText,
 } from './content.ts';
@@ -135,6 +136,10 @@ function ensureOutputSafety<T extends AiTaskType>(
 ): AiTaskOutput<T> {
   if (taskType === 'analyzeCvMatch') {
     return ensureMatchOutputSafety(output as never, input) as AiTaskOutput<T>;
+  }
+
+  if (taskType === 'generateTailoredResume') {
+    return ensureTailoredResumeOutputSafety(output as never, input) as AiTaskOutput<T>;
   }
 
   return ensureTextOutputSafety(output as never, input, taskType) as AiTaskOutput<T>;
