@@ -8,11 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { analyzeResumeAgainstJobDescription, type AnalysisResult } from "@/services/aiService";
-import { formatAiGeneratedAt, invokeAiTask, type AiTextOutput } from "@/services/aiGateway";
+import { formatAiGeneratedAt, invokeAiTask, type AiTextOutput, type AiTailoredResumeOutput } from "@/services/aiGateway";
 import { scoreApplicationMatch, type ScoreApplicationMatchResponse } from "@/services/scoringService";
 import {
   type TailoredResumeContent,
-  type TailoredResumeStructured,
   exportCoverLetterDocx,
   exportCoverLetterPdf,
   exportResumeDocx,
@@ -270,31 +269,6 @@ const ResumeTailorPage = () => {
     }
   }, [isRunning]);
 
-  // ── Markdown builder for structured resume ─────────────────────────────────
-  function buildMarkdownFromStructured(s: TailoredResumeStructured): string {
-    const lines: string[] = [];
-    if (s.summary) { lines.push('## Professional Summary', s.summary, ''); }
-    if (s.skills.length) { lines.push('## Skills', s.skills.join(' · '), ''); }
-    if (s.experience.length) {
-      lines.push('## Experience');
-      for (const exp of s.experience) {
-        lines.push(`**${exp.role}** — ${exp.company}`, `${exp.location} · ${exp.dates}`);
-        for (const b of exp.bullets) lines.push(`- ${b}`);
-        lines.push('');
-      }
-    }
-    if (s.education.length) {
-      lines.push('## Education');
-      for (const edu of s.education) lines.push(`${edu.degree} — ${edu.institution} · ${edu.dates}`);
-      lines.push('');
-    }
-    if (s.projects_or_additional.length) {
-      lines.push('## Additional');
-      for (const item of s.projects_or_additional) lines.push(`- ${item}`);
-    }
-    return lines.join('\n');
-  }
-
   // ── AI pack generation ─────────────────────────────────────────────────────
   const generateAiPackContent = async (result: AnalysisResult) => {
     setAiPackStatus('generating');
@@ -314,7 +288,7 @@ const ResumeTailorPage = () => {
       invokeAiTask<AiTextOutput>('generateFollowUpMessage', {
         jobTitle: applicationData?.title, companyName: applicationData?.company, cvText: resumeText,
       }),
-      invokeAiTask<AiTextOutput>('generateTailoredResume', {
+      invokeAiTask<AiTailoredResumeOutput>('generateTailoredResume', {
         cvText: resumeText, jobDescription,
         jobTitle: applicationData?.title, companyName: applicationData?.company,
       }),
@@ -330,16 +304,8 @@ const ResumeTailorPage = () => {
     if (rmResult.status === 'fulfilled') { resolvedRecruiterMsg = rmResult.value.output.content; setAiRecruiterMsg(resolvedRecruiterMsg); hasSuccess = true; }
     if (fuResult.status === 'fulfilled') { resolvedFollowUpMsg = fuResult.value.output.content; setAiFollowUpMsg(resolvedFollowUpMsg); hasSuccess = true; }
     if (trResult.status === 'fulfilled') {
-      const raw = trResult.value.output.content;
-      try {
-        const structured = JSON.parse(raw) as TailoredResumeStructured;
-        resolvedTailoredResume = { structured, markdown: buildMarkdownFromStructured(structured) };
-      } catch {
-        resolvedTailoredResume = {
-          structured: { summary: '', skills: [], experience: [], education: [], projects_or_additional: [], claimsToVerify: [] },
-          markdown: raw,
-        };
-      }
+      const { structured, markdown } = trResult.value.output;
+      resolvedTailoredResume = { structured, markdown };
       setAiTailoredResume(resolvedTailoredResume);
       hasSuccess = true;
     }
