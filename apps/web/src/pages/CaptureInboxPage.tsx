@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Inbox } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -39,7 +39,7 @@ const CaptureInboxPage: React.FC = () => {
   const isEmpty = !isLoading && !isError && (!captures || captures.length === 0);
 
   return (
-    <div className="min-w-0 flex flex-col">
+    <div className="min-w-0 flex flex-col h-full">
       {/* Sticky page header */}
       <div className="sticky top-0 z-10 bg-jata-deep-carbon px-sm sm:px-md lg:px-lg pt-sm sm:pt-md lg:pt-lg pb-4 border-b border-jata-border">
         <h1 className="text-2xl font-headline font-semibold text-jata-text-primary">

@@ -1,19 +1,11 @@
-import React from 'react';
+﻿import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-import * as Sentry from '@sentry/react';
+import { initSentry } from '@/lib/logger';
 
-// Only initialize Sentry in production
-if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
-  Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN,
-    integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
-    tracesSampleRate: 1.0,
-    replaysOnErrorSampleRate: 1.0,
-  });
-}
-
+// Initialize Sentry error tracking
+initSentry();
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />

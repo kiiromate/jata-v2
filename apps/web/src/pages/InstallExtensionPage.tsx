@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
@@ -107,16 +107,16 @@ const InstallExtensionPage = () => {
 
   if (!browserInfo) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-jata-deep-carbon text-jata-text-primary flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-jata-deep-carbon text-jata-text-primary">
       <div className="container mx-auto p-sm sm:p-md lg:p-lg">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto overflow-hidden">
           {/* Header */}
           <div className="text-center mb-lg">
             <div className="flex items-center justify-center mb-sm">
@@ -268,7 +268,7 @@ const InstallExtensionPage = () => {
               {/* Troubleshooting Section */}
               {troubleshootingTips.length > 0 && (
                 <Collapsible title="Troubleshooting Common Issues" className="mb-md">
-                  <div className="space-y-4">
+                  <div className="space-y-4 overflow-hidden">
                     {troubleshootingTips.map((tip, index) => (
                       <div key={index} className="border-l-2 border-primary pl-4">
                         <h4 className="font-semibold mb-1 flex items-center gap-2">

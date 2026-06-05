@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { usePostHog } from 'posthog-js/react';
@@ -7,6 +7,7 @@ import { getAuthErrorMessage } from "../lib/authMessages";
 import { cn } from "@/lib/utils";
 
 type AuthTab = 'signIn' | 'signUp';
+const LAST_EMAIL_STORAGE_KEY = 'jata-last-email';
 
 const SigninPage = () => {
   const posthog = usePostHog();
@@ -19,6 +20,24 @@ const SigninPage = () => {
   const [message, setMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailWasPreFilled, setEmailWasPreFilled] = useState(false);
+
+  useEffect(() => {
+    try {
+      const lastEmail = localStorage.getItem(LAST_EMAIL_STORAGE_KEY);
+      if (lastEmail) {
+        setEmail(lastEmail);
+        setEmailWasPreFilled(true);
+      }
+    } catch {
+      // Non-fatal: browser storage may be unavailable in restricted contexts.
+    }
+  }, []);
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (emailWasPreFilled) setEmailWasPreFilled(false);
+  };
 
   const switchTab = (tab: AuthTab) => {
     setActiveTab(tab);
@@ -37,6 +56,11 @@ const SigninPage = () => {
       if (error) {
         setError(getAuthErrorMessage(error.message));
       } else {
+        try {
+          localStorage.setItem(LAST_EMAIL_STORAGE_KEY, email.trim());
+        } catch {
+          // Non-fatal: sign-in should not depend on local storage.
+        }
         posthog.capture('user_signed_in');
         navigate('/dashboard');
       }
@@ -74,14 +98,16 @@ const SigninPage = () => {
   const handlePasswordReset = async () => {
     setError('');
     setMessage('');
-    const resetEmail = prompt("Enter your email to receive a reset link:");
-    if (resetEmail) {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/update-password`,
-      });
-      if (error) setError(error.message);
-      else setMessage("Reset link sent — check your inbox.");
+    const resetEmail = email.trim();
+    if (!resetEmail) {
+      setError('Enter your email address above, then click "Forgot password".');
+      return;
     }
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: `${window.location.origin}/update-password`,
+    });
+    if (error) setError(getAuthErrorMessage(error.message));
+    else setMessage(`Reset link sent to ${resetEmail}. Check your inbox.`);
   };
 
   return (
@@ -141,12 +167,17 @@ const SigninPage = () => {
                     <input
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => handleEmailChange(e.target.value)}
                       required
                       placeholder="you@example.com"
                       className="input-field pl-9"
                     />
                   </div>
+                  {emailWasPreFilled && (
+                    <p className="text-[10px] font-mono text-jata-text-muted mt-1">
+                      Last used email pre-filled
+                    </p>
+                  )}
                 </AuthField>
 
                 <AuthField
@@ -181,7 +212,7 @@ const SigninPage = () => {
                     <input
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => handleEmailChange(e.target.value)}
                       required
                       placeholder="you@example.com"
                       className="input-field pl-9"
