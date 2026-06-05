@@ -163,6 +163,11 @@ function isProviderUnavailableError(error: Error): boolean {
   ].some((marker) => error.message.toLowerCase().includes(marker.toLowerCase()));
 }
 
+function isRecoverableTailoredResumeError(error: Error): boolean {
+  return isProviderUnavailableError(error) ||
+    error.message.toLowerCase().includes('tailored resume json parse failed');
+}
+
 /** Logs blocked and failed attempts without raw prompt text. */
 async function logNonSuccess<T extends AiTaskType>(
   request: AiExecutionRequest<T>,
@@ -282,7 +287,7 @@ export async function executeAiTask<T extends AiTaskType>(
     if (
       request.taskType === 'generateTailoredResume' &&
       request.provider.mode !== 'none' &&
-      isProviderUnavailableError(error instanceof Error ? error : new Error(message))
+      isRecoverableTailoredResumeError(error instanceof Error ? error : new Error(message))
     ) {
       const output = ensureTailoredResumeOutputSafety(
         createStubTailoredResumeOutput(request.input),

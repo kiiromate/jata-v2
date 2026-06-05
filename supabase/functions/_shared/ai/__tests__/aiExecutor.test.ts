@@ -512,6 +512,29 @@ describe('ai prompt privacy and cache keys', () => {
     expect(result.output.structured.claimsToVerify.length).toBeGreaterThan(0);
   });
 
+  it('returns structured no-AI fallback for tailored resumes when provider JSON is malformed', async () => {
+    const malformedJsonProvider = createProvider('openrouter');
+    malformedJsonProvider.generateTailoredResume = async () => {
+      throw new Error('Tailored resume JSON parse failed: Unterminated string in JSON at position 540');
+    };
+
+    const result = await executeAiTask({
+      userId: 'user-1',
+      taskType: 'generateTailoredResume',
+      input: tailoredResumeInput,
+      provider: malformedJsonProvider,
+      usageStore: createUsageStore(),
+      creditsStore: createCreditsStore(),
+      env: {},
+      now: () => new Date('2026-01-01T00:00:00.000Z'),
+    });
+
+    expect(result.metadata.provider).toBe('none');
+    expect(result.output.structured.summary).toContain('Tailored resume fallback');
+    expect(result.output.markdown).toContain('## Summary');
+    expect(result.output.structured.claimsToVerify.length).toBeGreaterThan(0);
+  });
+
   it('keys cache entries by opportunity hash, resume/profile version, and generation type', async () => {
     const first = await hashTaskInput('generateCoverLetter', {
       ...baseInput,
