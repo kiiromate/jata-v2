@@ -10,10 +10,11 @@
     "test:data-durability": "node --test scripts/data-durability.test.mjs",
     "data:export": "node scripts/export-data.mjs",
     "data:check": "node scripts/data-integrity-check.mjs",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "package-extension": "node scripts/package-extension.mjs"
   },
   "devDependencies": {
-    "@sentry/react": "^10.7.0",
+    "@sentry/react": "^10.56.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.14.9",
     "eslint": "^8.57.0",

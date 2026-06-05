@@ -67,3 +67,6 @@ badumts.txt
 /apps/extension/dist/ 
 apps\web\.env
 .vercel
+
+# Generated extension zip package
+apps/web/public/extension/*.zip
