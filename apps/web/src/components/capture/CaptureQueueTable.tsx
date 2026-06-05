@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, MoreHorizontal } from 'lucide-react';
@@ -47,7 +47,7 @@ const Th: React.FC<{ children?: React.ReactNode; className?: string }> = ({
 }) => (
   <th
     className={cn(
-      'px-3 py-2 text-left font-mono text-[10px] uppercase tracking-widest text-jata-text-muted',
+      'px-3 py-2 text-left font-mono text-[10px] uppercase tracking-widest text-jata-text-muted whitespace-nowrap',
       className
     )}
   >
@@ -124,6 +124,18 @@ const CaptureRow: React.FC<CaptureRowProps> = ({
         <span className="font-mono text-[10px] text-jata-text-muted">
           {formatDate(item.createdAt)}
         </span>
+      </td>
+
+      <td className="px-3 py-3">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onGeneratePack}
+          disabled={anyPending}
+          className="text-jata-accent-lime border-jata-accent-lime/40 hover:bg-jata-accent-lime/10 font-mono text-[10px] uppercase tracking-widest whitespace-nowrap"
+        >
+          Generate Pack
+        </Button>
       </td>
 
       <td className="px-3 py-3">
@@ -243,7 +255,7 @@ export const CaptureQueueTable: React.FC<CaptureQueueTableProps> = ({
 
   return (
     <div className="w-full overflow-x-auto border border-jata-border rounded-lg">
-      <table className="w-full text-sm">
+      <table className="w-full min-w-[960px] text-sm">
         <thead className="border-b border-jata-border bg-jata-bg-surface">
           <tr>
             <Th>Role / Company</Th>
@@ -254,6 +266,7 @@ export const CaptureQueueTable: React.FC<CaptureQueueTableProps> = ({
             <Th>Score</Th>
             <Th>Band</Th>
             <Th>Captured</Th>
+            <Th>Pack</Th>
             <Th className="w-10" />
           </tr>
         </thead>

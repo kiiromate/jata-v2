@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { AppHeader } from './AppHeader';
 import { useExtensionSync } from '@/hooks/useExtensionSync';
@@ -13,16 +13,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   // Sync session with extension
   useExtensionSync();
 
-  // Default to expanded so navigation labels are visible without hover.
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('expanded');
 
-  // Load preference on mount
+  // Load preference on mount; default to collapsed on narrow screens
   useEffect(() => {
     const savedMode = localStorage.getItem('jata-sidebar-mode');
     if (savedMode && ['collapsed', 'expanded'].includes(savedMode)) {
       setSidebarMode(savedMode as SidebarMode);
     } else if (savedMode === 'hover') {
       localStorage.setItem('jata-sidebar-mode', 'expanded');
+    } else if (window.innerWidth < 768) {
+      setSidebarMode('collapsed');
     }
   }, []);
 

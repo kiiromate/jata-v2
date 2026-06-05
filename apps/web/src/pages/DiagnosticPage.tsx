@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
+import { logError } from '@/lib/logger';
 
 const DiagnosticPage = () => {
   const { session, user } = useAuth();
@@ -13,6 +14,7 @@ const DiagnosticPage = () => {
         envVars: {
           supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? '✓ Set' : '✗ Missing',
           supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? '✓ Set' : '✗ Missing',
+          sentryDsn: import.meta.env.VITE_SENTRY_DSN ? '✓ Set' : '✗ Missing',
         },
         auth: {
           session: session ? '✓ Active' : '✗ No session',
@@ -24,8 +26,8 @@ const DiagnosticPage = () => {
       // Test database queries
       try {
         const { error } = await supabase.from('applications').select('count');
-        diagnostics.database.applications = error 
-          ? `✗ Error: ${error.message}` 
+        diagnostics.database.applications = error
+          ? `✗ Error: ${error.message}`
           : `✓ Success`;
       } catch (e: any) {
         diagnostics.database.applications = `✗ Exception: ${e.message}`;
@@ -33,8 +35,8 @@ const DiagnosticPage = () => {
 
       try {
         const { error } = await supabase.from('profiles').select('*').eq('id', user?.id as string).single();
-        diagnostics.database.profile = error 
-          ? `✗ Error: ${error.message}` 
+        diagnostics.database.profile = error
+          ? `✗ Error: ${error.message}`
           : `✓ Success`;
       } catch (e: any) {
         diagnostics.database.profile = `✗ Exception: ${e.message}`;
@@ -42,8 +44,8 @@ const DiagnosticPage = () => {
 
       try {
         const { data, error } = await supabase.rpc('get_recent_activity');
-        diagnostics.database.recentActivity = error 
-          ? `✗ Error: ${error.message}` 
+        diagnostics.database.recentActivity = error
+          ? `✗ Error: ${error.message}`
           : `✓ Success`;
       } catch (e: any) {
         diagnostics.database.recentActivity = `✗ Exception: ${e.message}`;
@@ -60,12 +62,28 @@ const DiagnosticPage = () => {
     }
   }, [session, user]);
 
+  const handleTriggerHandledError = () => {
+    try {
+      throw new Error('JATA Test Sentry Error: Handled Exception via logError');
+    } catch (err) {
+      logError(err, { testing: true, timestamp: Date.now() }, 'diagnostics');
+      alert('Handled exception logged to Sentry. Check Sentry dashboard!');
+    }
+  };
+
+  const handleTriggerUnhandledError = () => {
+    // This will throw a raw unhandled exception that should be caught by global Sentry handler.
+    setTimeout(() => {
+      throw new Error('JATA Test Sentry Error: Unhandled Global Exception');
+    }, 10);
+  };
+
   if (loading) return <div className="p-8">Running diagnostics...</div>;
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">System Diagnostics</h1>
-      
+
       <div className="space-y-6">
         <div className="bg-white p-6 rounded-lg border">
           <h2 className="text-xl font-semibold mb-4">Environment Variables</h2>
@@ -86,6 +104,24 @@ const DiagnosticPage = () => {
           <pre className="bg-gray-50 p-4 rounded text-sm">
             {JSON.stringify(results.database, null, 2)}
           </pre>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg border">
+          <h2 className="text-xl font-semibold mb-4">Sentry Monitoring</h2>
+          <div className="flex gap-4">
+            <button
+              onClick={handleTriggerHandledError}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition"
+            >
+              Trigger Handled Error
+            </button>
+            <button
+              onClick={handleTriggerUnhandledError}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium transition"
+            >
+              Trigger Unhandled Error (Crash)
+            </button>
+          </div>
         </div>
 
         <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">

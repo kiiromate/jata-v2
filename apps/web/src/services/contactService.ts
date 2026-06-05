@@ -1,11 +1,12 @@
-/**
+﻿/**
  * @file Contact service for handling contact form submissions
- * 
+ *
  * This service provides functionality to submit contact form data to Supabase,
  * including rate limiting and validation.
  */
 
 import { supabase } from '@/lib/supabaseClient';
+import { logError } from '@/lib/logger';
 
 export interface ContactFormData {
   name: string;
@@ -28,20 +29,20 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 /**
  * Check if user has exceeded rate limit for contact form submissions
- * 
+ *
  * @returns true if rate limit exceeded, false otherwise
  */
 function checkRateLimit(): boolean {
   try {
     const storedData = localStorage.getItem(RATE_LIMIT_KEY);
-    
+
     if (!storedData) {
       return false;
     }
 
     const submissions: number[] = JSON.parse(storedData);
     const now = Date.now();
-    
+
     // Filter out submissions older than the rate limit window
     const recentSubmissions = submissions.filter(
       (timestamp) => now - timestamp < RATE_LIMIT_WINDOW_MS
@@ -65,7 +66,7 @@ function recordSubmission(): void {
   try {
     const storedData = localStorage.getItem(RATE_LIMIT_KEY);
     const submissions: number[] = storedData ? JSON.parse(storedData) : [];
-    
+
     submissions.push(Date.now());
     localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(submissions));
   } catch (error) {
@@ -75,7 +76,7 @@ function recordSubmission(): void {
 
 /**
  * Validate contact form data
- * 
+ *
  * @param data - The contact form data to validate
  * @throws Error if validation fails
  */
@@ -119,7 +120,7 @@ function validateContactData(data: ContactFormData): void {
 
 /**
  * Submit contact form data to Supabase
- * 
+ *
  * @param contactData - The contact form data to submit
  * @returns Promise that resolves when submission is successful
  * @throws Error if submission fails
@@ -152,11 +153,10 @@ export async function submitContact(contactData: ContactFormData): Promise<void>
       .insert([submission as any]);
 
     if (insertError) {
-      console.error('Supabase insert error:', insertError);
-      logErrorToSentry(insertError, {
+      logError(insertError, {
         context: 'contact_submission',
         category: contactData.category,
-      });
+      }, 'contact');
       throw new Error('Failed to submit your message. Please try again later or email us directly at support@jata.app');
     }
 
@@ -170,63 +170,26 @@ export async function submitContact(contactData: ContactFormData): Promise<void>
     });
 
   } catch (error) {
-    // Log error to Sentry
-    if (error instanceof Error) {
-      logErrorToSentry(error, {
-        context: 'contact_service',
-        category: contactData.category,
-      });
-    }
-    
-    // Re-throw the error to be handled by the caller
     throw error;
   }
 }
 
 /**
- * Log error to Sentry (or console if Sentry is not configured)
- * 
- * @param error - The error to log
- * @param context - Additional context information
- */
-function logErrorToSentry(error: Error | unknown, context?: Record<string, unknown>): void {
-  // TODO: Integrate with Sentry when available
-  // For now, log to console with context
-  console.error('Error logged:', {
-    error: error instanceof Error ? {
-      message: error.message,
-      stack: error.stack,
-      name: error.name,
-    } : error,
-    context,
-    timestamp: new Date().toISOString(),
-  });
-
-  // When Sentry is configured, use:
-  // import * as Sentry from '@sentry/react';
-  // Sentry.captureException(error, {
-  //   contexts: {
-  //     contact: context,
-  //   },
-  // });
-}
-
-/**
  * Get remaining submissions allowed in current rate limit window
- * 
+ *
  * @returns Number of submissions remaining
  */
 export function getRemainingSubmissions(): number {
   try {
     const storedData = localStorage.getItem(RATE_LIMIT_KEY);
-    
+
     if (!storedData) {
       return MAX_SUBMISSIONS_PER_HOUR;
     }
 
     const submissions: number[] = JSON.parse(storedData);
     const now = Date.now();
-    
+
     // Filter out submissions older than the rate limit window
     const recentSubmissions = submissions.filter(
       (timestamp) => now - timestamp < RATE_LIMIT_WINDOW_MS
