@@ -70,3 +70,5 @@ apps\web\.env
 
 # Generated extension zip package
 apps/web/public/extension/*.zip
+
+.vercel
