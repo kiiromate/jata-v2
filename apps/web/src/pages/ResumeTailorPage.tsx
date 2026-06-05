@@ -2,13 +2,14 @@ import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { useState, useEffect, useMemo, useRef } from "react";
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { analyzeResumeAgainstJobDescription, type AnalysisResult } from "@/services/aiService";
 import { formatAiGeneratedAt, invokeAiTask, type AiTextOutput } from "@/services/aiGateway";
+import { scoreApplicationMatch, type ScoreApplicationMatchResponse } from "@/services/scoringService";
 import {
   type TailoredResumeContent,
   type TailoredResumeStructured,
@@ -19,7 +20,7 @@ import {
   buildCoverLetterDocument,
   buildResumeDocument,
 } from "@/services/documentExport";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FileUpload } from "@/components/FileUpload";
@@ -78,7 +79,7 @@ function StepIndicator({ states }: { states: StepState[] }) {
                 s === 'active'   && "border-jata-accent-blue bg-jata-accent-blue/20 text-jata-accent-blue",
                 s === 'pending'  && "border-jata-border bg-transparent text-jata-text-muted",
               )}>
-                {s === 'complete' ? '✓' : i + 1}
+                {s === 'complete' ? <Check size={12} strokeWidth={3} /> : i + 1}
               </div>
               <span className={cn(
                 "text-[9px] font-mono uppercase tracking-widest text-center whitespace-nowrap",
@@ -385,7 +386,7 @@ const ResumeTailorPage = () => {
   const stepStates = useMemo((): StepState[] => {
     const jobLoaded = jobDescription.trim().length > 0;
     const resumeReady = Boolean(selectedResumeId || resumeText.trim());
-    const analyzing = aiPackStatus === 'generating';
+    const analyzing = isAnalyzing || aiPackStatus === 'generating';
     const analyzed = Boolean(analysis) || aiPackStatus === 'done';
     const packReady = aiPackStatus === 'done';
     return [
@@ -395,7 +396,23 @@ const ResumeTailorPage = () => {
       analyzed ? (packReady ? 'active' : 'pending') : 'pending',
       packReady ? 'active' : 'pending',
     ];
-  }, [jobDescription, selectedResumeId, resumeText, aiPackStatus, analysis]);
+  }, [jobDescription, selectedResumeId, resumeText, aiPackStatus, analysis, isAnalyzing]);
+
+  const canScoreSavedApplication = Boolean(applicationId && user && applicationData);
+  const {
+    data: serverScore,
+    isFetching: isScorePreviewLoading,
+    isError: isScorePreviewError,
+  } = useQuery<ScoreApplicationMatchResponse, Error>({
+    queryKey: ['application-score', applicationId, selectedResumeId || applicationData?.selected_resume_id || 'fallback'],
+    queryFn: () => scoreApplicationMatch({
+      applicationId: applicationId!,
+      resumeId: selectedResumeId || applicationData?.selected_resume_id || undefined,
+      includeProfile: true,
+    }),
+    enabled: canScoreSavedApplication,
+    staleTime: 5 * 60 * 1000,
+  });
 
   // ── URL scrape mutation ────────────────────────────────────────────────────
   const { mutate: scrapeJobDescription, isPending: isScraping, isError: isScrapeError } = useMutation<string, Error, string>({
@@ -589,6 +606,105 @@ const ResumeTailorPage = () => {
         </div>
       </div>
 
+      {applicationId && (serverScore || isScorePreviewLoading || isScorePreviewError) && (
+        <Card className="border-jata-border bg-jata-bg-surface">
+          <CardContent className="pt-4 space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="font-semibold text-jata-text-primary text-sm">
+                  Jata Score Preview
+                </p>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-jata-text-muted">
+                  Server-side deterministic scoring
+                </p>
+              </div>
+              {serverScore && (
+                <div className="text-right">
+                  <span className={cn("text-3xl font-bold", scoreColor(serverScore.score))}>
+                    {serverScore.score}%
+                  </span>
+                  <p className="text-xs font-mono uppercase tracking-widest text-jata-text-muted">
+                    {serverScore.recommendedAction}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {isScorePreviewLoading && (
+              <p className="text-xs text-jata-text-muted font-mono">
+                Scoring saved application…
+              </p>
+            )}
+
+            {isScorePreviewError && !serverScore && (
+              <p className="text-xs text-jata-status-interview font-mono">
+                Score unavailable for this saved application. Confirm the job description and resume are saved.
+              </p>
+            )}
+
+            {serverScore && (
+              <>
+                <div className="flex flex-wrap gap-4 text-xs text-jata-text-muted font-mono">
+                  <span>{serverScore.matchedSkills.length} matched</span>
+                  <span>{serverScore.missingSkills.length} missing</span>
+                  <span>{serverScore.confidence} confidence</span>
+                </div>
+
+                {serverScore.matchedSkills.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {serverScore.matchedSkills.map((skill) => (
+                      <Badge key={skill} className="bg-jata-status-offer/15 text-jata-status-offer border-jata-status-offer/30">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {serverScore.missingSkills.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {serverScore.missingSkills.map((skill) => (
+                      <Badge key={skill} variant="destructive" className="text-xs">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {serverScore.evidenceMatches.length > 0 && (
+                  <div className="space-y-2">
+                    {serverScore.evidenceMatches.slice(0, 3).map((match) => (
+                      <div key={`${match.requirementId}-${match.evidenceId}`} className="rounded border border-jata-border bg-jata-bg-canvas/40 p-2">
+                        <p className="text-[10px] font-mono uppercase tracking-widest text-jata-text-muted">
+                          Evidence match · {match.strength}
+                        </p>
+                        <p className="mt-1 text-xs text-jata-text-secondary">
+                          {match.requirementSnippet}
+                        </p>
+                        <p className="mt-1 text-xs text-jata-text-muted">
+                          {match.evidenceSnippet}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {serverScore.claimsToVerify.length > 0 && (
+                  <ul className="space-y-1 list-disc pl-5">
+                    {serverScore.claimsToVerify.slice(0, 3).map((claim) => (
+                      <li key={claim} className="text-xs text-jata-text-secondary">{claim}</li>
+                    ))}
+                  </ul>
+                )}
+
+                <p className="text-[10px] font-mono text-jata-text-muted">
+                  Scored {formatAiGeneratedAt(serverScore.scoredAt)} from saved application data.
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Progress indicator */}
       {(isAnalyzing || aiPackStatus === 'generating') && (
         <div className="sticky top-0 z-10 flex items-center gap-3 bg-jata-bg-surface border border-jata-border px-4 py-2.5 rounded-lg text-sm text-jata-text-secondary">
@@ -633,19 +749,11 @@ const ResumeTailorPage = () => {
           <Card className="border-jata-border bg-jata-bg-surface">
             <CardContent className="pt-4 space-y-4">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-jata-text-primary">Resume Match</span>
+                <span className="font-semibold text-jata-text-primary">AI Match Analysis</span>
                 <span className={cn("text-3xl font-bold", scoreColor(analysis.score))}>
                   {analysis.score}%
                 </span>
               </div>
-              {analysis.atsScore !== undefined && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-jata-text-secondary">ATS Score</span>
-                  <span className={cn("font-semibold", scoreColor(analysis.atsScore))}>
-                    {analysis.atsScore}%
-                  </span>
-                </div>
-              )}
               <div className="flex flex-wrap gap-2">
                 {analysis.matchedSkills.map(s => (
                   <Badge key={s} className="bg-jata-status-offer/15 text-jata-status-offer border-jata-status-offer/30">{s}</Badge>

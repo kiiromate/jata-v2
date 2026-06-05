@@ -1,4 +1,5 @@
 import type { Json } from '../types/database.ts';
+import type { EvidenceMatch, RecommendedAction, ScoreConfidence } from './scoring/index.ts';
 
 export type { Json } from '../types/database.ts';
 
@@ -100,6 +101,10 @@ export interface CaptureScoreResult {
   score: number;
   matchedSkills: string[];
   missingSkills: string[];
+  confidence?: ScoreConfidence;
+  recommendedAction?: RecommendedAction;
+  evidenceMatches?: EvidenceMatch[];
+  claimsToVerify?: string[];
   suggestions?: string[];
   atsScore?: number;
   atsIssues?: string[];
