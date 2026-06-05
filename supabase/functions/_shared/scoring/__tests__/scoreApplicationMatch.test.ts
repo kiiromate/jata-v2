@@ -53,6 +53,7 @@ function createRepository(options: {
   application?: ScoreApplicationMatchApplicationRecord | null;
   resume?: ScoreApplicationMatchResumeRecord | null;
   schemaError?: Error;
+  profileError?: Error;
 } = {}) {
   const updates: Array<Record<string, unknown>> = [];
   const repository: ScoreApplicationMatchRepository = {
@@ -66,6 +67,7 @@ function createRepository(options: {
       return resume.id === resumeId && resume.user_id === userId ? resume : null;
     },
     async getProfile() {
+      if (options.profileError) throw options.profileError;
       return {
         professional_summary: 'Frontend engineer focused on accessible product workflows.',
         skills: ['React', 'SQL', 'Accessibility'],
@@ -162,6 +164,27 @@ describe('score-application-match handler', () => {
     assert.equal(response.status, 500);
     assert.match(body.error, /Schema precheck failed/);
     assert.equal(updates.length, 0);
+  });
+
+  it('continues scoring without optional profile enrichment when profile columns are unavailable', async () => {
+    const rawResume = 'Built React dashboards and SQL reports for operating teams.';
+    const rawJob = 'Requires React dashboards and SQL reporting.';
+    const { handler, updates } = createHandler({
+      application: createApplication({ job_description: rawJob }),
+      resume: createResume({ extracted_text: rawResume, content: 'fallback content' }),
+      profileError: new Error('column profiles.professional_summary does not exist'),
+    });
+
+    const response = await handler(createRequest({ applicationId: 'application-1', includeProfile: true }));
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(updates.length, 1);
+    assert.ok(body.score >= 70);
+    assert.equal(body.metadata.usedProfile, false);
+    assert.equal(updates[0].score_status, 'completed');
+    assert.ok(!JSON.stringify(body).includes(rawResume));
+    assert.ok(!JSON.stringify(body).includes(rawJob));
   });
 
   it('persists successful scoring to existing application fields without returning raw documents', async () => {

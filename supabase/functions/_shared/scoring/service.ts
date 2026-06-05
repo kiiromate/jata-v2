@@ -161,6 +161,13 @@ function isSchemaPrecheckError(error: unknown): boolean {
   return /column .* does not exist|schema cache|capture_score_result|jata_score|score_status|scored_at|selected_resume_id/i.test(error.message);
 }
 
+function isOptionalProfileSchemaError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message;
+  return /schema cache|column .* does not exist/i.test(message)
+    && /profiles|professional_summary|experience_level|skills|industry|location/i.test(message);
+}
+
 function responseBody(output: EnhancedScoreOutput, applicationId: string, resumeId: string | null, scoredAt: string) {
   return {
     ...output,
@@ -235,7 +242,15 @@ export function createScoreApplicationMatchHandler(deps: HandlerDeps): (req: Req
       return jsonResponse({ error: 'Resume evidence text is required before scoring.' }, 400);
     }
 
-    const profile = parsedBody.includeProfile ? await repository.getProfile(userId) : null;
+    let profile: ScoreApplicationMatchProfileRecord | null = null;
+    if (parsedBody.includeProfile) {
+      try {
+        profile = await repository.getProfile(userId);
+      } catch (error) {
+        if (!isOptionalProfileSchemaError(error)) throw error;
+      }
+    }
+
     const scoredAt = (deps.now ?? (() => new Date()))().toISOString();
     const output = scoreApplicationFit({
       jobDescription,
