@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node ../../scripts/package-extension.mjs",
     "build": "vite build",
     "gen:types": "pnpm dlx supabase gen types typescript --project-id xomiolmrtawyrosqlodd --schema public > ../../packages/common/src/database.types.ts",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
