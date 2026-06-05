@@ -16,6 +16,7 @@ const EMPTY_APPLICATION_DATA = {
     industry: '',
 };
 const POPUP_DRAFT_KEY = 'jata-popup-capture-draft';
+const PICK_FIELDS_KEY = 'pickedFields';
 const createEmptyApplicationData = () => ({
     ...EMPTY_APPLICATION_DATA,
 });
@@ -28,6 +29,16 @@ const normalizeExtractedData = (extracted) => ({
     industry: extracted?.industry?.trim() || '',
 });
 const hasCapturedContent = (nextData) => Boolean(nextData.jobTitle || nextData.companyName || nextData.jobUrl || nextData.jobDescription);
+const mergeApplicationData = (current, incoming, overwrite = false) => ({
+    ...current,
+    ...Object.fromEntries(Object.keys(EMPTY_APPLICATION_DATA)
+        .map((key) => {
+        const value = incoming[key]?.trim() ?? '';
+        if (!value)
+            return [key, current[key] ?? ''];
+        return [key, overwrite || !(current[key]?.trim()) ? value : current[key]];
+    })),
+});
 /** Build the chrome.storage.session key for a given tab. */
 const captureSessionKey = (tabId) => `jata-capture-${tabId}`;
 /**
@@ -62,10 +73,21 @@ const App = () => {
             source: data.source,
         });
     }, [data]);
-    const clearStoredDraft = useCallback(() => {
+    const saveStoredDraft = useCallback((nextData) => {
         if (typeof chrome === 'undefined' || !chrome.storage?.local)
             return;
-        chrome.storage.local.remove(POPUP_DRAFT_KEY);
+        if (hasCapturedContent(nextData)) {
+            chrome.storage.local.set({ [POPUP_DRAFT_KEY]: nextData });
+        }
+        else {
+            chrome.storage.local.remove(POPUP_DRAFT_KEY);
+        }
+    }, []);
+    const clearStoredDraft = useCallback(() => {
+        if (typeof chrome === 'undefined')
+            return;
+        chrome.storage?.local?.remove(POPUP_DRAFT_KEY);
+        chrome.storage?.session?.remove([PICK_FIELDS_KEY, 'pickMode', 'jata-pick-pending']);
     }, []);
     /**
      * Clear the post-capture result state, reset the form, and remove the session
@@ -86,9 +108,7 @@ const App = () => {
             });
         }
     }, [clearStoredDraft]);
-    const refreshFromCurrentPage = useCallback((showStatus = true) => {
-        setData(createEmptyApplicationData());
-        clearStoredDraft();
+    const refreshFromCurrentPage = useCallback((showStatus = true, overwrite = false) => {
         if (showStatus) {
             setStatusMessage('Refreshing from current page...');
         }
@@ -110,8 +130,13 @@ const App = () => {
                     setStatusMessage('Could not read this page. Refresh the tab and try again.');
                     return;
                 }
-                const nextData = normalizeExtractedData(response?.data);
-                setData(nextData);
+                const extractedData = normalizeExtractedData(response?.data);
+                let nextData = extractedData;
+                setData((current) => {
+                    nextData = overwrite ? extractedData : mergeApplicationData(current, extractedData);
+                    saveStoredDraft(nextData);
+                    return nextData;
+                });
                 if (!hasCapturedContent(nextData)) {
                     setStatusMessage('No job content detected on this page. Pick fields manually if needed.');
                 }
@@ -123,7 +148,7 @@ const App = () => {
                 }
             });
         });
-    }, [clearStoredDraft]);
+    }, [saveStoredDraft]);
     /**
      * Check authentication status on mount, load queue size, and restore any
      * post-capture session state for the current tab (within 30-minute TTL).
@@ -166,30 +191,32 @@ const App = () => {
         checkAuth();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-    useEffect(() => {
-        clearStoredDraft();
-    }, [clearStoredDraft]);
     /**
      * Auto-extract job details on mount
      */
     useEffect(() => {
         if (isLoggedIn && typeof chrome !== 'undefined' && chrome.tabs) {
-            if (chrome.storage?.session) {
-                chrome.storage.session.get(['pickMode', 'pickedFields'], (stored) => {
-                    if (stored.pickMode && stored.pickedFields) {
-                        setData(normalizeExtractedData(stored.pickedFields));
-                        setStatusMessage('Restored picked values.');
-                    }
-                    else {
+            if (chrome.storage?.local && chrome.storage?.session) {
+                chrome.storage.local.get([POPUP_DRAFT_KEY], (localStored) => {
+                    const draft = normalizeExtractedData(localStored[POPUP_DRAFT_KEY]);
+                    chrome.storage.session.get(['pickMode', PICK_FIELDS_KEY], (sessionStored) => {
+                        const picked = normalizeExtractedData(sessionStored[PICK_FIELDS_KEY]);
+                        const restored = mergeApplicationData(draft, picked, false);
+                        if (hasCapturedContent(restored)) {
+                            setData(restored);
+                            saveStoredDraft(restored);
+                            setStatusMessage(sessionStored.pickMode ? 'Restored picked values.' : 'Restored draft.');
+                            return;
+                        }
                         refreshFromCurrentPage(false);
-                    }
+                    });
                 });
             }
             else {
                 refreshFromCurrentPage(false);
             }
         }
-    }, [isLoggedIn, refreshFromCurrentPage]);
+    }, [isLoggedIn, refreshFromCurrentPage, saveStoredDraft]);
     /**
      * Handles incoming messages from the content script, specifically for when
      * an element has been selected by the user.
@@ -199,11 +226,14 @@ const App = () => {
             return;
         const messageListener = (message, _sender, sendResponse) => {
             if (message.action === 'elementSelected' && message.data && isScraping) {
-                console.log(`Received data for ${isScraping}:`, message.data?.textContent);
-                setData(prevData => ({
-                    ...prevData,
-                    [isScraping]: message.data?.textContent || '',
-                }));
+                setData(prevData => {
+                    const nextData = {
+                        ...prevData,
+                        [isScraping]: message.data?.textContent || '',
+                    };
+                    saveStoredDraft(nextData);
+                    return nextData;
+                });
                 setIsScraping(null); // Reset scraping state
                 sendResponse({ status: 'success' });
             }
@@ -229,7 +259,7 @@ const App = () => {
                 // Save current data so we don't lose typed-in fields
                 chrome.storage.session.set({
                     'jata-pick-pending': { field, startedAt: Date.now() },
-                    pickedFields: data,
+                    [PICK_FIELDS_KEY]: data,
                     pickMode: true
                 });
             }
@@ -240,7 +270,8 @@ const App = () => {
                     setIsScraping(null);
                 }
                 else {
-                    console.log(response?.status);
+                    if (response?.status)
+                        setStatusMessage(`Selector ready for ${field}.`);
                 }
             });
         }
@@ -390,7 +421,7 @@ const App = () => {
      */
     const handleAutoFill = async () => {
         if (typeof chrome !== 'undefined' && chrome.storage?.session) {
-            chrome.storage.session.remove(['pickMode', 'pickedFields', 'jata-pick-pending']);
+            chrome.storage.session.remove(['pickMode', 'jata-pick-pending']);
         }
         refreshFromCurrentPage(true);
     };
@@ -398,9 +429,51 @@ const App = () => {
      * Opens the Resume Tailor page with the current job data.
      */
     const handleGeneratePack = async () => {
-        if (typeof chrome !== 'undefined' && chrome.storage?.session) {
-            await chrome.storage.session.set({ pendingPackJob: data });
-            void openJataPath('/resume-tailor?from=extension');
+        if (!data.jobTitle || !data.companyName) {
+            setStatusMessage('Please fill in at least job title and company name.');
+            return;
+        }
+        setIsLoading(true);
+        setStatusMessage('Saving before opening pack...');
+        try {
+            const user = await getCurrentUser();
+            if (!user) {
+                setStatusMessage('Please sign in to generate a pack.');
+                return;
+            }
+            const industry = data.industry || detectIndustry(data.jobTitle, data.jobDescription);
+            const details = { ...data, industry };
+            if (!isOnline()) {
+                await addToQueue(details);
+                setQueueSize(await getQueueSize());
+                setStatusMessage('Saved to queue. Open Capture Inbox after sync to generate a pack.');
+                void openJataPath('/capture-inbox');
+                return;
+            }
+            const result = await captureJobToInbox(details, {
+                pageTitle: data.jobTitle,
+                captureSurface: 'popup_generate_pack',
+            });
+            if (result.captureId && (result.state === 'captured' || result.state === 'possible_duplicate' || result.state === 'duplicate')) {
+                clearStoredDraft();
+                void openJataPath(`/resume-tailor/${encodeURIComponent(result.captureId)}`);
+                return;
+            }
+            if (result.state === 'error') {
+                await addToQueue(details);
+                setQueueSize(await getQueueSize());
+            }
+            setStatusMessage(`${result.message} Open Capture Inbox to continue.`);
+            void openJataPath('/capture-inbox');
+        }
+        catch (error) {
+            await addToQueue(data);
+            setQueueSize(await getQueueSize());
+            setStatusMessage('Saved to queue. Open Capture Inbox after sync to generate a pack.');
+            void openJataPath('/capture-inbox');
+        }
+        finally {
+            setIsLoading(false);
         }
     };
     // ── Loading state ────────────────────────────────────────────────────────
@@ -431,7 +504,9 @@ const App = () => {
     };
     // ── Post-capture success / possible-duplicate state ───────────────────────
     if (captureResult && (captureResult.state === 'captured' || captureResult.state === 'possible_duplicate')) {
-        return (_jsxs("div", { className: "w-[400px] bg-gray-900 text-white p-5 font-sans", children: [_jsx("div", { className: "flex justify-between items-center mb-4", children: _jsx("h1", { className: "text-xl font-semibold tracking-tight", children: "JATA" }) }), _jsxs("div", { className: "rounded-lg bg-gray-800 border border-gray-700 p-4 mb-4 text-center", children: [_jsx("div", { className: "text-green-400 text-2xl mb-2", children: "\u2713" }), _jsx("p", { className: "text-sm text-gray-200", children: captureResult.message })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("button", { onClick: () => void openJataPath('/capture-inbox'), className: "w-full bg-indigo-600 text-white rounded-md py-2.5 text-sm font-medium hover:bg-indigo-700 transition-colors duration-200", children: "View in JATA" }), _jsx("button", { onClick: clearCaptureSession, className: "w-full bg-gray-700 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-600 transition-colors duration-200", children: "Capture another" }), _jsx("button", { onClick: openDashboard, className: "w-full text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors duration-200 py-1", children: "Open Capture Inbox" })] })] }));
+        return (_jsxs("div", { className: "w-[400px] bg-gray-900 text-white p-5 font-sans", children: [_jsx("div", { className: "flex justify-between items-center mb-4", children: _jsx("h1", { className: "text-xl font-semibold tracking-tight", children: "JATA" }) }), _jsxs("div", { className: "rounded-lg bg-gray-800 border border-gray-700 p-4 mb-4 text-center", children: [_jsx("div", { className: "text-green-400 text-2xl mb-2", children: "\u2713" }), _jsx("p", { className: "text-sm text-gray-200", children: captureResult.message })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("button", { onClick: () => captureResult.captureId
+                                ? void openJataPath(`/resume-tailor/${encodeURIComponent(captureResult.captureId)}`)
+                                : void openJataPath('/capture-inbox'), className: "w-full bg-indigo-600 text-white rounded-md py-2.5 text-sm font-medium hover:bg-indigo-700 transition-colors duration-200", children: "Generate Pack" }), _jsx("button", { onClick: () => void openJataPath('/capture-inbox'), className: "w-full bg-gray-800 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-700 transition-colors duration-200", children: "View in JATA" }), _jsx("button", { onClick: clearCaptureSession, className: "w-full bg-gray-700 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-600 transition-colors duration-200", children: "Capture another" }), _jsx("button", { onClick: openDashboard, className: "w-full text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors duration-200 py-1", children: "Open Capture Inbox" })] })] }));
     }
     // ── Duplicate state ───────────────────────────────────────────────────────
     if (captureResult && captureResult.state === 'duplicate') {
@@ -446,6 +521,14 @@ const App = () => {
                                 ? '✓ Strong capture'
                                 : confidence.confidenceLabel === 'review_recommended'
                                     ? '⚠ Review recommended'
-                                    : '⚠ Weak capture', ' ', "(", Math.round(confidence.confidenceScore * 100), "%)"] }), confidence.missingFields.length > 0 && (_jsxs("span", { className: "opacity-70", children: ["Missing: ", confidence.missingFields.join(', ')] }))] })), _jsx("button", { onClick: handleAutoFill, disabled: isLoading || isExtracting || !!isScraping, className: "w-full mb-4 bg-indigo-600 text-white rounded-md py-2 text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors duration-200", children: isExtracting ? 'Refreshing...' : 'Refresh from Page' }), _jsx("div", { className: "space-y-3", children: displayFields.map((key) => (_jsxs("div", { children: [_jsx("label", { className: "block text-xs font-medium text-gray-400 mb-1.5", children: fieldLabels[key] }), _jsxs("div", { className: "flex items-center gap-2", children: [key === 'jobDescription' ? (_jsx("textarea", { value: data[key], onChange: (e) => setData((prev) => ({ ...prev, [key]: e.target.value })), placeholder: fieldPlaceholders[key], className: "w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500", rows: 3 })) : (_jsx("input", { type: "text", value: data[key] || '', onChange: (e) => setData((prev) => ({ ...prev, [key]: e.target.value })), placeholder: fieldPlaceholders[key], className: "w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" })), _jsx("button", { onClick: () => handleSelect(key), disabled: !!isScraping || isLoading || isExtracting, className: "px-3 py-2 bg-gray-700 text-white rounded-md text-xs font-medium hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors duration-200 whitespace-nowrap", children: "Pick" })] })] }, key))) }), _jsx("button", { onClick: handleSave, disabled: !!isScraping || isLoading || isExtracting, className: "w-full mt-6 bg-gray-800 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-700 disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200", children: isLoading ? 'Capturing...' : 'Capture to JATA' }), _jsx("button", { onClick: handleGeneratePack, disabled: !isLoggedIn || !!isScraping || isLoading || isExtracting, className: "w-full mt-3 bg-indigo-600 text-white rounded-md py-2.5 text-sm font-medium hover:bg-indigo-700 disabled:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200", children: "Generate Pack \u2192" }), _jsx("div", { className: "mt-3 flex justify-center", children: _jsx("button", { onClick: openDashboard, className: "text-xs text-gray-500 hover:text-indigo-400 transition-colors duration-200", children: "Open Capture Inbox" }) }), _jsxs("div", { className: "mt-3 flex items-center justify-center gap-2 text-xs text-gray-500", children: [_jsx("div", { className: `w-1.5 h-1.5 rounded-full ${isOnline() ? 'bg-green-500' : 'bg-gray-500'}` }), _jsx("span", { children: isOnline() ? 'Connected' : 'Offline mode' })] })] }));
+                                    : '⚠ Weak capture', ' ', "(", Math.round(confidence.confidenceScore * 100), "%)"] }), confidence.missingFields.length > 0 && (_jsxs("span", { className: "opacity-70", children: ["Missing: ", confidence.missingFields.join(', ')] }))] })), _jsx("button", { onClick: handleAutoFill, disabled: isLoading || isExtracting || !!isScraping, className: "w-full mb-4 bg-indigo-600 text-white rounded-md py-2 text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors duration-200", children: isExtracting ? 'Refreshing...' : 'Refresh from Page' }), _jsx("div", { className: "space-y-3", children: displayFields.map((key) => (_jsxs("div", { children: [_jsx("label", { className: "block text-xs font-medium text-gray-400 mb-1.5", children: fieldLabels[key] }), _jsxs("div", { className: "flex items-center gap-2", children: [key === 'jobDescription' ? (_jsx("textarea", { value: data[key], onChange: (e) => setData((prev) => {
+                                        const nextData = { ...prev, [key]: e.target.value };
+                                        saveStoredDraft(nextData);
+                                        return nextData;
+                                    }), placeholder: fieldPlaceholders[key], className: "w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500", rows: 3 })) : (_jsx("input", { type: "text", value: data[key] || '', onChange: (e) => setData((prev) => {
+                                        const nextData = { ...prev, [key]: e.target.value };
+                                        saveStoredDraft(nextData);
+                                        return nextData;
+                                    }), placeholder: fieldPlaceholders[key], className: "w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" })), _jsx("button", { onClick: () => handleSelect(key), disabled: !!isScraping || isLoading || isExtracting, className: "px-3 py-2 bg-gray-700 text-white rounded-md text-xs font-medium hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors duration-200 whitespace-nowrap", children: "Pick" })] })] }, key))) }), _jsx("button", { onClick: handleSave, disabled: !!isScraping || isLoading || isExtracting, className: "w-full mt-6 bg-gray-800 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-700 disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200", children: isLoading ? 'Capturing...' : 'Capture to JATA' }), _jsx("button", { onClick: handleGeneratePack, disabled: !isLoggedIn || !!isScraping || isLoading || isExtracting, className: "w-full mt-3 bg-indigo-600 text-white rounded-md py-2.5 text-sm font-medium hover:bg-indigo-700 disabled:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200", children: "Generate Pack \u2192" }), _jsx("div", { className: "mt-3 flex justify-center", children: _jsx("button", { onClick: openDashboard, className: "text-xs text-gray-500 hover:text-indigo-400 transition-colors duration-200", children: "Open Capture Inbox" }) }), _jsxs("div", { className: "mt-3 flex items-center justify-center gap-2 text-xs text-gray-500", children: [_jsx("div", { className: `w-1.5 h-1.5 rounded-full ${isOnline() ? 'bg-green-500' : 'bg-gray-500'}` }), _jsx("span", { children: isOnline() ? 'Connected' : 'Offline mode' })] })] }));
 };
 export default App;

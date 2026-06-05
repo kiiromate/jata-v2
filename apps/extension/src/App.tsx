@@ -64,6 +64,7 @@ const EMPTY_APPLICATION_DATA: ApplicationData = {
 };
 
 const POPUP_DRAFT_KEY = 'jata-popup-capture-draft';
+const PICK_FIELDS_KEY = 'pickedFields';
 
 type AutoExtractResponse = {
   data?: Partial<ApplicationData> | null;
@@ -85,6 +86,22 @@ const normalizeExtractedData = (extracted?: Partial<ApplicationData> | null): Ap
 
 const hasCapturedContent = (nextData: ApplicationData): boolean =>
   Boolean(nextData.jobTitle || nextData.companyName || nextData.jobUrl || nextData.jobDescription);
+
+const mergeApplicationData = (
+  current: ApplicationData,
+  incoming: Partial<ApplicationData>,
+  overwrite = false,
+): ApplicationData => ({
+  ...current,
+  ...Object.fromEntries(
+    (Object.keys(EMPTY_APPLICATION_DATA) as Array<keyof ApplicationData>)
+      .map((key) => {
+        const value = incoming[key]?.trim() ?? '';
+        if (!value) return [key, current[key] ?? ''];
+        return [key, overwrite || !(current[key]?.trim()) ? value : current[key]];
+      }),
+  ) as ApplicationData,
+});
 
 /** Build the chrome.storage.session key for a given tab. */
 const captureSessionKey = (tabId: number) => `jata-capture-${tabId}`;
@@ -123,9 +140,19 @@ const App: React.FC = () => {
     });
   }, [data]);
 
-  const clearStoredDraft = useCallback(() => {
+  const saveStoredDraft = useCallback((nextData: ApplicationData) => {
     if (typeof chrome === 'undefined' || !chrome.storage?.local) return;
-    chrome.storage.local.remove(POPUP_DRAFT_KEY);
+    if (hasCapturedContent(nextData)) {
+      chrome.storage.local.set({ [POPUP_DRAFT_KEY]: nextData });
+    } else {
+      chrome.storage.local.remove(POPUP_DRAFT_KEY);
+    }
+  }, []);
+
+  const clearStoredDraft = useCallback(() => {
+    if (typeof chrome === 'undefined') return;
+    chrome.storage?.local?.remove(POPUP_DRAFT_KEY);
+    chrome.storage?.session?.remove([PICK_FIELDS_KEY, 'pickMode', 'jata-pick-pending']);
   }, []);
 
   /**
@@ -149,10 +176,7 @@ const App: React.FC = () => {
     }
   }, [clearStoredDraft]);
 
-  const refreshFromCurrentPage = useCallback((showStatus = true) => {
-    setData(createEmptyApplicationData());
-    clearStoredDraft();
-
+  const refreshFromCurrentPage = useCallback((showStatus = true, overwrite = false) => {
     if (showStatus) {
       setStatusMessage('Refreshing from current page...');
     }
@@ -183,8 +207,13 @@ const App: React.FC = () => {
             return;
           }
 
-          const nextData = normalizeExtractedData(response?.data);
-          setData(nextData);
+          const extractedData = normalizeExtractedData(response?.data);
+          let nextData = extractedData;
+          setData((current) => {
+            nextData = overwrite ? extractedData : mergeApplicationData(current, extractedData);
+            saveStoredDraft(nextData);
+            return nextData;
+          });
 
           if (!hasCapturedContent(nextData)) {
             setStatusMessage('No job content detected on this page. Pick fields manually if needed.');
@@ -196,7 +225,7 @@ const App: React.FC = () => {
         },
       );
     });
-  }, [clearStoredDraft]);
+  }, [saveStoredDraft]);
 
   /**
    * Check authentication status on mount, load queue size, and restore any
@@ -242,29 +271,31 @@ const App: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    clearStoredDraft();
-  }, [clearStoredDraft]);
-
   /**
    * Auto-extract job details on mount
    */
   useEffect(() => {
     if (isLoggedIn && typeof chrome !== 'undefined' && chrome.tabs) {
-      if (chrome.storage?.session) {
-        chrome.storage.session.get(['pickMode', 'pickedFields'], (stored) => {
-          if (stored.pickMode && stored.pickedFields) {
-            setData(normalizeExtractedData(stored.pickedFields));
-            setStatusMessage('Restored picked values.');
-          } else {
+      if (chrome.storage?.local && chrome.storage?.session) {
+        chrome.storage.local.get([POPUP_DRAFT_KEY], (localStored) => {
+          const draft = normalizeExtractedData(localStored[POPUP_DRAFT_KEY] as Partial<ApplicationData> | undefined);
+          chrome.storage.session.get(['pickMode', PICK_FIELDS_KEY], (sessionStored) => {
+            const picked = normalizeExtractedData(sessionStored[PICK_FIELDS_KEY] as Partial<ApplicationData> | undefined);
+            const restored = mergeApplicationData(draft, picked, false);
+            if (hasCapturedContent(restored)) {
+              setData(restored);
+              saveStoredDraft(restored);
+              setStatusMessage(sessionStored.pickMode ? 'Restored picked values.' : 'Restored draft.');
+              return;
+            }
             refreshFromCurrentPage(false);
-          }
+          });
         });
       } else {
         refreshFromCurrentPage(false);
       }
     }
-  }, [isLoggedIn, refreshFromCurrentPage]);
+  }, [isLoggedIn, refreshFromCurrentPage, saveStoredDraft]);
 
   /**
    * Handles incoming messages from the content script, specifically for when
@@ -275,11 +306,14 @@ const App: React.FC = () => {
 
     const messageListener = (message: Message, _sender: chrome.runtime.MessageSender, sendResponse: SendResponse) => {
       if (message.action === 'elementSelected' && message.data && isScraping) {
-        console.log(`Received data for ${isScraping}:`, message.data?.textContent);
-        setData(prevData => ({
-          ...prevData,
-          [isScraping]: message.data?.textContent || '',
-        }));
+        setData(prevData => {
+          const nextData = {
+            ...prevData,
+            [isScraping]: message.data?.textContent || '',
+          };
+          saveStoredDraft(nextData);
+          return nextData;
+        });
         setIsScraping(null); // Reset scraping state
         sendResponse({ status: 'success' });
       }
@@ -309,7 +343,7 @@ const App: React.FC = () => {
         // Save current data so we don't lose typed-in fields
         chrome.storage.session.set({
           'jata-pick-pending': { field, startedAt: Date.now() },
-          pickedFields: data,
+          [PICK_FIELDS_KEY]: data,
           pickMode: true
         });
       }
@@ -320,7 +354,7 @@ const App: React.FC = () => {
           setStatusMessage('Error: Could not start selector.');
           setIsScraping(null);
         } else {
-          console.log(response?.status);
+          if (response?.status) setStatusMessage(`Selector ready for ${field}.`);
         }
       });
     } else {
@@ -480,7 +514,7 @@ const App: React.FC = () => {
    */
   const handleAutoFill = async () => {
     if (typeof chrome !== 'undefined' && chrome.storage?.session) {
-      chrome.storage.session.remove(['pickMode', 'pickedFields', 'jata-pick-pending']);
+      chrome.storage.session.remove(['pickMode', 'jata-pick-pending']);
     }
     refreshFromCurrentPage(true);
   };
@@ -489,9 +523,56 @@ const App: React.FC = () => {
    * Opens the Resume Tailor page with the current job data.
    */
   const handleGeneratePack = async () => {
-    if (typeof chrome !== 'undefined' && chrome.storage?.session) {
-      await chrome.storage.session.set({ pendingPackJob: data });
-      void openJataPath('/resume-tailor?from=extension');
+    if (!data.jobTitle || !data.companyName) {
+      setStatusMessage('Please fill in at least job title and company name.');
+      return;
+    }
+
+    setIsLoading(true);
+    setStatusMessage('Saving before opening pack...');
+
+    try {
+      const user = await getCurrentUser();
+      if (!user) {
+        setStatusMessage('Please sign in to generate a pack.');
+        return;
+      }
+
+      const industry = data.industry || detectIndustry(data.jobTitle, data.jobDescription);
+      const details = { ...data, industry };
+
+      if (!isOnline()) {
+        await addToQueue(details);
+        setQueueSize(await getQueueSize());
+        setStatusMessage('Saved to queue. Open Capture Inbox after sync to generate a pack.');
+        void openJataPath('/capture-inbox');
+        return;
+      }
+
+      const result = await captureJobToInbox(details, {
+        pageTitle: data.jobTitle,
+        captureSurface: 'popup_generate_pack',
+      });
+
+      if (result.captureId && (result.state === 'captured' || result.state === 'possible_duplicate' || result.state === 'duplicate')) {
+        clearStoredDraft();
+        void openJataPath(`/resume-tailor/${encodeURIComponent(result.captureId)}`);
+        return;
+      }
+
+      if (result.state === 'error') {
+        await addToQueue(details);
+        setQueueSize(await getQueueSize());
+      }
+      setStatusMessage(`${result.message} Open Capture Inbox to continue.`);
+      void openJataPath('/capture-inbox');
+    } catch (error) {
+      await addToQueue(data);
+      setQueueSize(await getQueueSize());
+      setStatusMessage('Saved to queue. Open Capture Inbox after sync to generate a pack.');
+      void openJataPath('/capture-inbox');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -572,8 +653,16 @@ const App: React.FC = () => {
 
         <div className="space-y-2">
           <button
-            onClick={() => void openJataPath('/capture-inbox')}
+            onClick={() => captureResult.captureId
+              ? void openJataPath(`/resume-tailor/${encodeURIComponent(captureResult.captureId)}`)
+              : void openJataPath('/capture-inbox')}
             className="w-full bg-indigo-600 text-white rounded-md py-2.5 text-sm font-medium hover:bg-indigo-700 transition-colors duration-200"
+          >
+            Generate Pack
+          </button>
+          <button
+            onClick={() => void openJataPath('/capture-inbox')}
+            className="w-full bg-gray-800 text-white rounded-md py-2.5 text-sm font-medium hover:bg-gray-700 transition-colors duration-200"
           >
             View in JATA
           </button>
@@ -683,9 +772,11 @@ const App: React.FC = () => {
               {key === 'jobDescription' ? (
                 <textarea
                   value={data[key]}
-                  onChange={(e) =>
-                    setData((prev) => ({ ...prev, [key]: e.target.value }))
-                  }
+                  onChange={(e) => setData((prev) => {
+                    const nextData = { ...prev, [key]: e.target.value };
+                    saveStoredDraft(nextData);
+                    return nextData;
+                  })}
                   placeholder={fieldPlaceholders[key]}
                   className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   rows={3}
@@ -694,9 +785,11 @@ const App: React.FC = () => {
                 <input
                   type="text"
                   value={data[key] || ''}
-                  onChange={(e) =>
-                    setData((prev) => ({ ...prev, [key]: e.target.value }))
-                  }
+                  onChange={(e) => setData((prev) => {
+                    const nextData = { ...prev, [key]: e.target.value };
+                    saveStoredDraft(nextData);
+                    return nextData;
+                  })}
                   placeholder={fieldPlaceholders[key]}
                   className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />

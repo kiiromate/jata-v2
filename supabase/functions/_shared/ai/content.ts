@@ -269,8 +269,51 @@ function stripJsonFence(value: string): string {
     .trim();
 }
 
+function extractJsonObject(value: string): string {
+  const fenced = stripJsonFence(value);
+  if (fenced.startsWith('{') && fenced.endsWith('}')) return fenced;
+
+  const start = fenced.indexOf('{');
+  if (start === -1) return fenced;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = start; index < fenced.length; index += 1) {
+    const char = fenced[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) continue;
+
+    if (char === '{') depth += 1;
+    if (char === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return fenced.slice(start, index + 1).trim();
+      }
+    }
+  }
+
+  return fenced;
+}
+
 export function parseTailoredResumeJson(value: string): TailoredResumeStructured {
-  const cleaned = stripJsonFence(value);
+  const cleaned = extractJsonObject(value);
   try {
     return normalizeTailoredResumeStructured(JSON.parse(cleaned));
   } catch (error) {
@@ -618,7 +661,7 @@ export function createStubTailoredResumeOutput(input: AiBaseInput): AiTailoredRe
   const skills = extractKnownSkills(cleanText(input.cvText));
   const firstSkill = skills[0] || 'Evidence needed: verified skill from the CV';
   const structured = normalizeTailoredResumeStructured({
-    summary: `Tailored resume draft for ${jobTitle} at ${companyName}. Use this mock output only after checking every claim against the original CV.`,
+    summary: `Tailored resume fallback for ${jobTitle} at ${companyName}. Use this output only after checking every claim against the original CV.`,
     skills: skills.length ? skills : [firstSkill],
     experience: [
       {

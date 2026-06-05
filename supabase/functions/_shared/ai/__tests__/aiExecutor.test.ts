@@ -460,6 +460,58 @@ describe('ai prompt privacy and cache keys', () => {
     ]);
   });
 
+  it('parses tailored resume JSON when the provider wraps it in prose and fences', () => {
+    const structured = parseTailoredResumeJson(`
+      Here is the tailored resume JSON:
+
+      \`\`\`json
+      {
+        "summary": "Frontend engineer focused on React dashboards.",
+        "skills": ["React", "TypeScript"],
+        "experience": [
+          {
+            "role": "Product Engineer",
+            "company": "Acme",
+            "location": "Remote",
+            "dates": "January 2022 - Present",
+            "bullets": ["Built React dashboards."]
+          }
+        ],
+        "education": [],
+        "projects_or_additional": [],
+        "claimsToVerify": ["Confirm dashboard scope."]
+      }
+      \`\`\`
+    `);
+
+    expect(structured.summary).toBe('Frontend engineer focused on React dashboards.');
+    expect(structured.experience[0].role).toBe('Product Engineer');
+    expect(structured.claimsToVerify).toEqual(['Confirm dashboard scope.']);
+  });
+
+  it('returns structured no-AI fallback for tailored resumes when the provider is unavailable', async () => {
+    const unavailableProvider = createProvider('openrouter');
+    unavailableProvider.generateTailoredResume = async () => {
+      throw new Error('OpenRouter API error: 503 - unavailable');
+    };
+
+    const result = await executeAiTask({
+      userId: 'user-1',
+      taskType: 'generateTailoredResume',
+      input: tailoredResumeInput,
+      provider: unavailableProvider,
+      usageStore: createUsageStore(),
+      creditsStore: createCreditsStore(),
+      env: {},
+      now: () => new Date('2026-01-01T00:00:00.000Z'),
+    });
+
+    expect(result.metadata.provider).toBe('none');
+    expect(result.output.structured.summary).toContain('Tailored resume fallback');
+    expect(result.output.markdown).toContain('## Summary');
+    expect(result.output.structured.claimsToVerify.length).toBeGreaterThan(0);
+  });
+
   it('keys cache entries by opportunity hash, resume/profile version, and generation type', async () => {
     const first = await hashTaskInput('generateCoverLetter', {
       ...baseInput,

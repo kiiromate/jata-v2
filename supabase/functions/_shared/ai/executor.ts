@@ -1,5 +1,6 @@
 import {
   buildPrompt,
+  createStubTailoredResumeOutput,
   ensureMatchOutputSafety,
   ensureTailoredResumeOutputSafety,
   ensureTextOutputSafety,
@@ -145,6 +146,23 @@ function ensureOutputSafety<T extends AiTaskType>(
   return ensureTextOutputSafety(output as never, input, taskType) as AiTaskOutput<T>;
 }
 
+function isProviderUnavailableError(error: Error): boolean {
+  return [
+    'API key not configured',
+    'JATA_AI_MODEL_DEFAULT is required',
+    'Failed to fetch',
+    'network',
+    'timeout',
+    'API error: 401',
+    'API error: 403',
+    'API error: 429',
+    'API error: 500',
+    'API error: 502',
+    'API error: 503',
+    'API error: 504',
+  ].some((marker) => error.message.toLowerCase().includes(marker.toLowerCase()));
+}
+
 /** Logs blocked and failed attempts without raw prompt text. */
 async function logNonSuccess<T extends AiTaskType>(
   request: AiExecutionRequest<T>,
@@ -260,6 +278,45 @@ export async function executeAiTask<T extends AiTaskType>(
     return payload;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown AI provider error';
+
+    if (
+      request.taskType === 'generateTailoredResume' &&
+      request.provider.mode !== 'none' &&
+      isProviderUnavailableError(error instanceof Error ? error : new Error(message))
+    ) {
+      const output = ensureTailoredResumeOutputSafety(
+        createStubTailoredResumeOutput(request.input),
+        request.input,
+      ) as AiTaskOutput<T>;
+      const responseText = outputToText(output);
+      const payload: AiOutputPayload<T> = {
+        taskType: request.taskType,
+        output,
+        metadata: {
+          provider: 'none',
+          model: 'ai-unavailable-structured-fallback',
+          generatedAt: now.toISOString(),
+          cached: false,
+        },
+      };
+
+      await request.usageStore.logOutput({
+        userId: request.userId,
+        provider: request.provider.mode,
+        model: request.provider.model || '',
+        taskType: request.taskType,
+        inputHash,
+        outputHash: await sha256(responseText),
+        promptCharCount,
+        responseCharCount: responseText.length,
+        latencyMs: Date.now() - startedAt,
+        status: 'success',
+        outputPayload: payload,
+      });
+
+      return payload;
+    }
+
     await logNonSuccess(request, inputHash, promptCharCount, 'failed', message);
     throw error;
   }

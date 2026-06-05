@@ -105,7 +105,7 @@ const clickHandler = (event) => {
         selector: createCssSelector(clickedEl),
         textContent: clickedEl.textContent?.trim() || ''
     };
-    console.log('JATA Scraper: Element selected', data);
+    console.log('JATA Scraper: Element selected');
     chrome.runtime.sendMessage({ action: 'elementSelected', data });
     cleanup();
 };
@@ -117,7 +117,7 @@ const selectionMouseupHandler = () => {
         selector: 'selected-text',
         textContent: selectedText,
     };
-    console.log('JATA Scraper: Text selected', data);
+    console.log('JATA Scraper: Text selected');
     chrome.runtime.sendMessage({ action: 'elementSelected', data });
     cleanup();
 };
