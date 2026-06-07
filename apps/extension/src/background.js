@@ -15,6 +15,24 @@ import { captureJobToInbox } from './lib/captureInboxClient';
 import { addToQueue } from './lib/offlineQueue';
 import { syncSessionFromWebApp } from './lib/supabaseClient';
 import { buildJataWebUrl, rememberJataWebOrigin } from './lib/webAppOrigin';
+function messageAction(message) {
+    if (!message || typeof message !== 'object' || !('action' in message))
+        return 'unknown';
+    const action = message.action;
+    return typeof action === 'string' ? action : 'unknown';
+}
+function responseStatus(response) {
+    if (!response || typeof response !== 'object')
+        return 'received';
+    const typed = response;
+    if (typeof typed.status === 'string')
+        return typed.status;
+    if (typeof typed.state === 'string')
+        return typed.state;
+    if (typeof typed.error === 'string')
+        return 'error';
+    return 'received';
+}
 chrome.runtime.onInstalled.addListener((details) => {
     console.log('JATA Extension installed:', details);
     // This is a good place to set up initial state in chrome.storage if needed.
@@ -133,10 +151,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // We only forward messages from other parts of the extension (like the popup),
     // not from content scripts, to avoid potential message loops.
     if (sender.tab) {
-        console.log('Message received from a content script, not forwarding:', message);
+        console.log('Message received from a content script, not forwarding:', messageAction(message));
         return; // Do not process message further.
     }
-    console.log('Message received in background script, preparing to forward:', message);
+    console.log('Message received in background script, preparing to forward:', messageAction(message));
     // Find the currently active tab to forward the message to.
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const activeTab = tabs[0];
@@ -150,7 +168,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
                 else {
                     // Relay the response from the content script back to the original sender.
-                    console.log('Received response from content script:', response);
+                    console.log('Received response from content script:', responseStatus(response));
                     sendResponse(response);
                 }
             });

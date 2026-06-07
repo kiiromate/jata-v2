@@ -73,7 +73,7 @@ export async function generateCoverLetter(
       safety: payload.output.safety,
     };
   } catch (error) {
-    console.error('Cover letter generation error:', error);
+    console.error('Cover letter generation error:', error instanceof Error ? error.message : 'Unknown error.');
     return generateTemplateBasedCoverLetter(params);
   }
 }

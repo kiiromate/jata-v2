@@ -193,7 +193,7 @@ export const analyzeResumeAgainstJobDescription = async (
       metadata: payload.metadata,
     };
   } catch (error) {
-    console.warn('AI analysis failed, using local fallback:', error);
+    console.warn('AI analysis failed, using local fallback:', error instanceof Error ? error.message : 'Unknown error.');
     const resumeSkills = extractSkills(resumeText);
     const jobSkills = extractSkills(jobDescriptionText);
     const safety = createFallbackSafety([

@@ -71,7 +71,7 @@ serve(async (req) => {
       .eq('user_id', targetUserId)
 
     if (appsError) {
-      console.error('Error deleting applications:', appsError)
+      console.error('Error deleting applications:', appsError.message)
       return new Response(
         JSON.stringify({ error: 'Failed to delete user applications' }),
         { 
@@ -88,7 +88,7 @@ serve(async (req) => {
       .eq('user_id', targetUserId)
 
     if (resumesError) {
-      console.error('Error deleting resumes:', resumesError)
+      console.error('Error deleting resumes:', resumesError.message)
       return new Response(
         JSON.stringify({ error: 'Failed to delete user resumes' }),
         { 
@@ -105,7 +105,7 @@ serve(async (req) => {
       .eq('id', targetUserId)
 
     if (profileError) {
-      console.error('Error deleting user profile:', profileError)
+      console.error('Error deleting user profile:', profileError.message)
       return new Response(
         JSON.stringify({ error: 'Failed to delete user profile' }),
         { 
@@ -119,7 +119,7 @@ serve(async (req) => {
     const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(targetUserId)
 
     if (authDeleteError) {
-      console.error('Error deleting auth user:', authDeleteError)
+      console.error('Error deleting auth user:', authDeleteError.message)
       return new Response(
         JSON.stringify({ error: 'Failed to delete user authentication' }),
         { 
@@ -163,7 +163,7 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Unexpected error:', error)
+    console.error('Unexpected error:', error instanceof Error ? error.message : 'Unknown error')
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { 

@@ -25,6 +25,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FileUpload } from "@/components/FileUpload";
 import type { FileUploadResult } from "@/services/fileUploadService";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   buildApplicationPackWorkflow,
@@ -35,6 +36,7 @@ import {
 } from "@jata/common";
 
 type Resume = Database['public']['Tables']['resumes']['Row'];
+type ExportTarget = 'cover-letter-docx' | 'cover-letter-pdf' | 'resume-docx' | 'resume-pdf';
 
 function readObject(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -157,6 +159,7 @@ function ExpandableSection({
 const ResumeTailorPage = () => {
   const { id: applicationId } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
@@ -171,6 +174,7 @@ const ResumeTailorPage = () => {
   const [aiTailoredResume, setAiTailoredResume] = useState<TailoredResumeContent | null>(null);
   const [showManualJobInput, setShowManualJobInput] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [activeExport, setActiveExport] = useState<ExportTarget | null>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
   const analysisStartRef = useRef<number | null>(null);
 
@@ -453,6 +457,30 @@ const ResumeTailorPage = () => {
 
   const scoreColor = (score: number) =>
     score >= 70 ? 'text-jata-status-offer' : score >= 50 ? 'text-jata-status-interview' : 'text-jata-status-rejected';
+
+  const aiAttempted = aiPackStatus === 'done' || aiPackStatus === 'unavailable' || aiPackStatus === 'error';
+  const isExporting = (target: ExportTarget) => activeExport === target;
+  const exportInProgress = Boolean(activeExport);
+
+  const runDocumentExport = async (target: ExportTarget, label: string, action: () => Promise<void>) => {
+    if (activeExport) return;
+    setActiveExport(target);
+    try {
+      await action();
+      toast({
+        title: 'Download started',
+        description: `${label} should appear in your browser downloads.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Download failed',
+        description: error instanceof Error ? error.message : `Could not prepare ${label}.`,
+        variant: 'destructive',
+      });
+    } finally {
+      setActiveExport((current) => (current === target ? null : current));
+    }
+  };
 
   return (
     <div className="container mx-auto p-sm sm:p-md lg:p-lg space-y-md">
@@ -794,28 +822,34 @@ const ResumeTailorPage = () => {
                     <CopySection title="Cover Letter (AI Generated)" content={aiCoverLetter} />
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" variant="outline" size="sm"
-                        onClick={() => void exportCoverLetterDocx(buildCoverLetterDocument({
-                          candidateName, candidateEmail: user?.email,
-                          roleTitle: applicationData?.title ?? 'the role',
-                          companyName: applicationData?.company ?? 'the company',
-                          coverLetterText: aiCoverLetter,
-                        }))}>
-                        Download DOCX
+                        disabled={exportInProgress}
+                        onClick={() => void runDocumentExport('cover-letter-docx', 'Cover letter DOCX', () =>
+                          exportCoverLetterDocx(buildCoverLetterDocument({
+                            candidateName, candidateEmail: user?.email,
+                            roleTitle: applicationData?.title ?? 'the role',
+                            companyName: applicationData?.company ?? 'the company',
+                            coverLetterText: aiCoverLetter,
+                          })),
+                        )}>
+                        {isExporting('cover-letter-docx') ? 'Preparing DOCX…' : 'Download DOCX'}
                       </Button>
                       <Button type="button" variant="outline" size="sm"
-                        onClick={() => void exportCoverLetterPdf(buildCoverLetterDocument({
-                          candidateName, candidateEmail: user?.email,
-                          roleTitle: applicationData?.title ?? 'the role',
-                          companyName: applicationData?.company ?? 'the company',
-                          coverLetterText: aiCoverLetter,
-                        }))}>
-                        Download PDF
+                        disabled={exportInProgress}
+                        onClick={() => void runDocumentExport('cover-letter-pdf', 'Cover letter PDF', () =>
+                          exportCoverLetterPdf(buildCoverLetterDocument({
+                            candidateName, candidateEmail: user?.email,
+                            roleTitle: applicationData?.title ?? 'the role',
+                            companyName: applicationData?.company ?? 'the company',
+                            coverLetterText: aiCoverLetter,
+                          })),
+                        )}>
+                        {isExporting('cover-letter-pdf') ? 'Preparing PDF…' : 'Download PDF'}
                       </Button>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {(aiPackStatus === 'unavailable' || aiPackStatus === 'error') && (
+                    {(aiPackStatus === 'unavailable' || aiPackStatus === 'error' || aiAttempted) && (
                       <p className="text-xs text-jata-status-interview font-mono">
                         AI writing unavailable — using template. Edit before sending.
                       </p>
@@ -838,22 +872,28 @@ const ResumeTailorPage = () => {
                     </pre>
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" variant="outline" size="sm"
-                        onClick={() => void exportResumeDocx(buildResumeDocument({
-                          candidateName, candidateEmail: user?.email,
-                          roleTitle: applicationData?.title ?? 'the role',
-                          companyName: applicationData?.company ?? 'the company',
-                          tailoredResume: aiTailoredResume,
-                        }))}>
-                        Download Resume DOCX
+                        disabled={exportInProgress}
+                        onClick={() => void runDocumentExport('resume-docx', 'Tailored resume DOCX', () =>
+                          exportResumeDocx(buildResumeDocument({
+                            candidateName, candidateEmail: user?.email,
+                            roleTitle: applicationData?.title ?? 'the role',
+                            companyName: applicationData?.company ?? 'the company',
+                            tailoredResume: aiTailoredResume,
+                          })),
+                        )}>
+                        {isExporting('resume-docx') ? 'Preparing DOCX…' : 'Download Resume DOCX'}
                       </Button>
                       <Button type="button" variant="outline" size="sm"
-                        onClick={() => void exportResumePdf(buildResumeDocument({
-                          candidateName, candidateEmail: user?.email,
-                          roleTitle: applicationData?.title ?? 'the role',
-                          companyName: applicationData?.company ?? 'the company',
-                          tailoredResume: aiTailoredResume,
-                        }))}>
-                        Download Resume PDF
+                        disabled={exportInProgress}
+                        onClick={() => void runDocumentExport('resume-pdf', 'Tailored resume PDF', () =>
+                          exportResumePdf(buildResumeDocument({
+                            candidateName, candidateEmail: user?.email,
+                            roleTitle: applicationData?.title ?? 'the role',
+                            companyName: applicationData?.company ?? 'the company',
+                            tailoredResume: aiTailoredResume,
+                          })),
+                        )}>
+                        {isExporting('resume-pdf') ? 'Preparing PDF…' : 'Download Resume PDF'}
                       </Button>
                     </div>
                   </div>
@@ -861,6 +901,21 @@ const ResumeTailorPage = () => {
                   <p className="text-xs text-jata-text-muted animate-pulse font-mono">
                     Generating tailored resume…
                   </p>
+                ) : aiAttempted ? (
+                  <div className="space-y-3">
+                    <p className="text-xs text-jata-status-interview font-mono">
+                      Tailored resume generation unavailable — use the original resume text as a manual fallback and retry before downloading.
+                    </p>
+                    {resumeText.trim() ? (
+                      <pre className="whitespace-pre-wrap text-xs text-jata-text-secondary bg-jata-bg-surface border border-jata-border rounded p-3 max-h-64 overflow-y-auto">
+                        {resumeText}
+                      </pre>
+                    ) : (
+                      <p className="text-xs text-jata-status-rejected font-mono">
+                        No resume text is available for a manual fallback.
+                      </p>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-xs text-jata-text-muted font-mono">
                     Not yet generated. Run Analyze &amp; Tailor to produce a tailored resume.
@@ -912,7 +967,14 @@ const ResumeTailorPage = () => {
                   ) : aiRecruiterMsg ? (
                     <CopySection title="Recruiter Message (AI Generated)" content={aiRecruiterMsg} />
                   ) : (
-                    <CopySection title="Recruiter Message (Template)" content={packWorkflow.sections.recruiterMessage} />
+                    <div className="space-y-2">
+                      {aiAttempted && (
+                        <p className="text-xs text-jata-status-interview font-mono">
+                          AI recruiter message unavailable — using template.
+                        </p>
+                      )}
+                      <CopySection title="Recruiter Message (Template)" content={packWorkflow.sections.recruiterMessage} />
+                    </div>
                   )}
                   {aiPackStatus === 'generating' && !aiFollowUpMsg ? (
                     <div className="space-y-2 animate-pulse">
@@ -923,7 +985,14 @@ const ResumeTailorPage = () => {
                   ) : aiFollowUpMsg ? (
                     <CopySection title="Follow-Up Message (AI Generated)" content={aiFollowUpMsg} />
                   ) : (
-                    <CopySection title="Follow-Up Message (Template)" content={packWorkflow.sections.followUpMessage} />
+                    <div className="space-y-2">
+                      {aiAttempted && (
+                        <p className="text-xs text-jata-status-interview font-mono">
+                          AI follow-up message unavailable — using template.
+                        </p>
+                      )}
+                      <CopySection title="Follow-Up Message (Template)" content={packWorkflow.sections.followUpMessage} />
+                    </div>
                   )}
                 </div>
               </ExpandableSection>

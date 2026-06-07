@@ -88,10 +88,30 @@ function sliceTelegramText(text: string, entity: TelegramEntity): string {
   return text.slice(entity.offset, entity.offset + entity.length);
 }
 
+function isTelegramUrlBoundary(value: string): boolean {
+  return /\s|[<>"')\]]/.test(value);
+}
+
+function sliceTelegramUrlCandidate(text: string, entity: TelegramEntity): string {
+  let start = Math.max(0, Math.min(entity.offset, text.length));
+  let end = Math.max(start, Math.min(entity.offset + entity.length, text.length));
+
+  while (start > 0 && !isTelegramUrlBoundary(text[start - 1])) start -= 1;
+  while (end < text.length && !isTelegramUrlBoundary(text[end])) end += 1;
+
+  return text.slice(start, end);
+}
+
 function urlFromEntities(text: string, entities: TelegramEntity[] = []): string {
   for (const entity of entities) {
     if (entity.type === 'text_link' && entity.url) return entity.url;
-    if (entity.type === 'url') return extractFirstUrl(sliceTelegramText(text, entity)) || extractFirstUrl(text);
+    if (entity.type === 'url') {
+      return (
+        extractFirstUrl(sliceTelegramUrlCandidate(text, entity)) ||
+        extractFirstUrl(sliceTelegramText(text, entity)) ||
+        extractFirstUrl(text)
+      );
+    }
   }
 
   return '';

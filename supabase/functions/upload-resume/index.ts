@@ -67,7 +67,7 @@ serve(async (req: Request): Promise<Response> => {
       .upload(filePath, file)
 
     if (uploadError) {
-      console.error('Storage Error:', uploadError)
+      console.error('Storage Error:', uploadError.message)
       return new Response(JSON.stringify({ error: 'Failed to upload file' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
@@ -83,7 +83,7 @@ serve(async (req: Request): Promise<Response> => {
         extractedText = await extractTextFromDocx(fileBuffer)
       }
     } catch (extractErr) {
-      console.warn('Text extraction failed, file saved without text content:', extractErr)
+      console.warn('Text extraction failed, file saved without text content:', extractErr instanceof Error ? extractErr.message : 'Unknown extraction error')
     }
 
     const { error: dbError } = await supabase.from('resumes').insert({
@@ -94,7 +94,7 @@ serve(async (req: Request): Promise<Response> => {
     })
 
     if (dbError) {
-      console.error('Database Error:', dbError)
+      console.error('Database Error:', dbError.message)
       return new Response(JSON.stringify({ error: 'Failed to save resume data' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
@@ -107,7 +107,7 @@ serve(async (req: Request): Promise<Response> => {
     })
   } catch (e) {
     const error = e as Error
-    console.error('Unhandled Error:', error)
+    console.error('Unhandled Error:', error.message)
     return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

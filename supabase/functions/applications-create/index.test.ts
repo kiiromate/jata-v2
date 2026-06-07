@@ -1,6 +1,6 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { createClient, SupabaseClient, UserResponse, AuthError, PostgrestError, PostgrestSingleResponse } from '@supabase/supabase-js';
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { corsMiddleware } from '../_shared/cors';
 import handler from './index';
 

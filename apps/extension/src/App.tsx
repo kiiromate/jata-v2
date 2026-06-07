@@ -490,7 +490,7 @@ const App: React.FC = () => {
         setStatusMessage(result.message);
       }
     } catch (error) {
-      console.error('Failed to save application:', error);
+      console.error('Failed to save application:', error instanceof Error ? error.message : 'Save failed.');
 
       // Add to offline queue as fallback
       await addToQueue(data);

@@ -7,6 +7,9 @@
  */
 import { createClient } from '@supabase/supabase-js';
 console.log('Supabase Client Initializing...');
+function errorMessage(error) {
+    return error instanceof Error ? error.message : 'Unknown error.';
+}
 // These will be set during build time or loaded from chrome.storage
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -88,7 +91,7 @@ export const syncSessionFromWebApp = async (session) => {
         refresh_token: session.refresh_token,
     });
     if (error) {
-        console.error('Error syncing web session to extension:', error);
+        console.error('Error syncing web session to extension:', errorMessage(error));
         return false;
     }
     return Boolean(data.session?.user);
@@ -99,7 +102,7 @@ export const syncSessionFromWebApp = async (session) => {
 export const getCurrentUser = async () => {
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error) {
-        console.error('Error getting current user:', error);
+        console.error('Error getting current user:', errorMessage(error));
         return null;
     }
     return user;

@@ -127,7 +127,7 @@ export const processQueue = async (
         failedCount++;
       }
     } catch (error) {
-      console.error(`Failed to process queued item ${item.id}:`, error);
+      console.error(`Failed to process queued item ${item.id}:`, error instanceof Error ? error.message : 'Queue processing failed.');
       await markAsFailed(item.id);
       failedCount++;
     }

@@ -429,7 +429,7 @@ const handleAutoExtract = () => {
         return { data: extractedData };
     }
     catch (error) {
-        console.error('Auto-extraction failed:', error);
+        console.error('Auto-extraction failed:', error instanceof Error ? error.message : 'Auto-extraction failed.');
         return { data: null };
     }
 };

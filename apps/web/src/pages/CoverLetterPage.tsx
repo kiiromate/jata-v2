@@ -22,6 +22,8 @@ import {
 } from '@/services/documentExport';
 import { Skeleton } from '@/components/ui/skeleton';
 
+type DownloadTarget = 'txt' | 'docx' | 'pdf';
+
 const CoverLetterPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -38,6 +40,7 @@ const CoverLetterPage: React.FC = () => {
   // Generated cover letter
   const [generatedLetter, setGeneratedLetter] = useState<string | null>(null);
   const [generatedMetadata, setGeneratedMetadata] = useState<AiOutputMetadata | null>(null);
+  const [activeDownload, setActiveDownload] = useState<DownloadTarget | null>(null);
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -121,8 +124,28 @@ const CoverLetterPage: React.FC = () => {
     generateMutation.mutate();
   };
 
+  const runDownload = async (target: DownloadTarget, label: string, action: () => Promise<void> | void) => {
+    if (activeDownload) return;
+    setActiveDownload(target);
+    try {
+      await action();
+      toast({
+        title: 'Download started',
+        description: `${label} should appear in your browser downloads.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Download failed',
+        description: error instanceof Error ? error.message : `Could not prepare ${label}.`,
+        variant: 'destructive',
+      });
+    } finally {
+      setActiveDownload((current) => (current === target ? null : current));
+    }
+  };
+
   const handleDownload = () => {
-    if (!generatedLetter) return;
+    if (!generatedLetter) throw new Error('No cover letter content');
 
     const filename = generateCoverLetterFileName(
       userName.split(' ')[0],
@@ -141,11 +164,6 @@ const CoverLetterPage: React.FC = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-
-    toast({
-      title: 'Downloaded',
-      description: `Cover letter saved as ${filename}`,
-    });
   };
 
   const handleCopy = () => {
@@ -322,14 +340,19 @@ const CoverLetterPage: React.FC = () => {
                   <pre className="whitespace-pre-wrap text-sm font-mono">{generatedLetter}</pre>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button onClick={handleDownload} variant="outline">
-                    Download TXT
+                  <Button
+                    onClick={() => void runDownload('txt', 'Cover letter TXT', handleDownload)}
+                    disabled={Boolean(activeDownload)}
+                    variant="outline"
+                  >
+                    {activeDownload === 'txt' ? 'Preparing TXT...' : 'Download TXT'}
                   </Button>
                   <Button
                     variant="default"
-                    onClick={() => {
+                    disabled={Boolean(activeDownload)}
+                    onClick={() => void runDownload('docx', 'Cover letter DOCX', () => {
                       const candidateName = userName.trim() || 'Applicant';
-                      void exportCoverLetterDocx(buildCoverLetterDocument({
+                      return exportCoverLetterDocx(buildCoverLetterDocument({
                         candidateName,
                         candidateEmail: userEmail || undefined,
                         roleTitle: jobTitle || 'the role',
@@ -337,15 +360,16 @@ const CoverLetterPage: React.FC = () => {
                         coverLetterText: generatedLetter ?? '',
                         generatedAt: new Date().toISOString(),
                       }));
-                    }}
+                    })}
                   >
-                    Download DOCX
+                    {activeDownload === 'docx' ? 'Preparing DOCX...' : 'Download DOCX'}
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => {
+                    disabled={Boolean(activeDownload)}
+                    onClick={() => void runDownload('pdf', 'Cover letter PDF', () => {
                       const candidateName = userName.trim() || 'Applicant';
-                      void exportCoverLetterPdf(buildCoverLetterDocument({
+                      return exportCoverLetterPdf(buildCoverLetterDocument({
                         candidateName,
                         candidateEmail: userEmail || undefined,
                         roleTitle: jobTitle || 'the role',
@@ -353,9 +377,9 @@ const CoverLetterPage: React.FC = () => {
                         coverLetterText: generatedLetter ?? '',
                         generatedAt: new Date().toISOString(),
                       }));
-                    }}
+                    })}
                   >
-                    Download PDF
+                    {activeDownload === 'pdf' ? 'Preparing PDF...' : 'Download PDF'}
                   </Button>
                   <Button onClick={handleCopy} variant="outline">
                     Copy to Clipboard
